@@ -1833,7 +1833,31 @@
     }
 }
 
-        
+/* 重疊音符的視覺提示 */
+.note.overlapping, .long-note.overlapping {
+    /* 例如，使用紅色邊框 */
+    border: 2px solid #ff3366 !important; /* 使用 !important 確保覆蓋 */
+    /* 或者，使用閃爍動畫 */
+    /* animation: overlapPulse 0.5s infinite alternate; */
+    /* 或者，改變背景色 */
+    /* background-color: rgba(255, 51, 102, 0.3) !important; */
+}
+
+/* (可選) 為重疊音符添加閃爍動畫 */
+/*
+@keyframes overlapPulse {
+    0% { opacity: 1; }
+    100% { opacity: 0.5; }
+}
+*/
+
+/* 確保重疊提示在長音符上也有效 */
+.long-note.overlapping {
+    border: 2px solid #ff3366 !important;
+    /* 如果長音符有內部指示條，可能也需要改變其顏色 */
+    /* .long-note-fill { background-color: #ff3366 !important; } */
+    /* 請根據你的 .long-note-fill 實際樣式調整 */
+}        
 
         
     </style>
@@ -3441,6 +3465,49 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                         // ▲▲▲ 修訂核心邏輯結束 ▲▲▲
                     }
                 }
+                 // --- [新增] 檢測並標記重疊音符 ---
+    // 創建一個 Map 來追蹤每個 (時間, 軌道) 組合上的音符數量和元素
+    const notePositionMap = new Map();
+
+    // 遍歷所有當前活躍的音符
+    notes.forEach(noteObj => {
+        if (!noteObj.active) return; // 只檢查活躍的音符
+
+        // 為每個音符創建一個基於時間和軌道的唯一鍵
+        // 使用 Math.round 來處理可能的浮點數精度問題，將非常接近的時間視為同一時間點
+        // 假設 0.05 秒內的音符視為同一時間點 (這個值可以根據你的 stepDuration 調整)
+        const timeKey = Math.round(noteObj.creationTime / 50); // creationTime 是毫秒，50ms = 0.05s
+        const positionKey = `${timeKey}-${noteObj.track}`;
+
+        if (!notePositionMap.has(positionKey)) {
+            notePositionMap.set(positionKey, []);
+        }
+        // 將音符物件的引用存入對應的陣列
+        notePositionMap.get(positionKey).push(noteObj);
+    });
+
+    // 遍歷 Map，為重疊的音符添加視覺標記
+    notePositionMap.forEach((noteList, key) => {
+        if (noteList.length > 1) {
+            // 如果某個 (時間, 軌道) 上有多於一個音符，則它們是重疊的
+            noteList.forEach(noteObj => {
+                // 為重疊的音符元素添加 'overlapping' CSS 類別
+                if (noteObj.element && !noteObj.element.classList.contains('overlapping')) {
+                    noteObj.element.classList.add('overlapping');
+                    // console.log(`[視覺提示] 標記重疊音符: Track ${noteObj.track}, TimeKey ${key}`);
+                }
+            });
+        } else if (noteList.length === 1) {
+            // 如果只有一個音符，確保它沒有 'overlapping' 類別 (例如，它剛被標記，但另一個重疊音符已被打擊移除)
+            const noteObj = noteList[0];
+            if (noteObj.element && noteObj.element.classList.contains('overlapping')) {
+                noteObj.element.classList.remove('overlapping');
+                // console.log(`[視覺提示] 移除重疊標記: Track ${noteObj.track}, TimeKey ${key}`);
+            }
+        }
+        // 如果 noteList.length === 0，則無需處理
+    });
+    // --- [新增] 檢測並標記重疊音符 結束 ---
                 animationFrame = requestAnimationFrame(gameLoop);
             }
 
