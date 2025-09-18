@@ -3291,14 +3291,6 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                         duration: finalNoteDuration
                     });
 
-                    // --- 更新兩個衛兵的狀態 ---
-                    
-                    // 1. 更新空間衛兵
-                    let currentNoteSafeHeight = (finalNoteDuration > 0)
-                        ? Math.max(MIN_LONG_NOTE_SAFE_HEIGHT, finalNoteDuration * pixelsPerSecond)
-                        : SHORT_NOTE_SAFE_HEIGHT;
-                    trackFreeAtPixel[trackIndex] = newNoteStartPixel + currentNoteSafeHeight + VISUAL_COMFORT_GAP;
-
                    // --- 更新兩個衛兵的狀態 ---
 // 1. 更新空間衛兵
 let currentNoteSafeHeight = (finalNoteDuration > 0)
@@ -3306,7 +3298,7 @@ let currentNoteSafeHeight = (finalNoteDuration > 0)
     : SHORT_NOTE_SAFE_HEIGHT;
 trackFreeAtPixel[trackIndex] = newNoteStartPixel + currentNoteSafeHeight + VISUAL_COMFORT_GAP;
 
-// ▼▼▼ 【核心修訂 #3：更新時間衛兵】 ▼▼▼
+                   // ▼▼▼ 【核心修訂 #3：更新時間衛兵】 ▼▼▼
 if (finalNoteDuration > 0) {
     // 如果是長音符，軌道將被鎖定直到長音符結束
     trackFreeAtTime[trackIndex] = currentTime + finalNoteDuration;
@@ -3317,13 +3309,6 @@ if (finalNoteDuration > 0) {
     trackFreeAtTime[trackIndex] = currentTime + stepDuration;
 }
 // ▲▲▲ 修訂結束 ▲▲▲
-                    } else {
-                        // 【修訂】如果是短音符，鎖定時間應為「當前的節奏步長」，而非一個固定的值。
-                        // 這能確保下一個時間點 (currentTime + stepDuration) 必定小於新的 trackFreeAtTime，
-                        // 從而完美地防止了在臨界點生成重疊音符的 BUG。
-                        trackFreeAtTime[trackIndex] = currentTime + stepDuration;
-                    }
-                    // ▲▲▲ 修訂結束 ▲▲▲
                 }
             }
         }
