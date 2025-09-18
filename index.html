@@ -2426,6 +2426,8 @@ let maxScoreForCurrentLevel = 0; // ▼▼▼ 新增狀態變數
             let score = 0; // 總分，包含連擊獎勵
 let pureHitScore = 0; // 新增：純擊打分數，用於解鎖計算
             let combo = 0;
+            let notificationQueue = [];      // 我們的通知「待辦清單」
+let isNotificationActive = false; // 一個旗標，用來判斷是否已有通知正在顯示
             let maxCombo = 0;
             let notes = [];
             let noteSpeed = 3000;
@@ -2643,47 +2645,74 @@ function checkAndUnlockDifficulties(songUrl, difficulty, pureHitScore) {
 
             // --- UI Updates ---
 
-let notificationTimer = null; // 用於自動關閉通知
 
-            // 創建一個通用函數來顯示通知
-            function showNotification(type, title, message, duration = 5000) {
-                // 如果已有計時器，先清除，避免閃爍
-                if (notificationTimer) {
-                    clearTimeout(notificationTimer);
-                }
 
-                const content = notificationModal.querySelector('.notification-content');
-                
-                // 設置文字內容
-                notificationTitle.textContent = title;
-                notificationMessage.innerHTML = message; // 使用 innerHTML 才能解析 <strong> 標籤
+function processNotificationQueue() {
+    // 如果當前已有通知正在顯示，或者隊列是空的，就直接返回
+    if (isNotificationActive || notificationQueue.length === 0) {
+        return;
+    }
 
-                // 根據類型設置樣式和圖標
-                content.classList.remove('success', 'info'); // 先移除舊樣式
-                if (type === 'success') {
-                    content.classList.add('success');
-                    notificationIcon.innerHTML = '&#127881;'; // 🎉 彩炮圖示
-                } else { // 'info' 或其他類型
-                    content.classList.add('info');
-                    notificationIcon.innerHTML = '&#128220;'; // 📌 圖釘圖示
-                }
-                
-                // 顯示視窗
-                notificationModal.classList.add('active');
+    // 標記為「正在顯示通知」
+    isNotificationActive = true;
 
-                // 在指定時間後自動隱藏
-                notificationTimer = setTimeout(() => {
-                    notificationModal.classList.remove('active');
-                }, duration);
-            }
+    // 從隊列的頭部取出第一個通知
+    const notification = notificationQueue.shift();
+
+    // --- 以下是原 showNotification 函數的核心顯示邏輯 ---
+    const content = notificationModal.querySelector('.notification-content');
+    notificationTitle.textContent = notification.title;
+    notificationMessage.innerHTML = notification.message;
+
+    content.classList.remove('success', 'info');
+    if (notification.type === 'success') {
+        content.classList.add('success');
+        notificationIcon.innerHTML = '&#127881;'; // 🎉
+    } else {
+        content.classList.add('info');
+        notificationIcon.innerHTML = '&#128220;'; // 📌
+    }
+    
+    notificationModal.classList.add('active');
+
+    // 設定計時器，在通知結束後觸發下一個
+    notificationTimer = setTimeout(() => {
+        notificationModal.classList.remove('active');
+        isNotificationActive = false; // 標記為「通知已結束」
+        processNotificationQueue();   // 再次呼叫經理，檢查隊列中是否還有下一個
+    }, notification.duration || 5000);
+}
+// ▲▲▲ 新增函數結束 ▲▲▲
+
+
+            
+// 【修改後的版本】請用這段程式碼完整替換舊的 showNotification 函數
+
+let notificationTimer = null;
+
+function showNotification(type, title, message, duration = 5000) {
+    // 步驟 1: 將通知任務打包，添加到隊列的末尾
+    notificationQueue.push({
+        type: type,
+        title: title,
+        message: message,
+        duration: duration
+    });
+
+    // 步驟 2: 呼叫我們的「經理」來處理隊列
+    processNotificationQueue();
+}
 
             // 為通知視窗的關閉按鈕添加點擊事件
-            closeNotification.addEventListener('click', () => {
-                if (notificationTimer) {
-                    clearTimeout(notificationTimer); // 如果手動關閉，則取消自動關閉計時器
-                }
-                notificationModal.classList.remove('active');
-            });
+           // 【修改後的樣子】
+closeNotification.addEventListener('click', () => {
+    if (notificationTimer) {
+        clearTimeout(notificationTimer); // 清除當前的計時器
+    }
+    notificationModal.classList.remove('active');
+    isNotificationActive = false;      // 立刻標記為「通知已結束」
+    processNotificationQueue();        // 立刻呼叫經理，顯示下一個通知
+});
 
 
             
