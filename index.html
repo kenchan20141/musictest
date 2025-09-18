@@ -3179,6 +3179,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     const MIN_LONG_NOTE_SAFE_HEIGHT = 50;
     // 定義最小物理間隙，確保絕對清晰可見。
     const ABSOLUTE_MIN_PHYSICAL_GAP = 20;
+    const VISUAL_COMFORT_GAP = 50; // <-- 這是您需要調整的關鍵數值
 
     const data = [];
     // 追蹤每個軌道上，下一個音符允許生成的最早物理位置（像素值）
@@ -3272,7 +3273,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                     });
 
                     // 【核心邏輯】更新閾值：下一個音符的起始位置 = 當前音符的“安全高度”底部 + 絕對最小間隙
-                    trackFreeAtPixel[trackIndex] = newNoteStartPixel + currentNoteSafeHeight + ABSOLUTE_MIN_PHYSICAL_GAP;
+                   trackFreeAtPixel[trackIndex] = newNoteStartPixel + currentNoteSafeHeight + VISUAL_COMFORT_GAP;
                 }
             }
         }
