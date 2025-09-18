@@ -3286,35 +3286,45 @@ const rhythmPatterns = [
 
             
 
-           function generateNotesContinuously() {
+        function generateNotesContinuously() {
     if (!gameActive) return;
     const currentTime = (Date.now() - gameStartTime) / 1000;
-    while (noteQueue.length > 0 && noteQueue[0].time < currentTime + (noteSpeed / 1000)) {
-        const noteData = noteQueue[0]; // 先查看隊列頭部的音符
-        // 【修訂】徹底解決重疊：檢查軌道是否已準備好接收新音符
+    // 計算音符下落所需的時間 (秒)
+    const noteFallTime = noteSpeed / 1000;
+    // 遍歷檢查隊列中的音符，直到遇到第一個不能生成的音符為止
+    while (noteQueue.length > 0 && noteQueue[0].time < currentTime + noteFallTime) {
+        const noteData = noteQueue[0]; // 獲取隊列頭部的音符數據
+        // 計算當前音符的“頭部”何時會到達判定線。
+        // 頭部到達時間 = 生成時間 + 下落時間
+        const noteHeadArriveTime = noteData.time + noteFallTime;
+        // 計算當前音符的“尾部”何時會離開判定線。
+        // 尾部離開時間 = 生成時間 + 音符持續時間 + 下落時間
+        const noteTailClearTime = noteData.time + noteData.duration + noteFallTime;
+        // 【核心修訂】放寬生成條件：只要當前時間大於軌道的“下一個音符頭部安全時間”，就可以生成。
         if (currentTime >= trackNextAvailableTime[noteData.track]) {
-            noteQueue.shift(); // 從隊列中移除
-            // 【核心修訂】動態計算安全緩衝時間
-            // 基礎緩衝：任何音符尾部離開後都必須等待的時間
-            const baseSafetyBuffer = 0.5;
-            // 額外緩衝：當前一個是短音符，下一個是長音符時，需要額外的時間
-            const longNoteSafetyBuffer = 0.3;
+            // 從隊列中移除該音符
+            noteQueue.shift();
+            // 【新增】動態計算安全緩衝時間
+            const baseSafetyBuffer = 0.1; // 基礎緩衝縮短為 0.1 秒，讓音符更緊湊
+            const longNoteSafetyBuffer = 0.3; // 當前一個是短音符，下一個是長音符時的額外緩衝
             let safetyBuffer = baseSafetyBuffer;
-            // 檢查規則：如果前一個是短音符，下一個是長音符，則增加緩衝
+            // 檢查“短接長”規則
             if (lastNoteType[noteData.track] === 'short' && noteData.type === 'long') {
                 safetyBuffer += longNoteSafetyBuffer;
             }
-            // 計算並更新該軌道下一次可生成音符的時間點
-            // 音符尾部離開生成點的時間 = 音符生成時間 + 音符持續時間 + 音符下落所需時間
-            const noteFallTime = noteSpeed / 1000;
-            const noteEndTime = noteData.time + noteData.duration + noteFallTime;
-            const nextAvailableTime = noteEndTime + safetyBuffer; // 使用動態計算的安全緩衝
-            trackNextAvailableTime[noteData.track] = nextAvailableTime;
-            lastNoteType[noteData.track] = noteData.type; // 【新增】更新該軌道最後一個音符的類型
+            // 【核心修訂】計算下一個音符的“頭部”可以安全生成的時間點。
+            // 這不再是當前音符的尾部離開時間，而是當前音符的尾部離開時間減去其自身下落時間。
+            // 這樣，下一個音符的頭部在生成後，下落過程中就不會撞到當前音符的尾部。
+            const nextNoteHeadSafeTime = noteTailClearTime - noteFallTime + safetyBuffer;
+            // 更新軌道的下一個可用時間為下一個音符頭部的安全時間
+            trackNextAvailableTime[noteData.track] = nextNoteHeadSafeTime;
+            // 更新該軌道最後一個音符的類型
+            lastNoteType[noteData.track] = noteData.type;
             // 生成音符
             generateNote(noteData);
         } else {
-            // 軌道尚未準備好，跳出循環，等待下一次檢查
+            // 如果當前音符不能生成，則跳出循環，等待下一次檢查。
+            // 因為隊列是按時間排序的，後面的音符時間更晚，此時也無法生成。
             break;
         }
     }
