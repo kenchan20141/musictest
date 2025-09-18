@@ -3201,7 +3201,7 @@ function mulberry32(a) {
 
 
 function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, noteSpeed) {
-    console.log(`Generating notes with seed: ${seed}`);
+    console.log(`Generating with final chord-aware logic. Max simultaneous notes: ${difficulty.maxSimultaneous}`);
     const seededRandom = mulberry32(seed);
     const tracks = 4;
 
@@ -3213,13 +3213,8 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     const VISUAL_COMFORT_GAP = difficulty.visualGap || 50;
     
     const data = [];
-    // 空間衛兵：追蹤每個軌道在物理像素上的可用位置
     const trackFreeAtPixel = new Array(tracks).fill(0);
-    
-    // ▼▼▼ 【核心修訂 #1：引入時間衛兵】 ▼▼▼
-    // 時間衛兵：追蹤每個軌道在音樂時間上的可用時間點
     const trackFreeAtTime = new Array(tracks).fill(0);
-    // ▲▲▲ 修訂結束 ▲▲▲
 
     const baseIntervalAnalysis = analyzeBeatIntervals(beatTimestamps);
     const baseInterval = baseIntervalAnalysis.baseInterval;
@@ -3229,8 +3224,8 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
         { name: "三十二分音符", duration: baseInterval / 2, weight: 0.30 }
     ];
     const noteGenerationTypes = [
-        { type: 'short', weight: 0.75 },
-        { type: 'long', weight: 0.25 }
+        { type: 'short', weight: 1.0 - difficulty.longNoteChance }, // 使用 difficulty 裡的概率
+        { type: 'long', weight: difficulty.longNoteChance }
     ];
 
     const totalRhythmWeight = rhythmPatterns.reduce((sum, p) => sum + p.weight, 0);
@@ -3238,7 +3233,16 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
 
     let currentTime = 1.0;
 
-    while (currentTime < duration - (2.0 + (noteSpeed / 1000))) {
+    // Fisher-Yates Shuffle algorithm for randomizing track order
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(seededRandom() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    while (currentTime < duration - (3.0 + (noteSpeed / 1000))) {
+        // 1. 決定節奏步長
         let randomRhythm = seededRandom() * totalRhythmWeight;
         let selectedRhythm = rhythmPatterns[0];
         for (const pattern of rhythmPatterns) {
@@ -3250,22 +3254,28 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
         }
         const stepDuration = selectedRhythm.duration;
 
-        if (seededRandom() < difficulty.noteDensity) {
-            const availableTracks = [];
-            for (let i = 0; i < tracks; i++) {
-                availableTracks.push(i);
+        // ▼▼▼ 【核心邏輯重構：和弦生成】 ▼▼▼
+        
+        let notesPlacedThisBeat = 0;
+        const potentialTracks = [0, 1, 2, 3];
+        shuffle(potentialTracks); // 隨機化軌道順序，避免生成模式僵化
+
+        const newNoteStartPixel = currentTime * pixelsPerSecond;
+
+        // 2. 遍歷所有軌道，嘗試在當前時間點放置多個音符
+        for (const trackIndex of potentialTracks) {
+            // 如果已達到本節拍的最大同時音符數，則停止
+            if (notesPlacedThisBeat >= difficulty.maxSimultaneous) {
+                break;
             }
 
-            if (availableTracks.length > 0) {
-                const trackIndex = availableTracks[Math.floor(seededRandom() * availableTracks.length)];
-
-                // ▼▼▼ 【核心修訂 #2：時間與空間雙重檢查】 ▼▼▼
-                const newNoteStartPixel = currentTime * pixelsPerSecond;
-                // 檢查一 (時間衛兵)：當前時間點是否大於軌道被佔用的結束時間？
-                // 檢查二 (空間衛兵)：新音符的物理位置是否在前一個音符的安全區域之外？
-                if (currentTime >= trackFreeAtTime[trackIndex] && newNoteStartPixel >= trackFreeAtPixel[trackIndex]) {
-                // ▲▲▲ 修訂結束 ▲▲▲
-
+            // 3. 執行雙重衛兵檢查
+            if (currentTime >= trackFreeAtTime[trackIndex] && newNoteStartPixel >= trackFreeAtPixel[trackIndex]) {
+                
+                // 4. 執行密度檢查，決定這個軌道上是否放置音符
+                if (seededRandom() < difficulty.noteDensity) {
+                    
+                    // 5. 決定音符類型 (長/短)
                     let randomType = seededRandom() * totalTypeWeight;
                     let selectedType = noteGenerationTypes[0];
                     for (const type of noteGenerationTypes) {
@@ -3284,6 +3294,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                         finalNoteDuration = Math.min(baseInterval * randomMultiplier, 2.0);
                     }
                     
+                    // 6. 放置音符並更新衛兵狀態
                     data.push({
                         time: currentTime,
                         track: trackIndex,
@@ -3291,29 +3302,23 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                         duration: finalNoteDuration
                     });
 
-                    // --- 更新兩個衛兵的狀態 ---
-                    
-                    // 1. 更新空間衛兵
                     let currentNoteSafeHeight = (finalNoteDuration > 0)
                         ? Math.max(MIN_LONG_NOTE_SAFE_HEIGHT, finalNoteDuration * pixelsPerSecond)
                         : SHORT_NOTE_SAFE_HEIGHT;
                     trackFreeAtPixel[trackIndex] = newNoteStartPixel + currentNoteSafeHeight + VISUAL_COMFORT_GAP;
-
-                    // ▼▼▼ 【核心修訂 #3：更新時間衛兵】 ▼▼▼
-                    if (finalNoteDuration > 0) {
-                        // 如果是長音符，軌道將被鎖定直到長音符結束
-                        trackFreeAtTime[trackIndex] = currentTime + finalNoteDuration;
-                    } else {
-                        // 如果是短音符，也給予一個極短的鎖定時間（例如一個三十二分音符的長度），
-                        // 防止在同一個時間點生成兩個音符，並確保合理的最小間隔。
-                        trackFreeAtTime[trackIndex] = currentTime + (baseInterval / 2);
-                    }
-                    // ▲▲▲ 修訂結束 ▲▲▲
+                    
+                    trackFreeAtTime[trackIndex] = currentTime + (finalNoteDuration > 0 ? finalNoteDuration : (baseInterval / 2));
+                    
+                    notesPlacedThisBeat++;
                 }
             }
         }
+        // ▲▲▲ 重構結束 ▲▲▲
+
+        // 7. 前進到下一個節奏點
         currentTime += stepDuration;
     }
+    
     return data.sort((a, b) => a.time - b.time);
 }
 
