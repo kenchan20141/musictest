@@ -3247,10 +3247,23 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                 }
 
                 let finalNoteDuration = 0;
-                if (selectedType.type === 'long') {
-                    const longNoteDuration = baseInterval * 4;
-                    finalNoteDuration = Math.min(longNoteDuration, 2.0);
-                }
+               if (selectedType.type === 'long') {
+            // --- 修改開始 ---
+            // 定義長音符長度的隨機範圍（以 baseInterval 為單位）
+            const minLongDurationInBaseIntervals = 2; // 最短 2 個 baseInterval
+            const maxLongDurationInBaseIntervals = 6; // 最長 6 個 baseInterval
+
+            // 使用 seededRandom 產生隨機倍數
+            const randomMultiplier = minLongDurationInBaseIntervals +
+                                     seededRandom() * (maxLongDurationInBaseIntervals - minLongDurationInBaseIntervals);
+
+            // 計算最終長度
+            let longNoteDuration = baseInterval * randomMultiplier;
+
+            // 保留原有的最大長度限制 (2.0 秒)
+            finalNoteDuration = Math.min(longNoteDuration, 2.0);
+            // --- 修改結束 ---
+        }
 
                 // 【核心邏輯】計算新音符的物理起始位置
                 const newNoteStartPixel = currentTime * pixelsPerSecond;
