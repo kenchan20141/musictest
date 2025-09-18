@@ -52,19 +52,30 @@
             box-shadow: 0 0 15px 5px rgba(147, 249, 185, 0.8);
         }
 
-        .unlock-progress-marker {
+       .unlock-progress-marker {
             position: absolute;
-            left: 35%; /* [修訂] 由 JS 更新，改為控制 left */
-            top: -5px;     /* [修訂] 讓標記線在垂直方向上延伸出去 */
-            bottom: -5px;  /* [修訂] 讓標記線在垂直方向上延伸出去 */
-            width: 2px;    /* [修訂] 標記線寬度 */
-            height: auto;  /* [修訂] 高度自動 */
-            background: #FFD700;
-            box-shadow: 0 0 8px #FFD700;
+            /* [刪除] left: 35%;  <-- 我們將完全由 JS 控制位置，可刪除此行 */
+            top: -5px;
+            bottom: -5px;
+            width: 2px;
+            height: auto;
+            /* [刪除] 以下兩行關於顏色的定義將移至新的 class 中 */
+            /* background: #FFD700; */
+            /* box-shadow: 0 0 8px #FFD700; */
             z-index: 2;
-            /* ▼▼▼ 新增過渡效果，讓顏色變化更平滑 ▼▼▼ */
-            transition: background 0.3s ease, box-shadow 0.3s ease;
         }
+
+        /* ▼▼▼ 【新增】為不同類型的合格線設定專屬顏色 ▼▼▼ */
+        .unlock-progress-marker.song-marker {
+            background: #FFD700; /* 金黃色，代表解鎖歌曲 */
+            box-shadow: 0 0 8px #FFD700;
+        }
+
+        .unlock-progress-marker.difficulty-marker {
+            background: #F96666; /* 亮紅色，代表挑戰更高難度 */
+            box-shadow: 0 0 8px #F96666;
+        }
+        /* ▲▲▲ 新增結束 ▲▲▲ *
         
         .unlock-progress-label {
             position: absolute;
@@ -1840,13 +1851,17 @@
                         </div>
 
 
- <!-- ▼▼▼ 新增的解鎖進度條 ▼▼▼ -->
-            <div id="unlockProgressContainer" class="unlock-progress-container">
-                <div id="unlockProgressMarker" class="unlock-progress-marker"></div>
-                <div id="unlockProgressBar" class="unlock-progress-bar"></div>
-                <div class="unlock-progress-label">解鎖進度</div>
-            </div>
-            <!-- ▲▲▲ 新增結束 ▲▲▲ -->
+<!-- ▼▼▼ 【修訂】將原有的單一標記線改為兩個獨立的標記線 ▼▼▼ -->
+<div id="unlockProgressContainer" class="unlock-progress-container">
+    <!-- 歌曲解鎖線 (黃色) -->
+    <div id="songUnlockMarker" class="unlock-progress-marker song-marker"></div>
+    <!-- 難度解鎖線 (紅色) -->
+    <div id="difficultyUnlockMarker" class="unlock-progress-marker difficulty-marker"></div>
+    
+    <div id="unlockProgressBar" class="unlock-progress-bar"></div>
+    <div class="unlock-progress-label">解鎖進度</div>
+</div>
+<!-- ▲▲▲ 修訂結束 ▲▲▲ -->
 
 
                     </div>
@@ -2398,7 +2413,10 @@ const songCovers = {
             // ▼▼▼ 新增的 DOM 元素 ▼▼▼
             const unlockProgressContainer = document.getElementById('unlockProgressContainer');
             const unlockProgressBar = document.getElementById('unlockProgressBar');
-            const unlockProgressMarker = document.getElementById('unlockProgressMarker');
+           // ▼▼▼ 【修訂】改為選取兩個新的標記線元素 ▼▼▼
+            const songUnlockMarker = document.getElementById('songUnlockMarker');
+            const difficultyUnlockMarker = document.getElementById('difficultyUnlockMarker');
+            // ▲▲▲ 修訂結束 ▲▲▲
             // ▲▲▲ 新增結束 ▲▲▲
 
             // --- Game State Variables ---
@@ -3036,25 +3054,12 @@ function updateUnlockMeter() {
                 musicSelect.disabled = true;
                 difficultySelect.disabled = true;
 
-                // ▼▼▼ 【修訂】根據難度設定解鎖目標，並動態改變合格線顏色 ▼▼▼
+              // ▼▼▼ 【核心修訂】無條件設定兩條合格線的位置 ▼▼▼
                 mainGameContainer.classList.add('game-running'); 
-                unlockProgressContainer.style.display = 'flex'; // 確保進度條容器可見
-
-                // 判斷當前是解鎖歌曲還是解鎖難度，並設定對應的百分比門檻
-                if (selectedDifficulty === 'normal') {
-                    // 目標：解鎖下一首歌曲
-                    unlockThresholdPercentage = SONG_UNLOCK_PERCENTAGE;
-                    unlockProgressMarker.style.background = '#FFD700'; // 黃金色代表歌曲解鎖
-                    unlockProgressMarker.style.boxShadow = '0 0 8px #FFD700';
-                } else {
-                    // 目標：解鎖更高難度
-                    unlockThresholdPercentage = DIFFICULTY_UNLOCK_PERCENTAGE;
-                    unlockProgressMarker.style.background = '#F96666'; // 紅色代表難度挑戰
-                    unlockProgressMarker.style.boxShadow = '0 0 8px #F96666';
-                }
-
-                // 根據計算出的門檻，設定合格線的視覺位置
-                unlockProgressMarker.style.left = `${unlockThresholdPercentage * 100}%`;
+                
+                // 根據預設的百分比常數，設定兩條線的 left 屬性
+                songUnlockMarker.style.left = `${SONG_UNLOCK_PERCENTAGE * 100}%`;
+                difficultyUnlockMarker.style.left = `${DIFFICULTY_UNLOCK_PERCENTAGE * 100}%`;
                 // ▲▲▲ 修訂結束 ▲▲▲
                 
                 startBtn.innerHTML = `<svg class="start-button-svg" viewBox="0 0 40 40" style="width:40px;height:40px;">
