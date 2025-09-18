@@ -2636,35 +2636,6 @@ function checkAndUnlockDifficulties(songUrl, difficulty, pureHitScore) {
     }
 }
 
-    // 輔助函數：根據歌曲和難度，模擬計算其理論最高分
-    function getTheoreticalMaxScoreForDifficulty(song, targetDifficulty) {
-        // 這是一個簡化版的模擬，它複用了 generateSongData 的邏輯
-        // 在真實項目中，為了性能，您可能希望預先計算並緩存這些值
-        const diffSettings = difficultySettings[targetDifficulty];
-        // 假設歌曲時長相同，我們可以基於難度設置來估算音符數量
-        // 這裡用一個非常簡化的公式：(時長 / 平均音符間隔) * 最大同時音符數 * 難度密度
-        // 這僅供示例，實際應與 startGame 中的邏輯保持一致
-        const estimatedNoteCount = Math.floor((currentSongDuration / ((0.25 + 0.15) / diffSettings.noteDensity)) * diffSettings.maxSimultaneous);
-        return estimatedNoteCount * 100; // 假設每個音符 Perfect 是 100 分
-    }
-
-    if (difficulty === 'normal' && !isDifficultyUnlocked(songUrl, 'hard')) {
-        const theoreticalMaxForHard = getTheoreticalMaxScoreForDifficulty(songUrl, 'hard');
-        const requiredScoreForHard = theoreticalMaxForHard * DIFFICULTY_UNLOCK_PERCENTAGE;
-        if (score >= requiredScoreForHard) {
-            unlockDifficulty(songUrl, 'hard');
-        }
-    }
-
-    if (difficulty === 'hard' && !isDifficultyUnlocked(songUrl, 'hell')) {
-        const theoreticalMaxForHell = getTheoreticalMaxScoreForDifficulty(songUrl, 'hell');
-        const requiredScoreForHell = theoreticalMaxForHell * DIFFICULTY_UNLOCK_PERCENTAGE;
-        if (score >= requiredScoreForHell) {
-            unlockDifficulty(songUrl, 'hell');
-        }
-    }
-}
-
             function showUnlockModal(message) {
                 unlockRequirement.textContent = message;
                 unlockModal.classList.add('active');
@@ -3337,9 +3308,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                 }
             }
 
-         // 【最終修正版的 endGame 函數】
-
-function endGame() {
+         function endGame() {
     gameActive = false;
     audio.pause();
     audio.currentTime = 0;
