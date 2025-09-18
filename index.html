@@ -386,7 +386,6 @@
             background: rgba(255, 255, 255, 0.15);
             border-radius: 8px; /* Reduced radius */
             position: relative;
-            overflow: hidden;
         }
         .track::before {
             content: '';
@@ -2850,15 +2849,28 @@ let notificationTimer = null; // 用於自動關閉通知
             }
 
             function judgeHit(trackIndex, type) {
-                const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
-                if (sounds[type]) {
-                    sounds[type]();
-                }
-                const judgment = document.createElement('div');
-                judgment.className = `judgment ${type}`;
-                judgment.textContent = `${type.toUpperCase()}!`;
-                if (track) track.appendChild(judgment);
-                setTimeout(() => judgment.remove(), 1000);
+    const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
+    if (sounds[type]) {
+        sounds[type]();
+    }
+    const judgment = document.createElement('div');
+    judgment.className = `judgment ${type}`;
+    judgment.textContent = `${type.toUpperCase()}!`;
+    if (track) {
+        // 将 judgment 元素添加到 track
+        track.appendChild(judgment);
+        // 【新增】确保 judgment 在其父元素 (track) 内水平居中
+        // 由于 .judgment 本身有 `left: 0; width: 100%; text-align: center;`，通常已居中。
+        // 此步骤是保险做法，明确设置。
+        judgment.style.left = '0';
+        judgment.style.width = '100%';
+        judgment.style.textAlign = 'center';
+    }
+    setTimeout(() => {
+        if (judgment && judgment.parentNode) { // 检查元素是否还在
+            judgment.remove();
+        }
+    }, 1000);
                 if (type !== 'miss') {
                     createHitParticles(trackIndex, type);
                     const hitLine = track.querySelector('.hit-line');
