@@ -3286,48 +3286,44 @@ const rhythmPatterns = [
 
             
 
-       function generateNotesContinuously() {
+      function generateNotesContinuously() {
     if (!gameActive) return;
+
     const currentTime = (Date.now() - gameStartTime) / 1000;
     // 計算音符下落所需的時間 (秒)
     const noteFallTime = noteSpeed / 1000;
-    // 遍歷檢查隊列中的音符，直到遇到第一個不能生成的音符為止
+
+    // 【修訂】為每個軌道創建一個計數器，記錄當前有多少個“活躍”音符
+    const activeNotesPerTrack = new Array(tracks).fill(0);
+    notes.forEach(note => {
+        if (note.active) {
+            activeNotesPerTrack[note.track]++;
+        }
+    });
+
+    // 遍歷檢查隊列中的音符
     while (noteQueue.length > 0 && noteQueue[0].time < currentTime + noteFallTime) {
-        const noteData = noteQueue[0]; // 獲取隊列頭部的音符數據
-        // 計算當前音符的“頭部”何時會到達判定線。
-        // 頭部到達時間 = 生成時間 + 下落時間
-        const noteHeadArriveTime = noteData.time + noteFallTime;
-        // 計算當前音符的“尾部”何時會離開判定線。
-        // 尾部離開時間 = 生成時間 + 音符持續時間 + 下落時間
-        const noteTailClearTime = noteData.time + noteData.duration + noteFallTime;
-        // 【核心修訂】放寬生成條件：只要當前時間大於軌道的“下一個音符頭部安全時間”，就可以生成。
-        if (currentTime >= trackNextAvailableTime[noteData.track]) {
-            // 從隊列中移除該音符
-            noteQueue.shift();
-            // 【新增】動態計算安全緩衝時間
-            const baseSafetyBuffer = 0.1; // 基礎緩衝縮短為 0.1 秒，讓音符更緊湊
-            const longNoteSafetyBuffer = 0.3; // 當前一個是短音符，下一個是長音符時的額外緩衝
-            let safetyBuffer = baseSafetyBuffer;
-            // 檢查“短接長”規則
-            if (lastNoteType[noteData.track] === 'short' && noteData.type === 'long') {
-                safetyBuffer += longNoteSafetyBuffer;
-            }
-            // 【核心修訂】計算下一個音符的“頭部”可以安全生成的時間點。
-            // 這不再是當前音符的尾部離開時間，而是當前音符的尾部離開時間減去其自身下落時間。
-            // 這樣，下一個音符的頭部在生成後，下落過程中就不會撞到當前音符的尾部。
-            const nextNoteHeadSafeTime = noteTailClearTime - noteFallTime + safetyBuffer;
-            // 更新軌道的下一個可用時間為下一個音符頭部的安全時間
-            trackNextAvailableTime[noteData.track] = nextNoteHeadSafeTime;
-            // 更新該軌道最後一個音符的類型
-            lastNoteType[noteData.track] = noteData.type;
+        const noteData = noteQueue[0];
+
+        // 【修訂】檢查條件：如果該軌道的活躍音符數量小於最大允許數量，則可以生成
+        if (activeNotesPerTrack[noteData.track] < 3) { // 這裡的 "3" 是最大同時音符數，您可以調整為 2, 3, 4 來控制難度
+            noteQueue.shift(); // 從隊列中移除
+
+            // 【刪除】移除所有與 `trackNextAvailableTime` 和 `lastNoteType` 相關的更新邏輯
+            // trackNextAvailableTime[noteData.track] = ... ;
+            // lastNoteType[noteData.track] = ... ;
+
             // 生成音符
             generateNote(noteData);
+
+            // 【修訂】更新計數器
+            activeNotesPerTrack[noteData.track]++;
         } else {
-            // 如果當前音符不能生成，則跳出循環，等待下一次檢查。
-            // 因為隊列是按時間排序的，後面的音符時間更晚，此時也無法生成。
+            // 如果當前軌道音符已滿，則跳出循環，等待下一次檢查。
             break;
         }
     }
+
     if (gameActive) {
         generateNotesTimer = setTimeout(generateNotesContinuously, 50);
     }
