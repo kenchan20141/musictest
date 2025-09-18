@@ -2082,11 +2082,17 @@ const difficultySettings = {
     // Easy 難度：密度從 1.5 翻倍至 3.0
     easy: { speedMultiplier: 0.9, longNoteChance: 0.2, noteDensity: 0.8, maxSimultaneous: 3, cooldown: 400 },
     // Normal 難度：密度從 2.8 翻倍至 5.6
-    normal: { speedMultiplier: 1.1, longNoteChance: 0.30, noteDensity: 1.0, maxSimultaneous: 4, cooldown: 200 },
+    normal: { 
+    speedMultiplier: 1.1, 
+    longNoteChance: 0.25, // 略微降低長音符概率，避免畫面過於擁擠
+    noteDensity: 2.5,     // 【關鍵】將密度從 1.0 提升至 2.5，大幅提升音符生成頻率
+    maxSimultaneous: 8,   // 【關鍵】將最大同時音符數從 4 提升至 8，允許更多音符同時存在
+    cooldown: 150         // 【可選】略微縮短冷卻時間，讓MISS後能更快恢復
+},
     // Hard 難度：密度從 3.8 翻倍至 7.6
-    hard: { speedMultiplier: 1.6, longNoteChance: 0.30, noteDensity: 1.5, maxSimultaneous: 4, cooldown: 100 },
+    hard: { speedMultiplier: 1.6, longNoteChance: 0.30, noteDensity: 3.5, maxSimultaneous: 4, cooldown: 100 },
     // Hell 難度：密度從 5.0 翻倍至 10.0，這將是真正的音符風暴
-    hell: { speedMultiplier: 2.2, longNoteChance: 0.35, noteDensity: 2.0, maxSimultaneous: 4, cooldown: 50 }
+    hell: { speedMultiplier: 2.2, longNoteChance: 0.35, noteDensity: 4.0, maxSimultaneous: 4, cooldown: 50 }
 };
             // Max possible scores for each song and difficulty (for display purposes)
             const maxPossibleScores = {
@@ -3189,13 +3195,13 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     const baseInterval = baseIntervalAnalysis.baseInterval;
 
     // 節奏模式
-    const rhythmPatterns = [
-        { name: "二分音符", duration: baseInterval * 8, weight: 0.10 },
-        { name: "四分音符", duration: baseInterval * 4, weight: 0.15 },
-        { name: "八分音符", duration: baseInterval * 2, weight: 0.25 },
-        { name: "十六分音符", duration: baseInterval, weight: 0.35 },
-        { name: "三十二分音符", duration: baseInterval / 2, weight: 0.15 }
-    ];
+   const rhythmPatterns = [
+    { name: "四分音符", duration: baseInterval * 4, weight: 0.05 }, // 大幅降低權重
+    { name: "八分音符", duration: baseInterval * 2, weight: 0.20 },
+    { name: "十六分音符", duration: baseInterval, weight: 0.50 },   // 【關鍵】大幅提升權重
+    { name: "三十二分音符", duration: baseInterval / 2, weight: 0.25 } // 增加權重
+    // 移除“二分音符”，避免過長的空檔
+];
 
     // 音符類型比例
     const noteGenerationTypes = [
