@@ -3159,20 +3159,26 @@ function mulberry32(a) {
 // ▲▲▲ [新增結束] ▲▲▲
 
 
-// ▼▼▼ [最終修訂版 V2] 請將舊的 generateSongData 函數完整替換為此版本 ▼▼▼
+// ▼▼▼ [終極修訂版] 請將舊的 generateSongData 函數完整替換為此版本 ▼▼▼
 function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, noteSpeed) {
     console.log(`Generating notes with seed: ${seed}`);
     const seededRandom = mulberry32(seed);
     const tracks = 4;
 
-    // --- 核心計算：物理像素 ---
+    // --- 核心計算：物理像素與絕對安全高度 ---
     // 計算音符下落的總距離（從頂部落到底部擊打線）
     const totalFallDistance = tracksContainer.clientHeight + 50;
-    // 計算每秒移動的像素數
+    // 計算每秒移動的像素數 (用於將時間轉換為像素位置)
     const pixelsPerSecond = totalFallDistance / (noteSpeed / 1000);
-    // 【關鍵】定義最小物理間隙，確保視覺上絕對不重疊。
-    // 30像素是一個經過測試的值，它大於短音符的高度(25px)，能確保清晰分隔。
-    const MIN_PHYSICAL_GAP = 30; 
+
+    // 【終極修訂】定義絕對安全高度
+    // 這些值是固定的，大於CSS中定義的實際高度，確保萬無一失的視覺分隔。
+    // 短音符 CSS 高度為 25px，我們定義為 40px。
+    const SHORT_NOTE_SAFE_HEIGHT = 40;
+    // 長音符的最小安全高度，即使是一個很短的長音符，也至少有 50px。
+    const MIN_LONG_NOTE_SAFE_HEIGHT = 50;
+    // 定義最小物理間隙，確保絕對清晰可見。
+    const ABSOLUTE_MIN_PHYSICAL_GAP = 20;
 
     const data = [];
     // 追蹤每個軌道上，下一個音符允許生成的最早物理位置（像素值）
@@ -3246,13 +3252,15 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
 
                 // 【核心邏輯】檢查物理位置：新音符的頭部必須在前一個音符的尾部之下
                 if (newNoteStartPixel >= trackFreeAtPixel[trackIndex]) {
-                    // 計算當前音符的物理高度
-                    let currentNoteHeight = 0;
+                    // 【終極修訂】計算當前音符的“安全高度”，而非真實渲染高度
+                    let currentNoteSafeHeight = 0;
                     if (finalNoteDuration > 0) {
-                        currentNoteHeight = finalNoteDuration * pixelsPerSecond;
+                        // 對於長音符，其安全高度取決於其音樂時長，但設置一個最小值。
+                        const calculatedHeight = finalNoteDuration * pixelsPerSecond;
+                        currentNoteSafeHeight = Math.max(MIN_LONG_NOTE_SAFE_HEIGHT, calculatedHeight);
                     } else {
-                        // 短音符的基礎高度，與CSS中定義的 .note { height: 25px; } 一致
-                        currentNoteHeight = 25;
+                        // 對於短音符，使用固定的、保守的安全高度。
+                        currentNoteSafeHeight = SHORT_NOTE_SAFE_HEIGHT;
                     }
 
                     // 將新音符的數據加入隊列
@@ -3263,8 +3271,8 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                         duration: finalNoteDuration
                     });
 
-                    // 【核心邏輯】更新閾值：下一個音符的起始位置 = 當前音符尾部位置 + 最小物理間隙
-                    trackFreeAtPixel[trackIndex] = newNoteStartPixel + currentNoteHeight + MIN_PHYSICAL_GAP;
+                    // 【核心邏輯】更新閾值：下一個音符的起始位置 = 當前音符的“安全高度”底部 + 絕對最小間隙
+                    trackFreeAtPixel[trackIndex] = newNoteStartPixel + currentNoteSafeHeight + ABSOLUTE_MIN_PHYSICAL_GAP;
                 }
             }
         }
@@ -3274,7 +3282,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
 
     return data.sort((a, b) => a.time - b.time);
 }
-// ▲▲▲ [最終修訂版 V2] 替換結束 ▲▲▲
+// ▲▲▲ [終極修訂版] 替換結束 ▲▲▲
 
             function generateNotesContinuously() {
                 if (!gameActive) return;
