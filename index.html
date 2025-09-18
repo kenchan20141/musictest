@@ -2079,14 +2079,14 @@ const SONG_UNLOCK_PERCENTAGE = 0.6;
 const DIFFICULTY_UNLOCK_PERCENTAGE = 0.75;
 
 const difficultySettings = {
-    // Easy 難度：在細密網格上，以 80% 的機率放置音符
-    easy: { speedMultiplier: 0.9, longNoteChance: 0.2, noteDensity: 0.8, maxSimultaneous: 4, cooldown: 400 },
-    // Normal 難度：在細密網格上，以 150% 的機率放置音符 (即幾乎必中)
-    normal: { speedMultiplier: 1.1, longNoteChance: 0.30, noteDensity: 1.5, maxSimultaneous: 4, cooldown: 200 },
-    // Hard 難度：在細密網格上，以 250% 的機率放置音符，並提高長音符比例
-    hard: { speedMultiplier: 1.6, longNoteChance: 0.40, noteDensity: 2.5, maxSimultaneous: 4, cooldown: 100 },
-    // Hell 難度：在細密網格上，以 400% 的機率放置音符，製造真正的音符風暴
-    hell: { speedMultiplier: 2.2, longNoteChance: 0.50, noteDensity: 4.0, maxSimultaneous: 4, cooldown: 50 }
+    // Easy 難度：大幅提升音符密度
+    easy: { speedMultiplier: 0.9, longNoteChance: 0.2, noteDensity: 2.0, maxSimultaneous: 4, cooldown: 400 },
+    // Normal 難度：大幅提升音符密度
+    normal: { speedMultiplier: 1.1, longNoteChance: 0.30, noteDensity: 4.0, maxSimultaneous: 4, cooldown: 200 },
+    // Hard 難度：大幅提升音符密度
+    hard: { speedMultiplier: 1.6, longNoteChance: 0.40, noteDensity: 6.0, maxSimultaneous: 4, cooldown: 100 },
+    // Hell 難度：極致音符風暴
+    hell: { speedMultiplier: 2.2, longNoteChance: 0.50, noteDensity: 8.0, maxSimultaneous: 4, cooldown: 50 }
 };
             
             // Max possible scores for each song and difficulty (for display purposes)
@@ -3181,17 +3181,18 @@ function mulberry32(a) {
     // ▼▼▼ 1. 簡化節奏步長：只決定音符之間的時間間隔 ▼▼▼
     // 我們不再定義複雜的連音，只使用最基礎的8分和16分音符作為節奏骨架。
     // ▼▼▼ 1. 修訂節奏步長：大幅提高高密度節奏的權重 ▼▼▼
+// ▼▼▼ 1. 修訂節奏步長：進一步大幅提升高密度節奏的權重 ▼▼▼
 const rhythmPatterns = [
-    // 【大幅降低權重】二分音符，僅作為點綴
-    { name: "二分音符", duration: baseInterval * 8, weight: 0.02 }, 
-    // 【降低權重】
-    { name: "四分音符", duration: baseInterval * 4, weight: 0.08 }, 
-    // 【權重不變】
-    { name: "八分音符", duration: baseInterval * 2, weight: 0.20 }, 
-    // 【大幅提升權重】這是構成高密度譜面的主力
-    { name: "十六分音符", duration: baseInterval, weight: 0.45 }, 
-    // 【大幅提升權重】用於製造極速連打
-    { name: "三十二分音符", duration: baseInterval / 2, weight: 0.25 }
+    // 【極度降低權重或移除】二分音符，極少出現
+    { name: "二分音符", duration: baseInterval * 8, weight: 0.005 }, // 或設為 0
+    // 【極度降低權重】四分音符，很少出現
+    { name: "四分音符", duration: baseInterval * 4, weight: 0.015 },
+    // 【提高權重】八分音符，作為中等密度的基礎
+    { name: "八分音符", duration: baseInterval * 2, weight: 0.30 },
+    // 【極大提升權重】這是構成超高密度譜面的絕對主力
+    { name: "十六分音符", duration: baseInterval, weight: 0.55 },
+    // 【極大提升權重】用於製造最極致的連打風暴
+    { name: "三十二分音符", duration: baseInterval / 2, weight: 0.35 } // 注意：權重總和變為 1.22，這是可以的，程式會按比例計算
 ];
 // ▲▲▲ 修訂結束 ▲▲▲
     // ▼▼▼ 2. 直接定義長短音符比例：清晰、直觀 ▼▼▼
