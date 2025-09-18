@@ -3165,160 +3165,116 @@ function mulberry32(a) {
 // ▲▲▲ [新增結束] ▲▲▲
 
 
-    // ▼▼▼ [修訂] 請將舊的 generateSongData 函數完整替換為此版本 ▼▼▼
-           function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, noteSpeed) {
-                console.log(`Generating notes with seed: ${seed}`);
-                const seededRandom = mulberry32(seed);
-                const tracks = 4;
-                const noteFallDuration = noteSpeed / 1000;
-                const MIN_NOTE_GAP = 0.02; // 20毫秒
+  // ▼▼▼ [修訂] 請將舊的 generateSongData 函數完整替換為此版本 ▼▼▼
+function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, noteSpeed) {
+    console.log(`Generating notes with seed: ${seed}`);
+    const seededRandom = mulberry32(seed);
+    const tracks = 4;
+    const noteFallDuration = noteSpeed / 1000; // 音符從頂部落到底部所需的時間（秒）
+    const MIN_NOTE_GAP = 0.02; // 20毫秒，最小間隔，防止過於擁擠
+    const data = [];
+    // 【新增】trackNextAllowedTime: 記錄每個軌道下一個音符允許生成的最早時間點
+    const trackNextAllowedTime = new Array(tracks).fill(0);
 
-                const data = [];
-                const trackFreeAt = new Array(tracks).fill(0);
+    const baseIntervalAnalysis = analyzeBeatIntervals(beatTimestamps);
+    const baseInterval = baseIntervalAnalysis.baseInterval;
 
-                const baseIntervalAnalysis = analyzeBeatIntervals(beatTimestamps);
-                const baseInterval = baseIntervalAnalysis.baseInterval;
+    // 節奏模式
+    const rhythmPatterns = [
+        { name: "二分音符", duration: baseInterval * 8, weight: 0.10 },
+        { name: "四分音符", duration: baseInterval * 4, weight: 0.15 },
+        { name: "八分音符", duration: baseInterval * 2, weight: 0.25 },
+        { name: "十六分音符", duration: baseInterval, weight: 0.35 },
+        { name: "三十二分音符", duration: baseInterval / 2, weight: 0.15 }
+    ];
+    const totalRhythmWeight = rhythmPatterns.reduce((sum, p) => sum + p.weight, 0);
 
-                // ▼▼▼ 1. 簡化節奏步長：只決定音符之間的時間間隔 ▼▼▼
-                // 我們不再定義複雜的連音，只使用最基礎的8分和16分音符作為節奏骨架。
-                const rhythmPatterns = [
-    // 【新增】二分音符，時長最長，出現權重最低
-    { name: "二分音符", duration: baseInterval * 8, weight: 0.10 }, 
-    // 【權重不變】
-    { name: "四分音符", duration: baseInterval * 4, weight: 0.15 }, 
-    // 【權重調降】
-    { name: "八分音符", duration: baseInterval * 2, weight: 0.25 }, 
-    // 【權重調降】
-    { name: "十六分音符", duration: baseInterval, weight: 0.35 }, 
-    // 【權重不變】
-    { name: "三十二分音符", duration: baseInterval / 2, weight: 0.15 }
-];
+    // 音符類型
+    const noteGenerationTypes = [
+        { type: 'short', weight: 0.75 },
+        { type: 'long', weight: 0.25 }
+    ];
+    const totalTypeWeight = noteGenerationTypes.reduce((sum, t) => sum + t.weight, 0);
 
-                // ▼▼▼ 2. 直接定義長短音符比例：清晰、直觀 ▼▼▼
-                // 在決定要放置音符後，從這裡選擇具體類型。
-                // 這裡的權重直接控制了長短音符的最終比例。
-                const noteGenerationTypes = [
-                    // 75% 的機率生成普通短音符
-                    { type: 'short', weight: 0.75 },
-                    // 25% 的機率生成長音符
-                    { type: 'long', weight: 0.25 }
-                ];
-                // ▲▲▲ 您可以隨意調整上面的 weight 來改變長短音符的比例 ▲▲▲
+    let currentTime = 1.0; // 從 1 秒後開始生成音符
 
-                const totalRhythmWeight = rhythmPatterns.reduce((sum, p) => sum + p.weight, 0);
-                const totalTypeWeight = noteGenerationTypes.reduce((sum, t) => sum + t.weight, 0);
-                
-                let currentTime = 1.0; // 從 1 秒後開始生成音符
+    while (currentTime < duration - (2.0 + noteFallDuration)) {
+        // 步驟 A: 選擇節奏步長
+        let randomRhythm = seededRandom() * totalRhythmWeight;
+        let selectedRhythm = rhythmPatterns[0];
+        for (const pattern of rhythmPatterns) {
+            randomRhythm -= pattern.weight;
+            if (randomRhythm <= 0) {
+                selectedRhythm = pattern;
+                break;
+            }
+        }
+        const stepDuration = selectedRhythm.duration;
 
-                while (currentTime < duration - (2.0 + noteFallDuration)) {
-                    // 步驟 A: 根據權重隨機選擇一個節奏步長
-                    let randomRhythm = seededRandom() * totalRhythmWeight;
-                    let selectedRhythm = rhythmPatterns[0];
-                    for (const pattern of rhythmPatterns) {
-                        randomRhythm -= pattern.weight;
-                        if (randomRhythm <= 0) {
-                            selectedRhythm = pattern;
-                            break;
-                        }
+        // 步驟 B: 根據難度密度決定是否放置音符
+        if (seededRandom() < difficulty.noteDensity) {
+            const availableTracks = [];
+            for (let i = 0; i < tracks; i++) {
+                if (currentTime >= trackNextAllowedTime[i]) {
+                    availableTracks.push(i);
+                }
+            }
+            if (availableTracks.length > 0) {
+                const trackIndex = availableTracks[Math.floor(seededRandom() * availableTracks.length)];
+
+                // 步驟 C: 決定音符類型
+                let randomType = seededRandom() * totalTypeWeight;
+                let selectedType = noteGenerationTypes[0];
+                for (const type of noteGenerationTypes) {
+                    randomType -= type.weight;
+                    if (randomType <= 0) {
+                        selectedType = type;
+                        break;
                     }
-                    const stepDuration = selectedRhythm.duration;
-
-                    // 步驟 B: 根據難度密度決定是否在此時間點放置音符
-                    if (seededRandom() < difficulty.noteDensity) {
-                        
-                        const availableTracks = [];
-                        for (let i = 0; i < tracks; i++) {
-                            if (currentTime >= trackFreeAt[i]) {
-                                availableTracks.push(i);
-                            }
-                        }
-
-                        if (availableTracks.length > 0) {
-                            const trackIndex = availableTracks[Math.floor(seededRandom() * availableTracks.length)];
-
-                            // ▼▼▼ 步驟 C: 根據 noteGenerationTypes 決定音符是長是短 ▼▼▼
-                            let randomType = seededRandom() * totalTypeWeight;
-                            let selectedType = noteGenerationTypes[0];
-                            for (const type of noteGenerationTypes) {
-                                randomType -= type.weight;
-                                if (randomType <= 0) {
-                                    selectedType = type;
-                                    break;
-                                }
-                            }
-                            
-                            let finalNoteDuration = 0;
-                            if (selectedType.type === 'long') {
-                                // 為長音符設定一個固定的、有意義的音樂時長（例如一個四分音符）
-                                // 這比之前隨機乘以步長要更穩定和有樂感
-                                const randomMultiplier = 2 + (seededRandom() * 6); // 生成 2.0 到 8.0 之間的隨機數
-    const longNoteDuration = baseInterval * randomMultiplier;
-    finalNoteDuration = Math.min(longNoteDuration, 3.0); // 最長不超過3秒，避免過長
-}
-                            // 如果 selectedType.type 是 'short'，finalNoteDuration 保持為 0
-
-                            data.push({
-                                time: currentTime,
-                                track: trackIndex,
-                                type: finalNoteDuration > 0 ? 'long' : 'short',
-                                duration: finalNoteDuration
-                            });
-
-                            trackFreeAt[trackIndex] = currentTime + finalNoteDuration + MIN_NOTE_GAP;
-                        }
-                    }
-
-                    currentTime += stepDuration;
                 }
 
-                return data.sort((a, b) => a.time - b.time);
-            }
-           // ▲▲▲ [修訂] 替換結束 ▲▲▲
+                let finalNoteDuration = 0;
+                if (selectedType.type === 'long') {
+                    const randomMultiplier = 2 + (seededRandom() * 6);
+                    const longNoteDuration = baseInterval * randomMultiplier;
+                    finalNoteDuration = Math.min(longNoteDuration, 3.0);
+                }
 
-           function generateNotesContinuously() {
+                // 【核心修訂】計算下一個音符的安全生成時間
+                // 安全間隔 = 當前音符的持續時間 + 音符下落所需時間 + 最小間隔
+                // 這確保了：當前音符的尾部離開生成點後，下一個音符的頭部才會出現。
+                const safetyInterval = finalNoteDuration + noteFallDuration + MIN_NOTE_GAP;
+                trackNextAllowedTime[trackIndex] = currentTime + safetyInterval;
+
+                // 將音符數據推入隊列
+                data.push({
+                    time: currentTime,
+                    track: trackIndex,
+                    type: finalNoteDuration > 0 ? 'long' : 'short',
+                    duration: finalNoteDuration
+                });
+            }
+        }
+        currentTime += stepDuration;
+    }
+    return data.sort((a, b) => a.time - b.time);
+}
+// ▲▲▲ [修訂] 替換結束 ▲▲▲
+
+         // ▼▼▼ [修訂] 替換 generateNotesContinuously 函數 ▼▼▼
+function generateNotesContinuously() {
     if (!gameActive) return;
     const currentTime = (Date.now() - gameStartTime) / 1000;
-
+    // 只要隊列中有音符，且其預定生成時間已到，就立即生成。
     while (noteQueue.length > 0 && noteQueue[0].time < currentTime + (noteSpeed / 1000)) {
-        const noteData = noteQueue[0]; // 先查看隊列頭部的音符
-
-        // 【修訂】徹底解決重疊：檢查軌道是否已準備好接收新音符
-        if (currentTime >= trackNextAvailableTime[noteData.track]) {
-            noteQueue.shift(); // 從隊列中移除
-
-            // 【核心修訂】動態計算安全緩衝時間
-            // 基礎緩衝：任何音符尾部離開後都必須等待的時間
-            const baseSafetyBuffer = 0.5;
-            // 額外緩衝：當前一個音符是短音符，而下一個是長音符時，需要額外的時間
-           const longNoteSafetyBuffer = 0.3;
-
-            let safetyBuffer = baseSafetyBuffer;
-            // 檢查規則：如果前一個是短音符，下一個是長音符，則增加緩衝
-            if (lastNoteType[noteData.track] === 'short' && noteData.type === 'long') {
-                safetyBuffer += longNoteSafetyBuffer;
-            }
-
-            // 計算並更新該軌道下一次可生成音符的時間點
-            // 音符尾部離開生成點的時間 = 音符生成時間 + 音符持續時間 + 音符下落所需時間
-            const noteFallTime = noteSpeed / 1000;
-            const noteEndTime = noteData.time + noteData.duration + noteFallTime;
-            const nextAvailableTime = noteEndTime + safetyBuffer; // 使用動態計算的安全緩衝
-
-            trackNextAvailableTime[noteData.track] = nextAvailableTime;
-            lastNoteType[noteData.track] = noteData.type; // 【新增】更新該軌道最後一個音符的類型
-
-            // 生成音符
-            generateNote(noteData);
-        } else {
-            // 軌道尚未準備好，跳出循環，等待下一次檢查
-            break;
-        }
+        const noteData = noteQueue.shift(); // 直接取出並移除
+        generateNote(noteData); // 生成音符
     }
-
     if (gameActive) {
         generateNotesTimer = setTimeout(generateNotesContinuously, 50);
     }
 }
+// ▲▲▲ [修訂結束] ▲▲▲
 
            function endGame() {
                 gameActive = false;
