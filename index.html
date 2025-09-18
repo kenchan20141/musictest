@@ -3205,21 +3205,21 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     const seededRandom = mulberry32(seed);
     const tracks = 4;
 
-    // --- 核心計算：物理像素與絕對安全高度 ---
+    // --- 空間衛兵設定 ---
     const totalFallDistance = tracksContainer.clientHeight + 50;
     const pixelsPerSecond = totalFallDistance / (noteSpeed / 1000);
-
     const SHORT_NOTE_SAFE_HEIGHT = 40;
     const MIN_LONG_NOTE_SAFE_HEIGHT = 50;
-    
-    // 【關鍵修訂 #1】: 使用從難度設定中傳入的動態間隙值
-    // 如果 difficulty.visualGap 未定義，則使用 50 作為後備值
     const VISUAL_COMFORT_GAP = difficulty.visualGap || 50;
-    console.log(`Current Visual Gap: ${VISUAL_COMFORT_GAP}px`);
-
-
+    
     const data = [];
+    // 空間衛兵：追蹤每個軌道在物理像素上的可用位置
     const trackFreeAtPixel = new Array(tracks).fill(0);
+    
+    // ▼▼▼ 【核心修訂 #1：引入時間衛兵】 ▼▼▼
+    // 時間衛兵：追蹤每個軌道在音樂時間上的可用時間點
+    const trackFreeAtTime = new Array(tracks).fill(0);
+    // ▲▲▲ 修訂結束 ▲▲▲
 
     const baseIntervalAnalysis = analyzeBeatIntervals(beatTimestamps);
     const baseInterval = baseIntervalAnalysis.baseInterval;
@@ -3228,7 +3228,6 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
         { name: "十六分音符", duration: baseInterval, weight: 0.70 },
         { name: "三十二分音符", duration: baseInterval / 2, weight: 0.30 }
     ];
-
     const noteGenerationTypes = [
         { type: 'short', weight: 0.75 },
         { type: 'long', weight: 0.25 }
@@ -3260,48 +3259,56 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
             if (availableTracks.length > 0) {
                 const trackIndex = availableTracks[Math.floor(seededRandom() * availableTracks.length)];
 
-                let randomType = seededRandom() * totalTypeWeight;
-                let selectedType = noteGenerationTypes[0];
-                for (const type of noteGenerationTypes) {
-                    randomType -= type.weight;
-                    if (randomType <= 0) {
-                        selectedType = type;
-                        break;
-                    }
-                }
-
-                let finalNoteDuration = 0;
-                if (selectedType.type === 'long') {
-                    // 【關鍵修訂 #2】: 使用從難度設定中傳入的長音符長度倍率
-                    // 如果未定義，則提供後備值 (min: 2, max: 6)
-                    const minMultiplier = difficulty.longNoteMinMultiplier || 2;
-                    const maxMultiplier = difficulty.longNoteMaxMultiplier || 6;
-                    
-                    const randomMultiplier = minMultiplier + seededRandom() * (maxMultiplier - minMultiplier);
-                    let longNoteDuration = baseInterval * randomMultiplier;
-                    finalNoteDuration = Math.min(longNoteDuration, 2.0); // 保留 2 秒的絕對最大長度
-                }
-
+                // ▼▼▼ 【核心修訂 #2：時間與空間雙重檢查】 ▼▼▼
                 const newNoteStartPixel = currentTime * pixelsPerSecond;
+                // 檢查一 (時間衛兵)：當前時間點是否大於軌道被佔用的結束時間？
+                // 檢查二 (空間衛兵)：新音符的物理位置是否在前一個音符的安全區域之外？
+                if (currentTime >= trackFreeAtTime[trackIndex] && newNoteStartPixel >= trackFreeAtPixel[trackIndex]) {
+                // ▲▲▲ 修訂結束 ▲▲▲
 
-                if (newNoteStartPixel >= trackFreeAtPixel[trackIndex]) {
-                    let currentNoteSafeHeight = 0;
-                    if (finalNoteDuration > 0) {
-                        const calculatedHeight = finalNoteDuration * pixelsPerSecond;
-                        currentNoteSafeHeight = Math.max(MIN_LONG_NOTE_SAFE_HEIGHT, calculatedHeight);
-                    } else {
-                        currentNoteSafeHeight = SHORT_NOTE_SAFE_HEIGHT;
+                    let randomType = seededRandom() * totalTypeWeight;
+                    let selectedType = noteGenerationTypes[0];
+                    for (const type of noteGenerationTypes) {
+                        randomType -= type.weight;
+                        if (randomType <= 0) {
+                            selectedType = type;
+                            break;
+                        }
                     }
 
+                    let finalNoteDuration = 0;
+                    if (selectedType.type === 'long') {
+                        const minMultiplier = difficulty.longNoteMinMultiplier || 2;
+                        const maxMultiplier = difficulty.longNoteMaxMultiplier || 6;
+                        const randomMultiplier = minMultiplier + seededRandom() * (maxMultiplier - minMultiplier);
+                        finalNoteDuration = Math.min(baseInterval * randomMultiplier, 2.0);
+                    }
+                    
                     data.push({
                         time: currentTime,
                         track: trackIndex,
                         type: finalNoteDuration > 0 ? 'long' : 'short',
                         duration: finalNoteDuration
                     });
+
+                    // --- 更新兩個衛兵的狀態 ---
                     
-                    // 更新軌道鎖定位置時，會使用動態的 VISUAL_COMFORT_GAP
+                    // 1. 更新空間衛兵
+                    let currentNoteSafeHeight = (finalNoteDuration > 0)
+                        ? Math.max(MIN_LONG_NOTE_SAFE_HEIGHT, finalNoteDuration * pixelsPerSecond)
+                        : SHORT_NOTE_SAFE_HEIGHT;
                     trackFreeAtPixel[trackIndex] = newNoteStartPixel + currentNoteSafeHeight + VISUAL_COMFORT_GAP;
+
+                    // ▼▼▼ 【核心修訂 #3：更新時間衛兵】 ▼▼▼
+                    if (finalNoteDuration > 0) {
+                        // 如果是長音符，軌道將被鎖定直到長音符結束
+                        trackFreeAtTime[trackIndex] = currentTime + finalNoteDuration;
+                    } else {
+                        // 如果是短音符，也給予一個極短的鎖定時間（例如一個三十二分音符的長度），
+                        // 防止在同一個時間點生成兩個音符，並確保合理的最小間隔。
+                        trackFreeAtTime[trackIndex] = currentTime + (baseInterval / 2);
+                    }
+                    // ▲▲▲ 修訂結束 ▲▲▲
                 }
             }
         }
