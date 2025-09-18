@@ -3316,59 +3316,54 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
             }
 
            function endGame() {
-                gameActive = false;
-                audio.pause();
-                audio.currentTime = 0;
-                clearTimeout(generateNotesTimer);
-                clearInterval(progressInterval);
-                cancelAnimationFrame(animationFrame);
-                startBtn.disabled = false;
-                musicSelect.disabled = false;
-                difficultySelect.disabled = false;
- 
-                // ▼▼▼ 新增邏輯：隱藏和重置進度條 ▼▼▼
-                mainGameContainer.classList.remove('game-running'); 
-                unlockProgressBar.style.height = '0%';
-                unlockProgressBar.style.width = '0%';
-                unlockProgressBar.classList.remove('glowing');
-                // ▲▲▲ 新增結束 ▲▲▲
-                musicSelectorDiv.style.display = '';
-                progressContainerDiv.style.display = 'none';
-                progressBar.style.width = '0%';
-                notes.forEach(note => note.element.remove());
-                notes = [];
+    gameActive = false;
+    audio.pause();
+    audio.currentTime = 0;
+    clearTimeout(generateNotesTimer);
+    clearInterval(progressInterval);
+    cancelAnimationFrame(animationFrame);
+    startBtn.disabled = false;
+    musicSelect.disabled = false;
+    difficultySelect.disabled = false;
 
-                // --- Post-Game Logic ---
+    // ▼▼▼ 新增邏輯：隱藏和重置進度條 ▼▼▼
+    mainGameContainer.classList.remove('game-running'); 
+    unlockProgressBar.style.height = '0%';
+    unlockProgressBar.style.width = '0%';
+    unlockProgressBar.classList.remove('glowing');
+    // ▲▲▲ 新增結束 ▲▲▲
+    musicSelectorDiv.style.display = '';
+    progressContainerDiv.style.display = 'none';
+    progressBar.style.width = '0%';
+    notes.forEach(note => note.element.remove());
+    notes = [];
+
+    // --- Post-Game Logic ---
     const selectedSong = musicSelect.value;
     const selectedDifficulty = difficultySelect.value;
     updatePersonalHighScore(selectedSong, selectedDifficulty, score); // 個人高分記錄總分
 
-    let songWasUnlocked = false;
+    // 步驟 1: 獨立檢查歌曲解鎖 (僅限普通難度)
     if (selectedDifficulty === 'normal') {
         const requiredScoreToUnlock = maxScoreForCurrentLevel * SONG_UNLOCK_PERCENTAGE;
-        // 核心修訂：使用 pureHitScore 來判斷歌曲解鎖
         if (pureHitScore >= requiredScoreToUnlock) {
-            songWasUnlocked = unlockNextSong(selectedSong);
+            unlockNextSong(selectedSong); // 達到條件就解鎖歌曲
         } else {
-            const remainingScore = Math.ceil(requiredScoreToUnlock - pureHitScore); // 這裡也用 pureHitScore
-                        const allSongs = Array.from(musicSelect.options).map(opt => opt.value);
-                        const isLastSong = saveData.unlockedSongs.length === allSongs.length;
-                        if (!isLastSong) {
-                            showNotification('info', '目標差一點！', `您在「普通」難度下還差 <strong>${remainingScore.toLocaleString()}</strong> 分就能解鎖下一首歌曲了。再加把勁！`, 6000);
-                        }
-                    }
-                }
-
-                // 【優先級判斷】
-                // 只有在「沒有」成功解鎖新歌曲的情況下，才去檢查是否解鎖了新難度
-                if (!songWasUnlocked) {
-                    checkAndUnlockDifficulties(selectedSong, selectedDifficulty, score);
-                }
-               unlockNextSong(selectedSong); 
-showGameOver();
-
-                showGameOver();
+            const remainingScore = Math.ceil(requiredScoreToUnlock - pureHitScore);
+            const allSongs = Array.from(musicSelect.options).map(opt => opt.value);
+            const isLastSong = saveData.unlockedSongs.length === allSongs.length;
+            if (!isLastSong) {
+                showNotification('info', '目標差一點！', `您在「普通」難度下還差 <strong>${remainingScore.toLocaleString()}</strong> 分就能解鎖下一首歌曲了。再加把勁！`, 6000);
             }
+        }
+    }
+
+    // 步驟 2: 獨立檢查難度解鎖 (不受歌曲解鎖影響)
+    checkAndUnlockDifficulties(selectedSong, selectedDifficulty, score);
+
+    // 步驟 3: 顯示結束畫面
+    showGameOver();
+}
 
             function showGameOver() {
                 finalScoreDisplay.textContent = score.toLocaleString();
