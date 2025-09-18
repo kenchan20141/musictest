@@ -3259,51 +3259,72 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
             if (availableTracks.length > 0) {
                 const trackIndex = availableTracks[Math.floor(seededRandom() * availableTracks.length)];
 
-                // ▼▼▼ 【核心修訂 #2：時間與空間雙重檢查】 ▼▼▼
-const newNoteStartPixel = currentTime * pixelsPerSecond;
-// 檢查一 (時間衛兵)：當前時間點是否 "嚴格大於" 軌道被佔用的結束時間？
-// 檢查二 (空間衛兵)：新音符的物理位置是否在前一個音符的安全區域之外？
-// [修訂重點 1] 將 >= 改為 >，確保嚴格的時間間隔，防止極端情況下的重疊
-if (currentTime > trackFreeAtTime[trackIndex] && newNoteStartPixel >= trackFreeAtPixel[trackIndex]) {
-    // ... (中間的選擇音符類型、計算長度等邏輯不變) ...
+                  // ▼▼▼ 【核心修訂 #2：時間與空間雙重檢查】 ▼▼▼
+                const newNoteStartPixel = currentTime * pixelsPerSecond;
+                // 檢查一 (時間衛兵)：當前時間點是否 "嚴格大於" 軌道被佔用的結束時間？
+                // 檢查二 (空間衛兵)：新音符的物理位置是否在前一個音符的安全區域之外？
+                // [修訂重點 1] 將 >= 改為 >，確保嚴格的時間間隔，防止極端情況下的重疊
+                if (currentTime > trackFreeAtTime[trackIndex] && newNoteStartPixel >= trackFreeAtPixel[trackIndex]) {
+                    // ▲▲▲ 修訂結束 ▲▲▲
 
-    // --- [新增] 最終去重檢查開始 ---
-    // 在將音符物件推入 data 陣列之前
-    const isOverlappingExisting = data.some(note =>
-        note.time === currentTime && note.track === trackIndex
-    );
+                    let randomType = seededRandom() * totalTypeWeight;
+                    let selectedType = noteGenerationTypes[0];
+                    for (const type of noteGenerationTypes) {
+                        randomType -= type.weight;
+                        if (randomType <= 0) {
+                            selectedType = type;
+                            break;
+                        }
+                    }
 
-    if (!isOverlappingExisting) {
-        // 只有在不重疊現有音符時才添加
-        // [修訂重點 2] 使用 selectedType.type 確保與選擇邏輯一致
-        data.push({
-            time: currentTime,
-            track: trackIndex,
-            type: selectedType.type, // [修訂] 這裡改為使用 selectedType.type
-            duration: finalNoteDuration
-        });
+                    let finalNoteDuration = 0;
+                    if (selectedType.type === 'long') {
+                        const minMultiplier = difficulty.longNoteMinMultiplier || 2;
+                        const maxMultiplier = difficulty.longNoteMaxMultiplier || 6;
+                        const randomMultiplier = minMultiplier + seededRandom() * (maxMultiplier - minMultiplier);
+                        finalNoteDuration = Math.min(baseInterval * randomMultiplier, 2.0);
+                    }
 
-        // - 更新兩個衛兵的狀態 -
-        // 1. 更新空間衛兵 (這部分保持不變)
-        trackFreeAtPixel[trackIndex] = (currentTime + (finalNoteDuration > 0 ? finalNoteDuration : stepDuration)) * pixelsPerSecond + difficulty.visualGap;
-        // ▼▼▼ 【核心修訂 #3：更新時間衛兵】 ▼▼▼
-        if (finalNoteDuration > 0) {
-            // 如果是長音符，軌道將被鎖定直到長音符結束
-            trackFreeAtTime[trackIndex] = currentTime + finalNoteDuration;
-        } else {
-            // 【修訂】如果是短音符，鎖定時間應為「當前的節奏步長」
-            // [修訂重點 3] 確保下一個音符至少要在下一個 stepDuration 之後才能生成
-            // 這能有效防止在臨界點生成重疊音符的 BUG。
-            trackFreeAtTime[trackIndex] = currentTime + stepDuration;
-        }
-        // ▲▲▲ 修訂結束 ▲▲▲
-    } else {
-        // 如果檢測到重疊，則不執行 data.push，也不更新衛兵狀態
-        console.warn(`[音符生成警告] 嘗試在時間 ${currentTime}, 軌道 ${trackIndex} 生成重疊音符，已阻止。`);
-    }
-    // --- [新增] 最終去重檢查結束 ---
-}
-// ▲▲▲ 修訂結束 ▲▲▲
+                    // --- [新增] 最終去重檢查開始 ---
+                    // 在將音符物件推入 data 陣列之前
+                    const isOverlappingExisting = data.some(note =>
+                        note.time === currentTime && note.track === trackIndex
+                    );
+
+                    if (!isOverlappingExisting) {
+                        // 只有在不重疊現有音符時才添加
+                        // [修訂重點 2] 使用 selectedType.type 確保與選擇邏輯一致
+                        data.push({
+                            time: currentTime,
+                            track: trackIndex,
+                            type: selectedType.type, // [修訂] 這裡改為使用 selectedType.type
+                            duration: finalNoteDuration
+                        });
+
+                        // --- 更新兩個衛兵的狀態 ---
+                        
+                        // 1. 更新空間衛兵 (這部分保持不變)
+                        let currentNoteSafeHeight = (finalNoteDuration > 0)
+                            ? Math.max(MIN_LONG_NOTE_SAFE_HEIGHT, finalNoteDuration * pixelsPerSecond)
+                            : SHORT_NOTE_SAFE_HEIGHT;
+                        trackFreeAtPixel[trackIndex] = newNoteStartPixel + currentNoteSafeHeight + VISUAL_COMFORT_GAP;
+
+                        // ▼▼▼ 【核心修訂 #3：更新時間衛兵】 ▼▼▼
+                        if (finalNoteDuration > 0) {
+                            // 如果是長音符，軌道將被鎖定直到長音符結束
+                            trackFreeAtTime[trackIndex] = currentTime + finalNoteDuration;
+                        } else {
+                            // 【修訂】如果是短音符，鎖定時間應為「當前的節奏步長」
+                            // [修訂重點 3] 確保下一個音符至少要在下一個 stepDuration 之後才能生成
+                            // 這能有效防止在臨界點生成重疊音符的 BUG。
+                            trackFreeAtTime[trackIndex] = currentTime + stepDuration;
+                        }
+                        // ▲▲▲ 修訂結束 ▲▲▲
+                    } else {
+                        // 如果檢測到重疊，則不執行 data.push，也不更新衛兵狀態
+                        console.warn(`[音符生成警告] 嘗試在時間 ${currentTime}, 軌道 ${trackIndex} 生成重疊音符，已阻止。`);
+                    }
+                    // --- [新增] 最終去重檢查結束 ---
                 }
             }
         }
@@ -3484,49 +3505,37 @@ if (currentTime > trackFreeAtTime[trackIndex] && newNoteStartPixel >= trackFreeA
                 }
             }
 
-           function handleKeyUp(e) {
-    if (!gameActive) return;
-    const keyCode = e.keyCode;
-    keyStates[keyCode] = false;
-    const trackIndex = keyCodes.indexOf(keyCode);
-    if (trackIndex !== -1) {
-        // 【核心修訂】找到第一個 hitStarted 為 true 的長音符
-        // 我們不使用 findIndex，而是直接用 find 獲取元素，這樣可以避免後續的 notes.splice(heldNoteIndex, 1) 錯誤
-        const heldNote = notes.find(note =>
-            note.track === trackIndex && note.type === 'long' && note.hitStarted
-        );
-
-        // 【修訂】只有當確實找到了一個正在被按住的長音符時，才進行後續處理
-        if (heldNote) {
-            const trackRect = tracksContainer.getBoundingClientRect();
-            const hitLineY = trackRect.top + trackRect.height - 100;
-            const rect = heldNote.element.getBoundingClientRect();
-            const noteTailY = rect.top; // 長音符的頂部就是它的尾部
-            const distance = Math.abs(noteTailY - hitLineY);
-
-            if (distance < 50) {
-                let judgment;
-                if (distance < 15) judgment = 'perfect';
-                else if (distance < 30) judgment = 'great';
-                else judgment = 'good';
-                judgeHit(trackIndex, judgment);
-            } else {
-                judgeHit(trackIndex, 'miss');
+            function handleKeyUp(e) {
+                if (!gameActive) return;
+                const keyCode = e.keyCode;
+                keyStates[keyCode] = false;
+                const trackIndex = keyCodes.indexOf(keyCode);
+                if (trackIndex !== -1) {
+                    const heldNoteIndex = notes.findIndex(note =>
+                        note.track === trackIndex && note.type === 'long' && note.hitStarted
+                    );
+                    if (heldNoteIndex !== -1) {
+                        const note = notes[heldNoteIndex];
+                        const trackRect = tracksContainer.getBoundingClientRect();
+                        const hitLineY = trackRect.top + trackRect.height - 100;
+                        const rect = note.element.getBoundingClientRect();
+                        const noteTailY = rect.top;
+                        const distance = Math.abs(noteTailY - hitLineY);
+                        if (distance < 50) {
+                            let judgment;
+                            if (distance < 15) judgment = 'perfect';
+                            else if (distance < 30) judgment = 'great';
+                            else judgment = 'good';
+                            judgeHit(trackIndex, judgment);
+                        } else {
+                            judgeHit(trackIndex, 'miss');
+                        }
+                        note.active = false;
+                        note.element.remove();
+                        notes.splice(heldNoteIndex, 1);
+                    }
+                }
             }
-
-            // 【修訂】將該長音符標記為非活動並從DOM和陣列中移除
-            heldNote.active = false;
-            heldNote.element.remove();
-            // 從 notes 陣列中移除這個特定的音符
-            const indexToRemove = notes.indexOf(heldNote);
-            if (indexToRemove > -1) {
-                notes.splice(indexToRemove, 1);
-            }
-        }
-        // 【重要】如果沒有找到 hitStarted 的長音符，則不做任何事。
-        // 這可以防止在鬆開按鍵時錯誤地處理軌道上的其他短音符。
-    }
-}
 
             function onTouchStart(e) {
                 e.preventDefault();
@@ -4025,3 +4034,4 @@ disclaimerModal.addEventListener('click', (e) => {
 
 </body>
 </html>
+
