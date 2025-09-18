@@ -2418,7 +2418,8 @@ let pureHitScore = 0; // 新增：純擊打分數，用於解鎖計算
             const keyCodes = [65, 83, 68, 70];
             const keyStates = { 65: false, 83: false, 68: false, 70: false };
             let trackCooldownUntil = new Array(tracks).fill(0);
-      
+            let trackNextAvailableTime = new Array(tracks).fill(0); // 【新增】記錄每個軌道下一個可生成音符的時間點
+            let lastNoteType = new Array(tracks).fill(null); // 【新增】記錄每個軌道上最後一個音符的類型 ('short' 或 'long')
             let sfxVolume = 0.5;
 
             // Music Player State
@@ -2991,176 +2992,128 @@ function updateUnlockMeter() {
             }
 
            async function startGame() {
-    const selectedSong = musicSelect.value;
-    const selectedDifficulty = difficultySelect.value;
-    if (!isSongUnlocked(selectedSong)) {
-        showUnlockModal(`在普通模式下達到 ${SONG_UNLOCK_SCORE} 分以解鎖下一首歌曲。`);
-        return;
-    }
-    if (!isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
-        let reqScore = 0;
-        let reqDiff = '';
-        if (selectedDifficulty === 'hard') {
-            reqScore = DIFFICULTY_UNLOCK_SCORE_NORMAL_TO_HARD;
-            reqDiff = '普通';
-        } else if (selectedDifficulty === 'hell') {
-            reqScore = DIFFICULTY_UNLOCK_SCORE_HARD_TO_HELL;
-            reqDiff = '困難';
-        }
-        showUnlockModal(`在 ${reqDiff} 模式下達到 ${reqScore} 分以解鎖此難度。`);
-        return;
-    }
-    if (gameActive) return;
-    gameActive = true;
-    startBtn.disabled = true;
-    musicSelect.disabled = true;
-    difficultySelect.disabled = true;
-    // ▼▼▼ 新增邏輯：設定與顯示解鎖進度條 ▼▼▼
-    mainGameContainer.classList.add('game-running'); // 套用 class 以隱藏其他 UI
-    // 【原始代碼已移除】不再從 maxPossibleScores 獲取固定的理論最高分
-    // maxScoreForCurrentLevel = maxPossibleScores[selectedSong]?.[selectedDifficulty] || 300000;
-    // ▼▼▼ [修訂] 在所有難度下顯示進度條，並根據難度設置不同的解鎖目標 ▼▼▼
-    unlockProgressContainer.style.display = 'flex'; // 總是顯示容器
-    // 判斷當前的解鎖目標百分比
-    if (selectedDifficulty === 'normal') {
-        // 普通難度下，目標是解鎖下一首歌 (60%)
-        unlockThresholdPercentage = SONG_UNLOCK_PERCENTAGE;
-    } else if (selectedDifficulty === 'hard') {
-        // 困難難度下，目標是解鎖地獄難度 (75%)
-        unlockThresholdPercentage = DIFFICULTY_UNLOCK_PERCENTAGE;
-    } else if (selectedDifficulty === 'hell') {
-        // 地獄難度下，目標是解鎖地獄難度 (75%) - 雖然已是最高難度，但仍可顯示進度
-        unlockThresholdPercentage = DIFFICULTY_UNLOCK_PERCENTAGE;
-    }
-    // ▼▼▼ [可選新增] 根據難度改變標記線顏色 ▼▼▼
-    if (selectedDifficulty === 'normal') {
-        unlockProgressMarker.style.background = '#FFD700'; // 黃金 (歌曲解鎖)
-        unlockProgressMarker.style.boxShadow = '0 0 8px #FFD700';
-    } else {
-        unlockProgressMarker.style.background = '#17a2b8'; // 珊瑚紅/青色 (難度解鎖)
-        unlockProgressMarker.style.boxShadow = '0 0 8px #17a2b8';
-    }
-    // ▲▲▲ [可選新增結束] ▲▲▲
-    // ▲▲▲ [修訂結束] ▲▲▲
-    // 更新標記線的位置
-    const isMobile = window.innerWidth <= 768;
-    if (isMobile) {
-        unlockProgressMarker.style.left = `${unlockThresholdPercentage * 100}%`;
-    } else {
-        unlockProgressMarker.style.bottom = `${unlockThresholdPercentage * 100}%`;
-    }
-    // ▲▲▲ 新增結束 ▲▲▲
-    startBtn.innerHTML = `<svg class="start-button-svg" viewBox="0 0 40 40" style="width:40px;height:40px;">
-        <circle cx="20" cy="20" r="18" stroke="#ff8a00" stroke-width="3" fill="none" stroke-dasharray="89" stroke-dashoffset="20">
-            <animateTransform attributeName="transform" type="rotate" from="0 20 20" to="360 20 20" dur="1s" repeatCount="indefinite" />
-        </circle>
-    </svg>`;
-    const difficulty = getCurrentDifficulty();
-    const beatTimestamps = await analyzeAudioForBeats(selectedSong);
-    startBtn.innerHTML = originalStartButtonSVG;
-    progressContainerDiv.style.display = 'block';
-    trackCooldownUntil.fill(0); 
-    trackNextAvailableTime.fill(0); // 【新增】重置軌道可用時間
-    lastNoteType.fill(null); // 【新增】重置軌道上最後一個音符的類型
-    audio.src = selectedSong;
-    audio.volume = volumeControlModal.value;
-    currentSongDuration = await getAudioDuration(selectedSong);
-    noteSpeed = Math.floor(4000 / difficulty.speedMultiplier);
-    // ▼▼▼ [修訂] 生成基於歌曲和難度的固定種子 ▼▼▼
-    const songAndDifficultyString = selectedSong + selectedDifficulty;
-    let seed = 0;
-    for (let i = 0; i < songAndDifficultyString.length; i++) {
-        const char = songAndDifficultyString.charCodeAt(i);
-        seed = ((seed << 5) - seed) + char;
-        seed |= 0; // Convert to 32bit integer
-    }
-    // 確保種子為正數
-    seed = Math.abs(seed) || 1; // 避免種子為 0
-    console.log(`Generating notes for ${selectedSong} (${selectedDifficulty}) with seed: ${seed}`);
-    // ▲▲▲ [修訂結束] ▲▲▲
-    // ▼▼▼ [修訂] 傳入種子 ▼▼▼
-    noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed); // 傳入 noteSpeed
-    // ▲▲▲ [修訂結束] ▲▲▲
-    // ▼▼▼ 【修訂後的核心邏輯】 ▼▼▼
-    // 在生成音符後，動態計算不含連擊獎勵的理論最高分
-    const maxBaseScorePerNote = 100; // "Perfect" 的基礎分數是 100
-    maxScoreForCurrentLevel = noteQueue.length * maxBaseScorePerNote;
-    // 如果計算結果為 0 (例如歌曲沒有音符)，則提供一個預設值以避免錯誤
-    if (maxScoreForCurrentLevel === 0) {
-        maxScoreForCurrentLevel = 300000; // 設置一個後備值
-    }
-    // ▲▲▲ 【修訂結束】 ▲▲▲
-    await audio.play().catch(e => console.log("音訊播放失敗:", e));
-    gameStartTime = Date.now();
-    generateNotesContinuously();
-    gameLoop();
-    progressInterval = setInterval(updateProgress, 100);
-    setTimeout(() => { if (gameActive) endGame(); }, currentSongDuration * 1000 + 2000);
+                const selectedSong = musicSelect.value;
+                const selectedDifficulty = difficultySelect.value;
+
+                if (!isSongUnlocked(selectedSong)) {
+                    showUnlockModal(`在普通模式下達到 ${SONG_UNLOCK_SCORE} 分以解鎖下一首歌曲。`);
+                    return;
+                }
+                if (!isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
+                    let reqScore = 0;
+                    let reqDiff = '';
+                    if (selectedDifficulty === 'hard') {
+                        reqScore = DIFFICULTY_UNLOCK_SCORE_NORMAL_TO_HARD;
+                        reqDiff = '普通';
+                    } else if (selectedDifficulty === 'hell') {
+                        reqScore = DIFFICULTY_UNLOCK_SCORE_HARD_TO_HELL;
+                        reqDiff = '困難';
+                    }
+                    showUnlockModal(`在 ${reqDiff} 模式下達到 ${reqScore} 分以解鎖此難度。`);
+                    return;
+                }
+
+                if (gameActive) return;
+                gameActive = true;
+                startBtn.disabled = true;
+                musicSelect.disabled = true;
+                difficultySelect.disabled = true;
+
+                // ▼▼▼ 新增邏輯：設定與顯示解鎖進度條 ▼▼▼
+                mainGameContainer.classList.add('game-running'); // 套用 class 以隱藏其他 UI
+
+                // 【原始代碼已移除】不再從 maxPossibleScores 獲取固定的理論最高分
+                // maxScoreForCurrentLevel = maxPossibleScores[selectedSong]?.[selectedDifficulty] || 300000;
+
+        // ▼▼▼ [修訂] 在所有難度下顯示進度條，並根據難度設置不同的解鎖目標 ▼▼▼
+unlockProgressContainer.style.display = 'flex'; // 總是顯示容器
+
+// 判斷當前的解鎖目標百分比
+if (selectedDifficulty === 'normal') {
+    // 普通難度下，目標是解鎖下一首歌 (60%)
+    unlockThresholdPercentage = SONG_UNLOCK_PERCENTAGE;
+} else if (selectedDifficulty === 'hard') {
+    // 困難難度下，目標是解鎖地獄難度 (75%)
+    unlockThresholdPercentage = DIFFICULTY_UNLOCK_PERCENTAGE;
+} else if (selectedDifficulty === 'hell') {
+    // 地獄難度下，目標是解鎖地獄難度 (75%) - 雖然已是最高難度，但仍可顯示進度
+    unlockThresholdPercentage = DIFFICULTY_UNLOCK_PERCENTAGE;
 }
 
+// ▼▼▼ [可選新增] 根據難度改變標記線顏色 ▼▼▼
+if (selectedDifficulty === 'normal') {
+    unlockProgressMarker.style.background = '#FFD700'; // 黃金 (歌曲解鎖)
+    unlockProgressMarker.style.boxShadow = '0 0 8px #FFD700';
+} else {
+    unlockProgressMarker.style.background = '#17a2b8'; // 珊瑚紅/青色 (難度解鎖)
+    unlockProgressMarker.style.boxShadow = '0 0 8px #17a2b8';
+}
+// ▲▲▲ [可選新增結束] ▲▲▲
 
+// ▲▲▲ [修訂結束] ▲▲▲
 
-// ▼▼▼ 【新增】音符緩衝區管理器 ▼▼▼
-/**
- * 音符緩衝區管理器
- * 為每個軌道維護一個待生成音符的隊列，並根據物理規則計算生成時機。
- */
-const noteBufferManager = {
-    // 每個軌道的待生成音符隊列
-    buffers: Array.from({ length: tracks }, () => []),
-    // 每個軌道下一個音符允許生成的時間戳 (ms)
-    nextAllowedGenerateTime: new Array(tracks).fill(0),
+                // 更新標記線的位置
+                const isMobile = window.innerWidth <= 768;
+                if (isMobile) {
+                    unlockProgressMarker.style.left = `${unlockThresholdPercentage * 100}%`;
+                } else {
+                    unlockProgressMarker.style.bottom = `${unlockThresholdPercentage * 100}%`;
+                }
+                // ▲▲▲ 新增結束 ▲▲▲
+                
+                startBtn.innerHTML = `<svg class="start-button-svg" viewBox="0 0 40 40" style="width:40px;height:40px;">
+                    <circle cx="20" cy="20" r="18" stroke="#ff8a00" stroke-width="3" fill="none" stroke-dasharray="89" stroke-dashoffset="20">
+                        <animateTransform attributeName="transform" type="rotate" from="0 20 20" to="360 20 20" dur="1s" repeatCount="indefinite" />
+                    </circle>
+                </svg>`;
+                
+                const difficulty = getCurrentDifficulty();
+                const beatTimestamps = await analyzeAudioForBeats(selectedSong);
+                startBtn.innerHTML = originalStartButtonSVG;
+             
+                progressContainerDiv.style.display = 'block';
+                trackCooldownUntil.fill(0); 
+               trackNextAvailableTime.fill(0); // 【新增】重置軌道可用時間
+               lastNoteType.fill(null); // 【新增】重置軌道上最後一個音符的類型
+                audio.src = selectedSong;
+                audio.volume = volumeControlModal.value;
+                currentSongDuration = await getAudioDuration(selectedSong);
+                noteSpeed = Math.floor(4000 / difficulty.speedMultiplier);
+                // ▼▼▼ [修訂] 生成基於歌曲和難度的固定種子 ▼▼▼
+const songAndDifficultyString = selectedSong + selectedDifficulty;
+let seed = 0;
+for (let i = 0; i < songAndDifficultyString.length; i++) {
+    const char = songAndDifficultyString.charCodeAt(i);
+    seed = ((seed << 5) - seed) + char;
+    seed |= 0; // Convert to 32bit integer
+}
+// 確保種子為正數
+seed = Math.abs(seed) || 1; // 避免種子為 0
+console.log(`Generating notes for ${selectedSong} (${selectedDifficulty}) with seed: ${seed}`);
+// ▲▲▲ [修訂結束] ▲▲▲
 
-    /**
-     * 將一個音符數據加入指定軌道的緩衝區。
-     * @param {number} trackIndex - 軌道索引 (0-3)
-     * @param {Object} noteData - 音符數據對象 { time, track, type, duration }
-     */
-    enqueueNote(trackIndex, noteData) {
-        this.buffers[trackIndex].push(noteData);
-    },
+// ▼▼▼ [修訂] 傳入種子 ▼▼▼
+noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed); // 傳入 noteSpeed
+// ▲▲▲ [修訂結束] ▲▲▲
 
-    /**
-     * 檢查指定軌道是否可以生成下一個音符。
-     * @param {number} trackIndex - 軌道索引 (0-3)
-     * @param {number} currentTime - 當前遊戲時間 (秒)
-     * @returns {boolean} - 如果可以生成，返回 true；否則返回 false。
-     */
-    canGenerateNote(trackIndex, currentTime) {
-        const currentTimestamp = Date.now();
-        // 檢查全局時間戳，確保物理間隔
-        return currentTimestamp >= this.nextAllowedGenerateTime[trackIndex];
-    },
+                // ▼▼▼ 【修訂後的核心邏輯】 ▼▼▼
+                // 在生成音符後，動態計算不含連擊獎勵的理論最高分
+                const maxBaseScorePerNote = 100; // "Perfect" 的基礎分數是 100
+                maxScoreForCurrentLevel = noteQueue.length * maxBaseScorePerNote;
 
-    /**
-     * 從指定軌道的緩衝區中取出並生成下一個音符。
-     * 在生成後，會根據音符的物理屬性計算下一個音符的生成時間。
-     * @param {number} trackIndex - 軌道索引 (0-3)
-     * @param {number} noteSpeed - 音符下落速度 (ms)
-     */
-    generateNextNote(trackIndex, noteSpeed) {
-        if (this.buffers[trackIndex].length === 0) {
-            return;
-        }
+                // 如果計算結果為 0 (例如歌曲沒有音符)，則提供一個預設值以避免錯誤
+                if (maxScoreForCurrentLevel === 0) {
+                    maxScoreForCurrentLevel = 300000; // 設置一個後備值
+                }
+                // ▲▲▲ 【修訂結束】 ▲▲▲
 
-        const noteData = this.buffers[trackIndex].shift(); // 取出隊列中的第一個音符
-        generateNote(noteData); // 生成音符
-
-        // --- 【核心計算】計算下一個音符的最早生成時間 ---
-        // 1. 計算當前音符的尾部何時會完全離開屏幕頂部（即生成點）。
-        //    尾部離開時間 = 當前時間 + 音符持續時間 + 音符從生成點落到判定線所需的時間
-        const noteFallTime = noteSpeed / 1000; // 秒
-        const noteTailClearTime = (Date.now() / 1000) + noteData.duration + noteFallTime; // 秒
-        // 2. 定義安全緩衝時間 (秒)
-        const safetyBuffer = 0.3; // 您可以根據需要調整此值
-        // 3. 計算下一個音符允許生成的絕對時間戳 (毫秒)
-        const nextAllowedTime = (noteTailClearTime + safetyBuffer) * 1000; // 轉換為毫秒
-        // 4. 更新軌道的狀態
-        this.nextAllowedGenerateTime[trackIndex] = nextAllowedTime;
-    }
-};
-// ▲▲▲ 【新增結束】 ▲▲▲
-            
+                await audio.play().catch(e => console.log("音訊播放失敗:", e));
+                gameStartTime = Date.now();
+                generateNotesContinuously();
+                gameLoop();
+                progressInterval = setInterval(updateProgress, 100);
+                setTimeout(() => { if (gameActive) endGame(); }, currentSongDuration * 1000 + 2000);
+            }
 
 
 // 新增輔助函數：分析節拍間隔，估算基本時間單位（如十六分音符長度）
@@ -3333,33 +3286,40 @@ const rhythmPatterns = [
 
             
 
-          function generateNotesContinuously() {
+           function generateNotesContinuously() {
     if (!gameActive) return;
-
     const currentTime = (Date.now() - gameStartTime) / 1000;
-
-    // 遍歷所有軌道
-    for (let trackIndex = 0; trackIndex < tracks; trackIndex++) {
-        // 如果該軌道的緩衝區為空，則跳過
-        if (noteBufferManager.buffers[trackIndex].length === 0) {
-            continue;
-        }
-
-        // 檢查緩衝區中的第一個音符是否已經到達了它的預定生成時間
-        const nextNoteInBuffer = noteBufferManager.buffers[trackIndex][0];
-        if (nextNoteInBuffer.time <= currentTime + (noteSpeed / 1000)) {
-            // 檢查物理規則：該軌道是否已經準備好生成下一個音符？
-            if (noteBufferManager.canGenerateNote(trackIndex, currentTime)) {
-                // 生成音符
-                noteBufferManager.generateNextNote(trackIndex, noteSpeed);
+    while (noteQueue.length > 0 && noteQueue[0].time < currentTime + (noteSpeed / 1000)) {
+        const noteData = noteQueue[0]; // 先查看隊列頭部的音符
+        // 【修訂】徹底解決重疊：檢查軌道是否已準備好接收新音符
+        if (currentTime >= trackNextAvailableTime[noteData.track]) {
+            noteQueue.shift(); // 從隊列中移除
+            // 【核心修訂】動態計算安全緩衝時間
+            // 基礎緩衝：任何音符尾部離開後都必須等待的時間
+            const baseSafetyBuffer = 0.5;
+            // 額外緩衝：當前一個是短音符，下一個是長音符時，需要額外的時間
+            const longNoteSafetyBuffer = 0.3;
+            let safetyBuffer = baseSafetyBuffer;
+            // 檢查規則：如果前一個是短音符，下一個是長音符，則增加緩衝
+            if (lastNoteType[noteData.track] === 'short' && noteData.type === 'long') {
+                safetyBuffer += longNoteSafetyBuffer;
             }
-            // 如果不能生成，則保持音符在緩衝區中，等待下一次檢查。
-            // 這確保了音符會嚴格按照物理規則和時間順序生成。
+            // 計算並更新該軌道下一次可生成音符的時間點
+            // 音符尾部離開生成點的時間 = 音符生成時間 + 音符持續時間 + 音符下落所需時間
+            const noteFallTime = noteSpeed / 1000;
+            const noteEndTime = noteData.time + noteData.duration + noteFallTime;
+            const nextAvailableTime = noteEndTime + safetyBuffer; // 使用動態計算的安全緩衝
+            trackNextAvailableTime[noteData.track] = nextAvailableTime;
+            lastNoteType[noteData.track] = noteData.type; // 【新增】更新該軌道最後一個音符的類型
+            // 生成音符
+            generateNote(noteData);
+        } else {
+            // 軌道尚未準備好，跳出循環，等待下一次檢查
+            break;
         }
     }
-
     if (gameActive) {
-        generateNotesTimer = setTimeout(generateNotesContinuously, 20); // 將間隔縮短到 20ms 以提高響應速度
+        generateNotesTimer = setTimeout(generateNotesContinuously, 50);
     }
 }
 
