@@ -3159,21 +3159,24 @@ function mulberry32(a) {
 // ▲▲▲ [新增結束] ▲▲▲
 
 
-  // ▼▼▼ [最終修訂版] 請將舊的 generateSongData 函數完整替換為此版本 ▼▼▼
+// ▼▼▼ [最終修訂版 V2] 請將舊的 generateSongData 函數完整替換為此版本 ▼▼▼
 function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, noteSpeed) {
     console.log(`Generating notes with seed: ${seed}`);
     const seededRandom = mulberry32(seed);
     const tracks = 4;
 
-    // --- 計算物理單位 ---
-    const pixelsPerSecond = (tracksContainer.clientHeight + 50) / (noteSpeed / 1000);
-    const MIN_PHYSICAL_GAP = 15; // 增大物理間隙，確保視覺上絕對不重疊
-    const MIN_TIME_GAP = 0.05;   // 新增：最小時間間隙，確保邏輯上不衝突
+    // --- 核心計算：物理像素 ---
+    // 計算音符下落的總距離（從頂部落到底部擊打線）
+    const totalFallDistance = tracksContainer.clientHeight + 50;
+    // 計算每秒移動的像素數
+    const pixelsPerSecond = totalFallDistance / (noteSpeed / 1000);
+    // 【關鍵】定義最小物理間隙，確保視覺上絕對不重疊。
+    // 30像素是一個經過測試的值，它大於短音符的高度(25px)，能確保清晰分隔。
+    const MIN_PHYSICAL_GAP = 30; 
 
     const data = [];
-    // 同時追蹤物理位置和時間
+    // 追蹤每個軌道上，下一個音符允許生成的最早物理位置（像素值）
     const trackFreeAtPixel = new Array(tracks).fill(0);
-    const trackFreeAtTime = new Array(tracks).fill(0); // 新增：追蹤時間閾值
 
     const baseIntervalAnalysis = analyzeBeatIntervals(beatTimestamps);
     const baseInterval = baseIntervalAnalysis.baseInterval;
@@ -3215,10 +3218,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
         if (seededRandom() < difficulty.noteDensity) {
             const availableTracks = [];
             for (let i = 0; i < tracks; i++) {
-                // 【核心修訂】同時檢查時間和物理位置閾值
-                if (currentTime >= trackFreeAtTime[i]) {
-                    availableTracks.push(i);
-                }
+                availableTracks.push(i);
             }
 
             if (availableTracks.length > 0) {
@@ -3241,17 +3241,18 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                     finalNoteDuration = Math.min(longNoteDuration, 2.0);
                 }
 
-                // 【核心修訂】計算新音符的物理起始位置
+                // 【核心邏輯】計算新音符的物理起始位置
                 const newNoteStartPixel = currentTime * pixelsPerSecond;
 
-                // 【核心修訂】雙重檢查：時間閾值 + 物理位置閾值
+                // 【核心邏輯】檢查物理位置：新音符的頭部必須在前一個音符的尾部之下
                 if (newNoteStartPixel >= trackFreeAtPixel[trackIndex]) {
                     // 計算當前音符的物理高度
                     let currentNoteHeight = 0;
                     if (finalNoteDuration > 0) {
                         currentNoteHeight = finalNoteDuration * pixelsPerSecond;
                     } else {
-                        currentNoteHeight = 30; // 短音符的基礎高度
+                        // 短音符的基礎高度，與CSS中定義的 .note { height: 25px; } 一致
+                        currentNoteHeight = 25;
                     }
 
                     // 將新音符的數據加入隊列
@@ -3262,10 +3263,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                         duration: finalNoteDuration
                     });
 
-                    // 【核心修訂】同時更新時間和物理位置閾值
-                    // 時間閾值 = 當前時間 + 音符持續時間 + 最小時間間隙
-                    trackFreeAtTime[trackIndex] = currentTime + finalNoteDuration + MIN_TIME_GAP;
-                    // 物理位置閾值 = 當前音符尾部位置 + 最小物理間隙
+                    // 【核心邏輯】更新閾值：下一個音符的起始位置 = 當前音符尾部位置 + 最小物理間隙
                     trackFreeAtPixel[trackIndex] = newNoteStartPixel + currentNoteHeight + MIN_PHYSICAL_GAP;
                 }
             }
@@ -3276,7 +3274,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
 
     return data.sort((a, b) => a.time - b.time);
 }
-// ▲▲▲ [最終修訂版] 替換結束 ▲▲▲
+// ▲▲▲ [最終修訂版 V2] 替換結束 ▲▲▲
 
             function generateNotesContinuously() {
                 if (!gameActive) return;
