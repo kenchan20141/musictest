@@ -1,6 +1,4 @@
 
-
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -2419,8 +2417,6 @@ let pureHitScore = 0; // 新增：純擊打分數，用於解鎖計算
             const keyCodes = [65, 83, 68, 70];
             const keyStates = { 65: false, 83: false, 68: false, 70: false };
             let trackCooldownUntil = new Array(tracks).fill(0);
-            let trackNextAvailableTime = new Array(tracks).fill(0); // 【新增】記錄每個軌道下一個可生成音符的時間點
-            let lastNoteType = new Array(tracks).fill(null); // 【新增】記錄每個軌道上最後一個音符的類型 ('short' 或 'long')
             let sfxVolume = 0.5;
 
             // Music Player State
@@ -3074,8 +3070,6 @@ if (selectedDifficulty === 'normal') {
              
                 progressContainerDiv.style.display = 'block';
                 trackCooldownUntil.fill(0); 
-               trackNextAvailableTime.fill(0); // 【新增】重置軌道可用時間
-               lastNoteType.fill(null); // 【新增】重置軌道上最後一個音符的類型
                 audio.src = selectedSong;
                 audio.volume = volumeControlModal.value;
                 currentSongDuration = await getAudioDuration(selectedSong);
@@ -3251,10 +3245,9 @@ function mulberry32(a) {
                             if (selectedType.type === 'long') {
                                 // 為長音符設定一個固定的、有意義的音樂時長（例如一個四分音符）
                                 // 這比之前隨機乘以步長要更穩定和有樂感
-                                const randomMultiplier = 2 + (seededRandom() * 6); // 生成 2.0 到 8.0 之間的隨機數
-    const longNoteDuration = baseInterval * randomMultiplier;
-    finalNoteDuration = Math.min(longNoteDuration, 3.0); // 最長不超過3秒，避免過長
-}
+                                const longNoteDuration = baseInterval * 4; // 固定為四分音符長度
+                                finalNoteDuration = Math.min(longNoteDuration, 2.0); // 最長不超過2秒
+                            }
                             // 如果 selectedType.type 是 'short'，finalNoteDuration 保持為 0
 
                             data.push({
@@ -3275,50 +3268,20 @@ function mulberry32(a) {
             }
            // ▲▲▲ [修訂] 替換結束 ▲▲▲
 
-           function generateNotesContinuously() {
-    if (!gameActive) return;
-    const currentTime = (Date.now() - gameStartTime) / 1000;
-
-    while (noteQueue.length > 0 && noteQueue[0].time < currentTime + (noteSpeed / 1000)) {
-        const noteData = noteQueue[0]; // 先查看隊列頭部的音符
-
-        // 【修訂】徹底解決重疊：檢查軌道是否已準備好接收新音符
-        if (currentTime >= trackNextAvailableTime[noteData.track]) {
-            noteQueue.shift(); // 從隊列中移除
-
-            // 【核心修訂】動態計算安全緩衝時間
-            // 基礎緩衝：任何音符尾部離開後都必須等待的時間
-            const baseSafetyBuffer = 0.5;
-            // 額外緩衝：當前一個音符是短音符，而下一個是長音符時，需要額外的時間
-           const longNoteSafetyBuffer = 0.3;
-
-            let safetyBuffer = baseSafetyBuffer;
-            // 檢查規則：如果前一個是短音符，下一個是長音符，則增加緩衝
-            if (lastNoteType[noteData.track] === 'short' && noteData.type === 'long') {
-                safetyBuffer += longNoteSafetyBuffer;
+            function generateNotesContinuously() {
+                if (!gameActive) return;
+                const currentTime = (Date.now() - gameStartTime) / 1000;
+                while (noteQueue.length > 0 && noteQueue[0].time < currentTime + (noteSpeed / 1000)) {
+                    const noteData = noteQueue.shift();
+                    if (trackCooldownUntil[noteData.track] > Date.now()) {
+                        continue;
+                    }
+                    generateNote(noteData);
+                }
+                if (gameActive) {
+                    generateNotesTimer = setTimeout(generateNotesContinuously, 50);
+                }
             }
-
-            // 計算並更新該軌道下一次可生成音符的時間點
-            // 音符尾部離開生成點的時間 = 音符生成時間 + 音符持續時間 + 音符下落所需時間
-            const noteFallTime = noteSpeed / 1000;
-            const noteEndTime = noteData.time + noteData.duration + noteFallTime;
-            const nextAvailableTime = noteEndTime + safetyBuffer; // 使用動態計算的安全緩衝
-
-            trackNextAvailableTime[noteData.track] = nextAvailableTime;
-            lastNoteType[noteData.track] = noteData.type; // 【新增】更新該軌道最後一個音符的類型
-
-            // 生成音符
-            generateNote(noteData);
-        } else {
-            // 軌道尚未準備好，跳出循環，等待下一次檢查
-            break;
-        }
-    }
-
-    if (gameActive) {
-        generateNotesTimer = setTimeout(generateNotesContinuously, 50);
-    }
-}
 
            function endGame() {
                 gameActive = false;
