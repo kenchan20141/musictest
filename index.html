@@ -1,0 +1,4057 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>音跡</title>
+     <!-- ▼▼▼ 請將這行 Google Fonts 連結加在這裡 ▼▼▼ -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+
+ /* ▼▼▼ 新增的樣式 ▼▼▼ */
+
+
+       /* 遊戲進行中，顯示解鎖進度條 */
+.game-running .unlock-progress-container {
+    opacity: 1;
+    transform: translateY(0); /* [修訂] 改為 Y 軸方向的滑入動畫 */
+}
+
+      .unlock-progress-container {
+    position: absolute;
+    /* [修訂] 重新計算 bottom 值：音樂進度條 bottom 10px + 高度 12px + 間距 5px = 27px */
+    bottom: 27px; 
+    left: 10px;
+    right: 10px;
+    width: auto;
+    height: 12px;         /* [修訂] 加粗進度條 */
+    transform: translateY(100%); 
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 6px;   /* [修訂] 配合新的高度調整圓角 */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+    z-index: 50;
+    opacity: 0;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+}
+
+.unlock-progress-bar {
+    height: 100%; /* [修訂] 高度填滿容器 */
+    width: 0%;    /* [修訂] 由 JS 控制寬度來顯示進度 */
+    background: linear-gradient(90deg, #1D976C, #93F9B9); /* [修訂] 漸變方向改為 90 度 */
+    transition: width 0.2s ease-out, box-shadow 0.3s ease; /* [修訂] 動畫屬性改為 width */
+    box-shadow: 0 0 10px rgba(147, 249, 185, 0);
+}
+
+        /* 當進度超過門檻時的發光效果 */
+        .unlock-progress-bar.glowing {
+            box-shadow: 0 0 15px 5px rgba(147, 249, 185, 0.8);
+        }
+
+        .unlock-progress-marker {
+    position: absolute;
+    left: 35%; /* [修訂] 由 JS 更新，改為控制 left */
+    top: -5px;     /* [修訂] 讓標記線在垂直方向上延伸出去 */
+    bottom: -5px;  /* [修訂] 讓標記線在垂直方向上延伸出去 */
+    width: 2px;    /* [修訂] 標記線寬度 */
+    height: auto;  /* [修訂] 高度自動 */
+    background: #FFD700;
+    box-shadow: 0 0 8px #FFD700;
+    z-index: 2;
+}
+        
+        .unlock-progress-label {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+             /* ▼▼▼ 已將字體系列更新為您指定的字體 ▼▼▼ */
+            font-family: 'Noto Serif TC', 'cwTeXHei', 'cwTeXFangSong', 'cwTeXKai', 'cwTeXMing', 'PingFang TC', 'Microsoft JhengHei', serif;
+            touch-action: manipulation; /* Prevent default touch actions like double-tap zoom */
+        }
+        body {
+     
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            /* Disable text selection and double-tap zoom */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 10% 20%, rgba(255, 200, 124, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(108, 99, 255, 0.1) 0%, transparent 20%);
+            z-index: -1;
+        }
+        /* Background Image with 60% Opacity */
+        .background-image {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://i.ibb.co/W4yhM5v0/image.png');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.6; /* 60% transparency */
+            z-index: -2; /* Behind the main content */
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 10px; /* Reduced padding */
+            position: relative; /* Needed for z-index */
+            z-index: 1; /* Above the background image */
+        }
+        /* Main game area container with border */
+        .main-game-container {
+             border: 2px solid rgba(255, 255, 255, 0.2);
+             border-radius: 15px;
+             padding: 15px;
+             background: rgba(0, 0, 0, 0.15);
+             box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+             margin-bottom: 20px;
+        }
+        header {
+            text-align: center;
+            padding: 10px 0; /* Reduced padding */
+            margin-bottom: 10px; /* Reduced margin */
+        }
+        h1 {
+            font-size: 2.5rem; /* Adjusted for better responsiveness */
+            margin-bottom: 5px;
+            background: linear-gradient(45deg, #ff8a00, #e52e71);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+        .subtitle {
+            font-size: 1rem; /* Adjusted */
+            opacity: 0.8;
+            margin-bottom: 10px; /* Reduced margin */
+        }
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* Reduced gap */
+        }
+      .game-ui {
+    position: relative; 
+    display: flex;
+    flex-wrap: wrap; 
+    justify-content: space-between;
+    align-items: center; 
+    gap: 8px; 
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px; 
+    padding: 10px; 
+    padding-bottom: 35px; /* [新增] 增加底部內邊距，為兩個進度條騰出空間 */
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); 
+}
+        .stats {
+            display: flex;
+            gap: 10px; /* Reduced gap */
+        }
+        .stat-box {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px; /* Reduced radius */
+            padding: 8px 12px; /* Reduced padding */
+            min-width: 90px; /* Reduced width */
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 1.5rem; /* Adjusted */
+            font-weight: bold;
+            color: #ffcc00;
+        }
+        .stat-label {
+            font-size: 0.8rem; /* Adjusted */
+            opacity: 0.7;
+        }
+        .controls {
+            display: flex;
+            gap: 8px; /* Reduced gap */
+            align-items: center;
+        }
+        /* SVG Start Button Styles */
+        .svg-button {
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            width: 80px;
+            height: 40px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease;
+        }
+        .svg-button:hover {
+            transform: translateY(-2px);
+        }
+        .svg-button:active {
+            transform: translateY(1px);
+        }
+        .svg-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+            transform: none;
+        }
+        .start-button-svg {
+            width: 100%;
+            height: 100%;
+        }
+        /* Music Selector SVG Icon */
+        .music-selector {
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping */
+            gap: 8px; /* Reduced gap */
+            align-items: center;
+        }
+        .music-select-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        .music-select-wrapper select {
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 35px 8px 12px; /* Extra padding on the right for the icon */
+            border-radius: 50px;
+            font-size: 0.9rem; /* Adjusted */
+            min-width: 0; /* Allow shrinking */
+            flex: 1; /* Allow growing/shrinking */
+            appearance: none; /* Remove default arrow */
+            cursor: pointer;
+        }
+        .music-select-wrapper select:disabled {
+            color: #888;
+            cursor: not-allowed;
+        }
+        .music-icon {
+            position: absolute;
+            right: 10px; /* Position icon inside the select box */
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none; /* Icon doesn't interfere with click */
+            fill: white; /* Icon color */
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Personal High Score Button */
+        .personal-high-score-btn {
+            background: none;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            transition: background 0.3s ease, border-color 0.3s ease;
+        }
+        .personal-high-score-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        .personal-high-score-icon {
+            width: 18px;
+            height: 18px;
+            fill: white;
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 5px; /* Reduced gap */
+            font-size: 0.9rem; /* Adjusted */
+        }
+        input[type="range"] {
+            width: 80px; /* Reduced width */
+        }
+        .difficulty-selector {
+            display: flex;
+            gap: 5px; /* Reduced gap */
+            align-items: center;
+            font-size: 0.9rem; /* Adjusted */
+        }
+        .difficulty-selector select {
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+        .difficulty-selector select:disabled {
+            color: #888;
+            cursor: not-allowed;
+        }
+      .progress-container {
+    position: absolute;   /* [新增] 改為絕對定位 */
+    bottom: 10px;         /* [新增] 定位在容器底部 */
+    left: 10px;           /* [新增] 與父容器邊距對齊 */
+    right: 10px;          /* [新增] 與父容器邊距對齊 */
+    width: auto;          /* [修訂] 讓 left/right 決定寬度 */
+    height: 12px;         /* [修訂] 加粗進度條 */
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;   /* [修訂] 配合新的高度調整圓角 */
+    overflow: hidden;
+    margin-top: 0;        /* [修訂] 移除 margin-top */
+}
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #ff8a00, #e52e71);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* Reduced gap */
+        }
+        .tracks {
+            display: flex;
+            justify-content: center;
+            gap: 8px; /* Reduced gap */
+            position: relative;
+            height: 600px; /* Increased height */
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 10px; /* Reduced radius */
+            overflow: hidden;
+            padding: 15px 0; /* Reduced padding */
+            transition: box-shadow 0.3s ease;
+        }
+        /* Combo Glow Effects */
+        .tracks.combo-blue {
+            box-shadow: 0 0 20px 5px rgba(30, 144, 255, 0.7); /* Softer blue */
+        }
+        .tracks.combo-orange {
+            box-shadow: 0 0 25px 8px rgba(255, 165, 0, 0.7); /* Softer orange */
+        }
+        .tracks.combo-pink {
+            box-shadow: 0 0 30px 10px rgba(255, 105, 180, 0.7); /* Softer pink */
+        }
+        .tracks.combo-purple {
+            box-shadow: 0 0 35px 12px rgba(147, 112, 219, 0.7); /* Softer purple */
+        }
+        .tracks.combo-rainbow {
+             box-shadow: 0 0 40px 15px;
+             animation: rainbowGlow 1.5s infinite;
+        }
+        @keyframes rainbowGlow {
+            0% { box-shadow-color: rgba(255, 0, 0, 0.7); }
+            16.66% { box-shadow-color: rgba(255, 255, 0, 0.7); }
+            33.33% { box-shadow-color: rgba(0, 255, 0, 0.7); }
+            50% { box-shadow-color: rgba(0, 255, 255, 0.7); }
+            66.66% { box-shadow-color: rgba(0, 0, 255, 0.7); }
+            83.33% { box-shadow-color: rgba(255, 0, 255, 0.7); }
+            100% { box-shadow-color: rgba(255, 0, 0, 0.7); }
+        }
+        .track {
+            width: 80px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 8px; /* Reduced radius */
+            position: relative;
+            overflow: hidden;
+        }
+        .track::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, transparent 0%, rgba(255, 255, 255, 0.2) 100%);
+            pointer-events: none;
+        }
+        .hit-line {
+            position: absolute;
+            bottom: 100px;
+            left: 0;
+            width: 100%;
+            height: 4px; /* Reduced height */
+            background: linear-gradient(90deg, #ff8a00, #e52e71);
+            border-radius: 2px; /* Reduced radius */
+            box-shadow: 0 0 10px rgba(229, 46, 113, 0.7); /* Reduced shadow */
+            z-index: 10;
+        }
+        .note {
+            position: absolute;
+            width: 70px;
+            height: 25px; /* Reduced height */
+            background: linear-gradient(45deg, #00c9ff, #92fe9d);
+            border-radius: 12px; /* Reduced radius */
+            top: -50px;
+            left: 5px;
+            box-shadow: 0 0 10px rgba(0, 201, 255, 0.7); /* Reduced shadow */
+            animation: fall linear;
+            z-index: 5;
+        }
+        .long-note {
+            position: absolute;
+            width: 70px;
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            border-radius: 12px; /* Reduced radius */
+            top: -50px;
+            left: 5px;
+            box-shadow: 0 0 10px rgba(255, 65, 108, 0.7); /* Reduced shadow */
+            animation: fall linear;
+            z-index: 5;
+            transition: background 0.1s ease, box-shadow 0.1s ease; /* Added for smooth color change */
+        }
+        .long-note.held {
+            background: linear-gradient(45deg, #ffdd4b, #ff8c4b); /* Yellow/Orange Gradient */
+            box-shadow: 0 0 15px rgba(255, 221, 75, 0.9); /* Brighter Glow */
+        }
+        @keyframes fall {
+            from { transform: translateY(-50px); }
+            to { transform: translateY(650px); } /* Adjusted for increased track height */
+        }
+        .key-hint {
+            position: absolute;
+            bottom: 50px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 1.3rem; /* Adjusted */
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        .judgment {
+            position: absolute;
+            bottom: 150px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 2rem; /* Adjusted */
+            font-weight: bold;
+            opacity: 0;
+            z-index: 20;
+            text-shadow: 0 0 8px rgba(255, 255, 255, 0.8); /* Reduced shadow */
+            animation: judgmentFade 1s ease-out;
+        }
+        @keyframes judgmentFade {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-40px); } /* Reduced transform */
+        }
+        .perfect { color: #ffcc00; }
+        .great { color: #00ccff; }
+        .good { color: #00ff99; }
+        .miss { color: #ff3366; }
+        .combo-display {
+            position: absolute;
+            top: 20%; /* Moved up */
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem; /* Adjusted */
+            font-weight: bold;
+            /* [修訂] 移除固定的黃色，由下面的類別決定 */
+            opacity: 0;
+            z-index: 15;
+            animation: comboFlash 0.5s ease-out;
+            pointer-events: none; /* Ensure it doesn't block clicks */
+        }
+         /* [修訂] Combo Display Colors - 新增基礎顏色，並調整現有顏色 */
+        .combo-display.combo-base { color: #e0e0e0; text-shadow: 0 0 10px rgba(224, 224, 224, 0.7); }
+        .combo-display.combo-blue { color: #1e90ff; text-shadow: 0 0 15px rgba(30, 144, 255, 0.8); }
+        .combo-display.combo-orange { color: #ffa500; text-shadow: 0 0 15px rgba(255, 165, 0, 0.8); }
+        .combo-display.combo-pink { color: #ff69b4; text-shadow: 0 0 15px rgba(255, 105, 180, 0.8); }
+        .combo-display.combo-purple { color: #9370db; text-shadow: 0 0 15px rgba(147, 112, 219, 0.8); }
+        .combo-display.combo-rainbow {
+            background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000);
+            background-size: 400% 400%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: comboFlashRainbow 0.5s ease-out, rainbowText 2s linear infinite;
+        }
+        @keyframes comboFlash {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(1.3); } /* Reduced scale */
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
+        @keyframes comboFlashRainbow {
+             0% { opacity: 1; transform: translate(-50%, -50%) scale(1.5); }
+             100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+        }
+        @keyframes rainbowText {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+        /* [修訂] 第二點：新增打擊感動畫 */
+        .track.hit-effect {
+            animation: trackFlash 0.2s ease-out;
+        }
+        @keyframes trackFlash {
+            0% { background-color: rgba(255, 255, 255, 0.35); }
+            100% { background-color: rgba(255, 255, 255, 0.15); }
+        }
+        .hit-line.pulse-effect {
+            animation: hitLinePulse 0.15s ease-out;
+        }
+        @keyframes hitLinePulse {
+             0% { transform: scaleX(1); box-shadow: 0 0 10px rgba(229, 46, 113, 0.7); }
+             50% { transform: scaleX(1.05); box-shadow: 0 0 25px 5px rgba(255, 204, 0, 1); }
+             100% { transform: scaleX(1); box-shadow: 0 0 10px rgba(229, 46, 113, 0.7); }
+        }
+        .main-game-container.shake-effect {
+            animation: screenShake 0.1s linear;
+        }
+        @keyframes screenShake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-2px); }
+            50% { transform: translateX(2px); }
+            75% { transform: translateX(-2px); }
+        }
+        .hit-particle {
+            position: absolute;
+            bottom: 100px; /* Start at hit line */
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 30;
+            opacity: 1;
+            animation: particleFly 0.5s ease-out forwards;
+        }
+        @keyframes particleFly {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(var(--y)) translateX(var(--x)) scale(0);
+                opacity: 0;
+            }
+        }
+        /* Touch Controls - Positioned in flow, not fixed */
+        .touch-controls {
+            display: none; /* [修訂] 預設隱藏，由 JS 控制顯示 */
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px; /* Added margin to separate from tracks */
+            padding: 10px 0;
+            width: 100%;
+            z-index: 100;
+        }
+        /* [修訂] 第三點：更有質感的半透明按鍵設計 */
+        .touch-key {
+            width: 70px;
+            height: 70px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.95);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+            user-select: none;
+            transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
+            /* Glassmorphism / Translucent Texture */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+   /* ====== Final "Starlight Silver" Key Styles (Ultimate Palette) ====== */
+
+/* --- 所有按鍵的統一基礎樣式 --- */
+.touch-key {
+    border: 2px solid;
+    /* 過渡效果中加入 filter，讓提亮動畫更平滑 */
+    transition: box-shadow 0.15s ease, transform 0.1s ease, filter 0.1s ease, background 0.15s ease;
+}
+
+/* A 鍵 - 宇宙青石 (Cosmic Teal) */
+.touch-key[data-key="65"] {
+    background: linear-gradient(135deg, rgba(0, 220, 220, 0.7), rgba(0, 100, 120, 0.8));
+    border-color: rgba(80, 230, 230, 0.8);
+    box-shadow: 0 0 15px rgba(0, 220, 220, 0.6);
+}
+
+/* S 鍵 - 藍寶石 (Sapphire) */
+.touch-key[data-key="83"] {
+    background: linear-gradient(135deg, rgba(0, 201, 255, 0.7), rgba(0, 123, 255, 0.75));
+    border-color: rgba(100, 220, 255, 0.8);
+    box-shadow: 0 0 15px rgba(0, 201, 255, 0.6);
+}
+
+/* D 鍵 - 冰晶石 (Ice Crystal) */
+.touch-key[data-key="68"] {
+    background: linear-gradient(135deg, rgba(210, 240, 255, 0.7), rgba(150, 210, 255, 0.8));
+    border-color: rgba(220, 245, 255, 0.85);
+    box-shadow: 0 0 18px rgba(180, 225, 255, 0.7);
+}
+
+/* F 鍵 - 星光銀 (Starlight Silver) - 明亮、高雅的中性色 */
+.touch-key[data-key="70"] {
+    background: linear-gradient(135deg, rgba(225, 230, 235, 0.7), rgba(170, 180, 190, 0.8));
+    border-color: rgba(230, 235, 240, 0.8);
+    box-shadow: 0 0 15px rgba(210, 215, 220, 0.7);
+}
+
+
+/* --- 按下時激活的效果 --- */
+.touch-key:active, .touch-key.pressed {
+    /* 使用 filter 大幅提亮和增加飽和度，產生晶石被激活的感覺 */
+    filter: brightness(1.3) saturate(1.2);
+    /* 同時光暈劇烈迸發 */
+    box-shadow: 0 0 28px 5px;
+}
+
+/* 為每個按鍵的迸發光暈指定顏色 */
+.touch-key[data-key="65"]:active, .touch-key[data-key="65"].pressed { box-shadow: 0 0 28px 5px rgba(0, 220, 220, 0.8); }
+.touch-key[data-key="83"]:active, .touch-key[data-key="83"].pressed { box-shadow: 0 0 28px 5px rgba(0, 201, 255, 0.8); }
+.touch-key[data-key="68"]:active, .touch-key[data-key="68"].pressed { box-shadow: 0 0 28px 5px rgba(180, 225, 255, 0.85); }
+.touch-key[data-key="70"]:active, .touch-key[data-key="70"].pressed { box-shadow: 0 0 28px 5px rgba(225, 230, 235, 0.9); }
+        /* [修訂] 第二點：移除原先的 Media Query，改由 JS 控制
+        @media (hover: none) and (pointer: coarse) {
+            .touch-controls {
+                display: flex;
+            }
+            .key-hint {
+                display: none;
+            }
+        }
+        */
+        /* 遊戲結束畫面樣式 */
+        .game-over-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+        .game-over-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .game-over-content {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 0 40px rgba(255, 138, 0, 0.5);
+            max-width: 450px;
+            width: 90%;
+            animation: modalPop 0.5s ease-out;
+        }
+        @keyframes modalPop {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .game-over-title {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: #ffcc00;
+            text-shadow: 0 0 8px rgba(255, 204, 0, 0.5);
+        }
+        .game-over-stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .game-over-stat {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            min-width: 100px;
+            margin: 8px;
+        }
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ff8a00;
+            margin: 8px 0;
+        }
+        .stat-label {
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+        .restart-btn {
+            background: linear-gradient(45deg, #00c9ff, #92fe9d);
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            margin-top: 15px;
+        }
+        /* Settings Modal Styles */
+        .settings-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .settings-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .settings-content {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 40px rgba(255, 138, 0, 0.5);
+            max-width: 500px;
+            width: 90%;
+            position: relative;
+        }
+        .close-settings {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        .settings-title {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #ffcc00;
+        }
+        .setting-group {
+            margin-bottom: 20px;
+        }
+        .setting-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+        }
+        .setting-control {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 1rem;
+        }
+        .setting-slider {
+            width: 100%;
+            margin-top: 5px;
+        }
+
+/* Copyright Disclaimer Modal Styles */
+.copyright-disclaimer-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1005;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+.copyright-disclaimer-modal.active {
+    opacity: 1;
+    pointer-events: all;
+}
+.disclaimer-content {
+    background: linear-gradient(135deg, #2c1810, #1a1a2e);
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 0 50px rgba(255, 215, 0, 0.3);
+    max-width: 500px;
+    width: 90%;
+    position: relative;
+    text-align: left;
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    animation: modalPop 0.5s ease-out;
+}
+.close-disclaimer {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: #FFD700;
+    font-size: 1.8rem;
+    cursor: pointer;
+    transition: color 0.3s ease, transform 0.2s ease;
+}
+.close-disclaimer:hover {
+    color: #fff;
+    transform: rotate(90deg);
+}
+.disclaimer-title {
+    font-size: 2rem;
+    margin-bottom: 30px;
+    text-align: center;
+    color: #FFD700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+.disclaimer-section {
+    margin-bottom: 25px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 15px;
+    border-left: 4px solid #FFD700;
+}
+.disclaimer-section h3 {
+    color: #FFD700;
+    margin-bottom: 10px;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.disclaimer-section p {
+    color: #e0e0e0;
+    line-height: 1.6;
+    font-size: 1.1rem;
+}
+
+
+
+
+        /* Personal High Score Modal */
+        .personal-high-score-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1002;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .personal-high-score-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .personal-high-score-content {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 40px rgba(255, 138, 0, 0.5);
+            max-width: 500px;
+            width: 90%;
+            position: relative;
+            text-align: center;
+        }
+        .close-personal-high-score {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+        .personal-high-score-title {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #ffcc00;
+        }
+        .personal-high-score-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .personal-high-score-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .personal-high-score-label {
+            font-weight: bold;
+        }
+        .personal-high-score-value {
+            font-size: 1.2rem;
+            color: #00c9ff;
+        }
+
+        /* Settings Button SVG */
+        .settings-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .settings-icon {
+            width: 100%;
+            height: 100%;
+            fill: white;
+        }
+
+        /* Music Player Button */
+        .music-player-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 10px; /* Add some space */
+        }
+        .music-player-icon {
+            width: 100%;
+            height: 100%;
+            fill: white;
+        }
+
+        /* Music Player Modal */
+       .music-player-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    /* [修訂] 改用更明亮、有活力的漸變色 */
+      background-color: #0b192f; 
+    background-image: 
+        /* [保留] 原有的藍綠色光暈 */
+        radial-gradient(at 20% 80%, hsla(190, 80%, 50%, 0.3), transparent 50%),
+        radial-gradient(at 80% 10%, hsla(170, 70%, 60%, 0.25), transparent 50%),
+        /* [增強] 大幅提升右上角金色光暈的亮度和範圍 */
+        radial-gradient(at 90% 20%, hsla(40, 90%, 70%, 0.35), transparent 60%),
+        /* [修訂] 將橙色替換為更優雅、空靈的柔和品紅 (Rose Gold / Magenta) */
+        radial-gradient(at 10% 40%, hsla(45, 80%, 75%, 0.25), transparent 70%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1003;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+        .music-player-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+       .music-player-content {
+    width: 90%;
+    max-width: 800px;
+    text-align: center;
+    padding: 30px;
+    /* [修訂] 調整背景透明度與陰影，使其在亮色背景下更清晰 */
+    background: rgba(255, 255, 255, 0.25); /* 提高亮度 */
+    backdrop-filter: blur(30px); /* 增強模糊效果 */
+    -webkit-backdrop-filter: blur(30px);
+    border-radius: 20px;
+    border: 1px solid rgba(230, 180, 80, 0.5);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2), 0 0 20px rgba(230, 180, 80, 0.2);
+    /* ▼▼▼ 新增以下樣式以啟用滾動 ▼▼▼ */
+    max-height: 90vh; /* 限制最大高度為視窗的90% */
+    overflow-y: auto; /* 內容超出時顯示垂直滾動條 */
+    display: flex;
+    flex-direction: column; /* 將子元素垂直排列 */
+    /* ▲▲▲ 新增結束 ▲▲▲ */
+}
+        .music-player-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        /* Removed .music-player-title style */
+        .close-music-player {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 2rem;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .close-music-player:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .close-music-player-icon {
+             width: 100%;
+             height: 100%;
+             fill: white;
+        }
+        .now-playing {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    /* [修訂] 改為深灰色，增加易讀性 */
+    color: #2c3e50; 
+    font-weight: 600;
+}
+.lyric-line {
+    margin: 10px 0;
+    /* [修訂] 基礎文字顏色改為較深的灰色 */
+    color: #a3a3a3;
+    opacity: 0.7;
+    transition: all 0.3s ease;
+}
+.lyric-line.active {
+    opacity: 1;
+    font-weight: bold;
+    /* [修訂] 高亮顏色改為與新主題匹配的珊瑚紅 */
+    color: #17a2b8;
+    transform: scale(1.05);
+    /* [修訂] 陰影改為更柔和的樣式 */
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+        .no-lyrics {
+            color: #aaa;
+            font-style: italic;
+        }
+        .player-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .player-btn {
+   background: rgba(255, 255, 255, 0.2); /* 稍微調亮背景 */
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #2c3e50; 
+    font-size: 2rem;
+    cursor: pointer;
+    width: 55px; /* [新增] 固定大小 */
+    height: 55px; /* [新增] 固定大小 */
+    display: flex; /* [新增] 用於居中圖示 */
+    align-items: center; /* [新增] */
+    justify-content: center; /* [新增] */
+    padding: 0; /* [修訂] 移除內邊距 */
+    border-radius: 50%;
+    transition: background 0.3s ease, transform 0.2s ease;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3); /* [新增] 圖示陰影 */
+}
+.player-btn:hover {
+    background: rgba(255, 255, 255, 0.4); /* [修訂] 懸停時更亮 */
+}
+
+/* 進度條軌道 */
+.progress-slider {
+    width: 100%;
+    height: 8px;
+    -webkit-appearance: none;
+    /* [修訂] 軌道使用更柔和的顏色 */
+   background: rgba(140, 115, 70, 0.3); 
+    border-radius: 4px;
+    outline: none;
+}
+
+/* 進度條滑塊 */
+.progress-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    /* [修訂] 滑塊改為高雅的米白色 */
+    background: #17a2b8; 
+    border: none; /* [修訂] 移除邊框 */
+    cursor: pointer;
+    border: 1px solid rgba(0,0,0,0.1); /* [新增] 增加細微邊框 */
+}
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+        .volume-control-player {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            justify-content: center;
+        }
+        .volume-control-player input[type="range"] {
+            width: 150px;
+        }
+       .playlist {
+    list-style: none;
+    padding: 0;
+    margin-top: 30px;
+    max-height: 200px; /* 預設值，適用於小屏幕 */
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    padding: 10px;
+}
+
+/* 在大屏幕上給播放列表更多空間 */
+@media (min-width: 769px) {
+    .playlist {
+        max-height: 400px; /* 在電腦上顯示更多歌曲 */
+    }
+}
+        .playlist-item {
+    padding: 12px 15px; /* [修訂] 增加內邊距 */
+    border-radius: 8px; /* [修訂] 圓角更柔和 */
+    cursor: pointer;
+    transition: background 0.3s ease;
+    text-align: left;
+    color: #e1d4dd; /* [新增] 設置基礎文字顏色 */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* [新增] 微妙的分隔線 */
+}
+.playlist-item:last-child {
+    border-bottom: none; /* [新增] 最後一項不需要分隔線 */
+}
+.playlist-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+.playlist-item.active {
+    /* [修訂] 使用新的配色方案 */
+    background: rgba(23, 162, 184, 0.2); /* 青色的半透明背景 */
+    color: #2c3e50; /* 深灰藍色文字 */
+    font-weight: bold;
+}
+        .playlist-item.locked {
+             color: #888;
+             cursor: not-allowed;
+             opacity: 0.7;
+        }
+.playlist-item.disabled {
+    opacity: 0.5;
+    color: #888;
+    text-decoration: line-through;
+}
+
+.playlist-item.disabled {
+    opacity: 0.5;
+    color: #888;
+    text-decoration: line-through;
+}
+
+        /* Unlock Modal */
+        .unlock-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1004;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .unlock-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .unlock-content {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 40px rgba(255, 138, 0, 0.5);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+        }
+        .unlock-icon {
+            font-size: 4rem;
+            color: #ffcc00;
+            margin-bottom: 20px;
+        }
+        .unlock-message {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        .unlock-requirement {
+            font-size: 1rem;
+            color: #00c9ff;
+            margin-bottom: 30px;
+        }
+        .close-unlock {
+            background: linear-gradient(45deg, #ff8a00, #e52e71);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .close-unlock:hover {
+            transform: translateY(-2px);
+        }
+
+
+        /* Responsive Design Adjustments */
+       /* Responsive Design Adjustments for Tablets and Smaller Screens (Up to 1024px) */
+@media (max-width: 1024px) {
+    /* --- 基礎手機適配 (繼承自原來的 max-width: 768px) --- */
+    h1 { font-size: 2rem; }
+    .tracks { height: 500px; }
+    .track { width: 60px; }
+    .note, .long-note { width: 50px; }
+    .hit-line { bottom: 90px; }
+    .music-select-wrapper select { max-width: 150px; }
+    .difficulty-selector select { max-width: 100px; }
+    .music-player-content { padding: 15px; }
+    .lyrics-container { height: 200px; font-size: 1rem; }
+    .player-btn { font-size: 1.5rem; }
+    .play-pause-btn { font-size: 2rem; }
+    .playlist { max-height: 150px; }
+
+    /* --- 新增/修改：針對平板尺寸 (769px - 1024px) 的優化 --- */
+    @media (min-width: 769px) {
+        /* 遊戲主頁優化 */
+        h1 {
+            font-size: 2.2rem; /* 稍微比手機大一點 */
+        }
+        .subtitle {
+            font-size: 1.1rem;
+        }
+        .game-ui {
+            flex-wrap: nowrap; /* 防止在中等屏幕上折行 */
+            justify-content: space-between;
+            gap: 15px; /* 增加一點間距 */
+        }
+        .stats {
+            flex-wrap: nowrap;
+            gap: 10px; /* 減少統計間的間距 */
+        }
+        .stat-box {
+            padding: 8px 12px; /* 增加內邊距 */
+            min-width: 90px; /* 增加最小寬度 */
+        }
+        .stat-value {
+            font-size: 1.6rem; /* 稍微增大分數顯示 */
+        }
+        .controls {
+            gap: 15px; /* 增加控制按鈕間距 */
+        }
+        .start-button-svg {
+            width: 70px; /* 增大開始按鈕 */
+            height: 35px;
+        }
+        .settings-btn {
+            width: 45px; /* 增大設定按鈕 */
+            height: 45px;
+            font-size: 1.8rem;
+        }
+
+        /* 軌道和音符尺寸調整 */
+        .tracks {
+            height: 550px; /* 比手機高，比桌面低 */
+            max-width: 600px; /* 限制最大寬度 */
+            margin: 0 auto; /* 居中 */
+        }
+        .track {
+            width: 70px; /* 增大軌道寬度 */
+            margin: 0 5px; /* 軌道間距 */
+        }
+        .note, .long-note {
+            width: 60px; /* 增大音符寬度 */
+            height: 30px; /* 增大音符高度 */
+        }
+        .hit-line {
+            bottom: 100px; /* 調整擊打線位置 */
+            height: 5px;
+        }
+        .judgment {
+            font-size: 2.2rem; /* 增大判定文字 */
+            bottom: 170px; /* 調整判定文字位置 */
+        }
+        .combo-display {
+            font-size: 3.2rem; /* 增大連擊數字 */
+            top: 25%; /* 調整連擊數字位置 */
+        }
+
+        /* 下拉選單調整 */
+        .music-select-wrapper select,
+        .difficulty-selector select {
+            font-size: 1rem; /* 增大字體 */
+            padding: 8px 12px; /* 增大內邊距 */
+            max-width: none; /* 移除最大寬度限制 */
+        }
+        .music-select-wrapper::after {
+            right: 12px; /* 調整箭頭位置 */
+        }
+
+        /* CD 封面 */
+.cd-cover-wrapper {
+    max-width: 250px; /* 桌面版大小 */
+}
+/* 響應式設計：在小屏幕上縮小封面 */
+/* 平板尺寸優化 */
+@media (min-width: 769px) and (max-width: 1024px) {
+     .cd-cover-wrapper {
+         max-width: 230px; /* 平板版大小，介於手機和桌面之間 */
+         margin-bottom: 20px; /* 可根據需要調整 */
+     }
+}
+@media (max-width: 768px) { /* 手機版 */
+    .cd-cover-wrapper {
+        max-width: 220px;
+    }
+}
+@media (max-width: 480px) { /* 小手機版 */
+    .cd-cover-wrapper {
+        max-width: 180px;
+        margin-bottom: 15px;
+    }
+}
+
+        /* 音樂播放器頁面優化 */
+.music-player-content {
+    width: 92%;
+    max-width: 700px;
+    padding: 25px 30px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    /* 修改: 移除 max-height 和 overflow-y，讓內部元素控制滾動 */
+    /* max-height: 90vh; */
+    /* overflow-y: auto; */
+    /* 新增: 確保容器本身不會溢出視口，但允許內部滾動 */
+    max-height: 90vh;
+    overflow: hidden; /* 防止容器本身溢出 */
+}
+
+.lyrics-container {
+    /* 保留原有樣式 */
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+    padding: 10px;
+    /* 修改: 移除固定 height，依賴 flex 分配空間 */
+    /* height: 250px; */
+    /* 修改: flex 屬性調整，允許增長和收縮，但基礎大小為 0 */
+    flex: 1 1 0; /* grow, shrink, basis */
+    min-height: 120px; /* 保持最小高度 */
+    overflow-y: auto; /* 內部滾動 */
+    /* 手機版樣式保留 */
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+}
+
+.playlist {
+    list-style: none;
+    padding: 0;
+    margin-top: 30px; /* 可根據需要調整 */
+    /* 修改: 移除固定 max-height，改為 flex 控制 */
+    /* max-height: 200px; */
+    /* max-height: 150px; */
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    padding: 10px;
+    /* 修改: flex 屬性調整，允許增長和收縮，但基礎大小為 0 */
+    flex: 1 1 0; /* grow, shrink, basis */
+    /* 新增: 設置一個最小高度，確保至少能顯示一行 */
+    min-height: 80px;
+}
+
+/* - 新增/修改：針對平板尺寸 (769px - 1024px) 的優化 - */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .music-player-content {
+        /* 在平板上可以稍微增加最大寬度和內邊距 */
+        max-width: 800px;
+        padding: 30px 40px;
+    }
+    .lyrics-container {
+        /* 平板上可以增加歌詞區的高度偏好 */
+        font-size: 1.4rem; /* 稍微增大字體 */
+        min-height: 150px; /* 增加最小高度 */
+    }
+    .playlist {
+        /* [關鍵修訂] 顯著增加播放清單在平板上的最大高度 */
+        /* flex: 1 1 0; */ /* 可以保留 flex，但 max-height 更直接 */
+        /* 移除 flex 或調整 basis，或者直接設置一個適合平板的高度 */
+        flex: 0 1 auto; /* 不主動增長，可以收縮，根據內容 */
+        max-height: 300px; /* 增大以顯示更多項目 */
+        min-height: 150px; /* 增加最小高度 */
+    }
+    /* 確保內部滾動條在需要時出現 */
+    .lyrics-container, .playlist {
+        overflow-y: auto;
+    }
+}
+
+/* 大屏幕優化保持不變 */
+@media (min-width: 1025px) {
+    .playlist {
+        max-height: 400px;
+    }
+}
+        .playlist-item {
+            padding: 14px 18px; /* 增加內邊距 */
+            border-radius: 10px; /* 增大圓角 */
+        }
+
+        /* --- 模態框 (Modal) 優化 --- */
+        .game-over-content,
+        .settings-content,
+        .personal-high-score-content,
+        .unlock-content,
+        .disclaimer-content {
+            width: 90%; /* 稍微增大寬度 */
+            max-width: 500px; /* 設置最大寬度 */
+            padding: 35px; /* 增加內邊距 */
+            border-radius: 20px; /* 增大圓角 */
+        }
+        .game-over-title,
+        .settings-title,
+        .personal-high-score-title,
+        .unlock-message,
+        .disclaimer-title {
+            font-size: 2rem; /* 增大標題 */
+        }
+        .game-over-stat {
+            padding: 18px; /* 增加統計項內邊距 */
+            min-width: 110px; /* 增加最小寬度 */
+            margin: 10px; /* 調整外邊距 */
+        }
+        .stat-number {
+            font-size: 2.2rem; /* 增大統計數字 */
+        }
+        .stat-label {
+            font-size: 1.1rem; /* 增大統計標籤 */
+        }
+        .restart-btn,
+        .close-settings,
+        .close-personal-high-score,
+        .close-unlock,
+        .close-disclaimer {
+            padding: 12px 25px; /* 增加按鈕內邊距 */
+            font-size: 1.2rem; /* 增大按鈕文字 */
+        }
+        .setting-item {
+            margin-bottom: 20px; /* 增加設定項間距 */
+        }
+        .setting-label {
+            font-size: 1.1rem; /* 增大設定標籤 */
+            margin-bottom: 8px; /* 增加下方間距 */
+        }
+        .setting-slider {
+            width: 100%; /* 保持 100% 寬度 */
+        }
+        .disclaimer-section h3 {
+            font-size: 1.4rem; /* 增大章節標題 */
+        }
+        .disclaimer-section p {
+            font-size: 1.2rem; /* 增大段落文字 */
+        }
+    }
+}
+
+        
+        @media (max-width: 480px) {
+            h1 { font-size: 1.7rem; }
+            .game-ui {
+                justify-content: space-around;
+                gap: 5px;
+                flex-wrap: wrap;
+            }
+            .stats, .controls {
+                flex-shrink: 1; 
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .music-select-wrapper select {
+                padding: 6px 30px 6px 10px;
+                font-size: 0.8rem;
+                max-width: 120px;
+            }
+            .stat-box {
+                padding: 6px 10px;
+                min-width: 80px;
+            }
+            .stat-value {
+                font-size: 1.3rem;
+            }
+            .tracks { height: 400px; }
+            .track { width: 50px; }
+            .note, .long-note { width: 40px; }
+            .hit-line { bottom: 80px; }
+            .difficulty-selector select {
+                max-width: 80px;
+                font-size: 0.8rem;
+                padding: 4px 6px;
+            }
+            .music-player-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+            /* Removed .music-player-title style for small screens */
+            .now-playing {
+                font-size: 1.2rem;
+            }
+            .player-controls {
+                gap: 10px;
+            }
+            .player-btn {
+                font-size: 1.2rem;
+                padding: 8px;
+            }
+            .play-pause-btn {
+                font-size: 1.8rem;
+            }
+            .volume-control-player {
+                flex-direction: column;
+                gap: 5px;
+            }
+            .volume-control-player input[type="range"] {
+                width: 100%;
+            }
+            .time-display {
+                font-size: 0.8rem;
+            }
+            flex-shrink: 1; /* 允許在空間不足時被壓縮 */
+    min-height: 100px; /* 設置一個最小高度 */
+            .unlock-content {
+                padding: 20px;
+            }
+            .unlock-icon {
+                font-size: 3rem;
+            }
+            .unlock-message {
+                font-size: 1rem;
+            }
+            .unlock-requirement {
+                font-size: 0.9rem;
+            }
+.music-player-content {
+    display: flex;
+    flex-direction: column;
+    /* [修訂] 將固定的 height 改為 max-height，讓容器有上下邊距 */
+    max-height: 90vh; 
+    overflow-y: auto;
+    padding: 10px 15px; 
+}
+
+
+    .player-controls {
+        gap: 15px; /* [修訂] 稍微拉開一點間距，避免誤觸 */
+    }
+
+    .player-btn {
+        /* [修訂] 固定按鈕大小，讓佈局更穩定 */
+        width: 45px;
+        height: 45px;
+        font-size: 1.2rem;
+        padding: 0; /* 移除內邊距，因為已用 flex 居中 */
+    }
+
+    .play-pause-btn {
+        width: 60px; /* [修訂] 讓播放鍵稍大，更突出 */
+        height: 60px;
+        font-size: 1.8rem;
+    }
+
+   .lyrics-container {
+    flex: 1;
+    min-height: 120px;
+    overflow-y: auto;
+    /* [修訂] 加大手機版面的歌詞字體，提升可讀性 */
+    font-size: 1.2rem; 
+    margin-bottom: 15px; 
+}
+
+.playlist {
+    flex-shrink: 0;
+    /* [修訂] 顯著增加播放清單的最大高度，使其在手機版面更易於滾動和查看 */
+    max-height: 150px; 
+}
+        }
+
+/* ====== Notification Modal Styles ====== */
+.notification-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000; /* 確保在最頂層 */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+
+.notification-modal.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.notification-content {
+    background: linear-gradient(145deg, #2a2a3e, #1e2c4b);
+    padding: 30px 40px;
+    border-radius: 15px;
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transform: scale(0.8);
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.4s ease;
+}
+
+.notification-modal.active .notification-content {
+    transform: scale(1);
+    opacity: 1;
+}
+
+.close-notification {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 2rem;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.close-notification:hover {
+    color: #fff;
+}
+
+.notification-icon {
+    font-size: 4rem;
+    margin-bottom: 15px;
+    animation: icon-pop 0.5s ease-out 0.3s backwards;
+}
+
+@keyframes icon-pop {
+    0% { transform: scale(0); }
+    80% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.notification-title {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.notification-message {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.5;
+}
+
+.notification-message strong {
+    font-weight: bold;
+    color: #fff;
+}
+
+/* --- Success Style --- */
+.notification-content.success {
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.5), 0 0 10px rgba(147, 249, 185, 0.3);
+}
+.notification-content.success .notification-icon {
+    color: #FFD700; /* Gold */
+}
+.notification-content.success .notification-title {
+    color: #93F9B9; /* Light Green */
+}
+.notification-content.success .notification-message strong {
+    color: #FFD700;
+}
+
+/* --- Info/Failure Style --- */
+.notification-content.info {
+    box-shadow: 0 0 25px rgba(0, 201, 255, 0.4);
+}
+.notification-content.info .notification-icon {
+    color: #00C9FF; /* Bright Blue */
+}
+.notification-content.info .notification-title {
+    color: #e0e0e0;
+}
+.notification-content.info .notification-message strong {
+    color: #00C9FF;
+}
+
+
+/* ====== CD Cover Styles ====== */
+.cd-cover-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px; /* 為 "正在播放" 文字留出空間 */
+    padding: 0 10px; /* 兩側留白，避免貼邊 */
+}
+
+.cd-cover-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 300px; /* 最大寬度，避免在大屏幕上過大 */
+    aspect-ratio: 1 / 1; /* 關鍵：強制 1:1 比例 */
+    border-radius: 15px; /* 圓角，與整體設計風格一致 */
+    overflow: hidden; /* 隱藏溢出的陰影和偽元素 */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); /* 深色、有質感的陰影 */
+    background: rgba(255, 255, 255, 0.1); /* 半透明背景，作為加載時的佔位 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cd-cover-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* 關鍵：確保圖片填滿容器且不變形 */
+    transition: transform 0.5s ease; /* 為旋轉動畫添加過渡效果 */
+}
+
+/* CD 覆蓋層效果 - 模擬 CD 的反光 */
+.cd-cover-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0) 0%, 
+        rgba(255, 255, 255, 0.1) 50%, 
+        rgba(255, 255, 255, 0) 100%);
+    pointer-events: none; /* 確保不阻擋點擊 */
+}
+
+/* 播放時的旋轉動畫 */
+.cd-cover-img.playing {
+    animation: cdSpin 15s linear infinite;
+}
+
+@keyframes cdSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* 響應式設計：在小屏幕上縮小封面 */
+@media (max-width: 768px) {
+    .cd-cover-wrapper {
+        max-width: 220px; /* 中等屏幕 */
+    }
+}
+
+@media (max-width: 480px) {
+    .cd-cover-wrapper {
+        max-width: 180px; /* 小屏幕 */
+        margin-bottom: 15px; /* 縮小間距 */
+    }
+    .now-playing {
+        font-size: 1.1rem; /* 配合縮小的封面，稍微減小字體 */
+    }
+}
+
+        
+
+        
+    </style>
+</head>
+<body>
+    <!-- Background Image -->
+    <div class="background-image"></div>
+    <div class="container">
+        <div class="main-game-container" id="mainGameContainer">
+            <div class="game-container">
+                <div class="game-ui">
+                    <div class="stats">
+                        <div class="stat-box">
+                            <div class="stat-value" id="score">0</div>
+                            <div class="stat-label">分數</div>
+                        </div>
+
+
+ <!-- ▼▼▼ 新增的解鎖進度條 ▼▼▼ -->
+            <div id="unlockProgressContainer" class="unlock-progress-container">
+                <div id="unlockProgressMarker" class="unlock-progress-marker"></div>
+                <div id="unlockProgressBar" class="unlock-progress-bar"></div>
+                <div class="unlock-progress-label">解鎖進度</div>
+            </div>
+            <!-- ▲▲▲ 新增結束 ▲▲▲ -->
+
+
+                    </div>
+
+
+
+
+                    <div class="controls">
+                        <button class="svg-button" id="startBtn" title="開始遊戲">
+                            <svg class="start-button-svg" viewBox="0 0 80 40">
+                                <defs>
+                                    <linearGradient id="startButtonGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" style="stop-color:#ff8a00;stop-opacity:1" />
+                                        <stop offset="100%" style="stop-color:#e52e71;stop-opacity:1" />
+                                    </linearGradient>
+                                </defs>
+                                <rect x="0" y="0" width="80" height="40" rx="20" ry="20" fill="url(#startButtonGradient)" />
+                                <path d="M30 12 L30 28 L50 20 Z" fill="white"/>
+                            </svg>
+                        </button>
+                        <button class="settings-btn" id="settingsBtn" title="設定">
+                            <svg class="settings-icon" viewBox="0 0 24 24">
+                                <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" />
+                            </svg>
+                        </button>
+                        <button class="music-player-btn" id="musicPlayerBtn" title="音樂播放器">
+                             <svg class="music-player-icon" viewBox="0 0 24 24">
+                                <path d="M12,3V13.55C11.41,13.21 10.73,13 10,13C7.79,13 6,14.79 6,17C6,19.21 7.79,21 10,21C12.21,21 14,19.21 14,17V7H18V3H12Z" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="music-selector">
+                        <div class="music-select-wrapper">
+                            <select id="musicSelect">
+                                <option value="白影.mp3">白影</option>
+                                <option value="等待.mp3">等待</option>
+                                <option value="下一枝的惆悵.mp3">下一枝的惆悵</option>
+                                <option value="餘燼落入虛無.mp3">餘燼落入虛無</option>
+                                <option value="老屋回憶.mp3">老屋回憶</option>
+                                <option value="battle-abysswalker.mp3">The Abysswalker</option>
+                                <option value="Battle-Rosemoon.mp3">都戰乙女</option>
+                                <option value="Battle-deadly.mp3">五大罪</option>
+                                <option value="Battle-rapier.mp3">繼承劍的少女</option>
+                                <option value="Ariadne-Battle.mp3">不屈意志之刃</option>
+                                <option value="battle-arms.mp3">西部戰鬥</option>
+                                <option value="Battle.mp3">Battle Theme</option>
+                                <option value="Wanderers-City.mp3">流浪城鎮</option>
+                                <option value="Remotest-Liblary.mp3">沉睡的記憶</option>
+                                <option value="Nostalgia.mp3">麥田懷舊</option>
+                                <option value="sunbeams.mp3">放學後</option>
+                                <option value="village.mp3">鄉村生活</option>
+                                <option value="Take-a-Rest.mp3">休息一下</option>
+                                <option value="winter-snow.mp3">雪鄉</option>
+                                <option value="Forgotten-Place.mp3">被遺忘的地方</option>
+                                <option value="Rest-in-Peace.mp3">安息</option>
+                                <option value="Farewell.mp3">告別</option>
+                                <option value="reminiscence.mp3">回憶</option>
+                                <option value="starry-night.mp3">星夜</option>
+                                <option value="last-wish.mp3">當思念傳到某人耳畔</option>
+                                <option value="sorrow.mp3">超越悲傷</option>
+                                <option value="hotarumichi.mp3">螢火蟲之路</option>
+                                <option value="Sky-Airship.mp3">飛艇</option>
+                                <option value="Voyage_SE.mp3">跨越神秘之海</option>
+                                <option value="main-theme01.mp3">盼望</option>
+                                <option value="saikai637.mp3">約定之地</option>
+                            </select>
+                            <svg class="music-icon" viewBox="0 0 24 24">
+                                <path d="M12,3V13.55C11.41,13.21 10.73,13 10,13C7.79,13 6,14.79 6,17C6,19.21 7.79,21 10,21C12.21,21 14,19.21 14,17V7H18V3H12Z" />
+                            </svg>
+                        </div>
+                        <button class="personal-high-score-btn" id="personalHighScoreBtn" title="查看個人最高分數">
+                            <svg class="personal-high-score-icon" viewBox="0 0 24 24">
+                                <path d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="difficulty-selector">
+                        
+                        <select id="difficultySelect">
+                            <option value="easy">簡單</option>
+                            <option value="normal" selected>普通</option>
+                            <option value="hard">困難</option>
+                            <option value="hell">地獄</option>
+                        </select>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                </div>
+                <div class="game-area">
+                    <div class="tracks" id="tracksContainer"></div>
+                     <!-- 觸控按鍵 (僅在觸控裝置上顯示) -->
+                    <div class="touch-controls" id="touchControls">
+                        <div class="touch-key" data-key="65">A</div>
+                        <div class="touch-key" data-key="83">S</div>
+                        <div class="touch-key" data-key="68">D</div>
+                        <div class="touch-key" data-key="70">F</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<!-- Notification Modal -->
+    <div class="notification-modal" id="notificationModal">
+        <div class="notification-content">
+            <button class="close-notification" id="closeNotification">&times;</button>
+            <div class="notification-icon" id="notificationIcon"></div>
+            <h2 class="notification-title" id="notificationTitle"></h2>
+            <p class="notification-message" id="notificationMessage"></p>
+        </div>
+    </div>
+
+
+    
+    <div class="game-over-modal" id="gameOverModal">
+        <div class="game-over-content">
+            <h2 class="game-over-title">遊戲結束</h2>
+            <div class="game-over-stats">
+                <div class="game-over-stat">
+                    <div class="stat-label">最終分數</div>
+                    <div class="stat-number" id="finalScore">0</div>
+                </div>
+                <div class="game-over-stat">
+                    <div class="stat-label">最高連擊</div>
+                    <div class="stat-number" id="finalCombo">0</div>
+                </div>
+            </div>
+            <button class="restart-btn" id="restartBtn">再玩一次</button>
+        </div>
+    </div>
+    <div class="settings-modal" id="settingsModal">
+        <div class="settings-content">
+            <button class="close-settings" id="closeSettings">&times;</button>
+            <h2 class="settings-title">遊戲設定</h2>
+           
+            <div class="setting-group">
+                <label class="setting-label" for="volumeControlModal">音樂音量:</label>
+                <input type="range" class="setting-control setting-slider" id="volumeControlModal" min="0" max="1" step="0.01" value="0.7">
+            </div>
+            <div class="setting-group">
+                <label class="setting-label" for="sfxVolumeControl">音效音量:</label>
+                <input type="range" class="setting-control setting-slider" id="sfxVolumeControl" min="0" max="1" step="0.01" value="0.5">
+            </div>
+
+<div class="setting-group">
+    <button class="setting-control" id="showDisclaimerBtn">查看音樂版權聲明</button>
+</div>
+
+
+
+
+        </div>
+    </div>
+
+    <!-- Personal High Score Modal -->
+    <div class="personal-high-score-modal" id="personalHighScoreModal">
+        <div class="personal-high-score-content">
+            <button class="close-personal-high-score" id="closePersonalHighScore">&times;</button>
+            <h2 class="personal-high-score-title">個人最高分數</h2>
+            <ul class="personal-high-score-list" id="personalHighScoreList">
+                <!-- Scores will be populated here -->
+            </ul>
+        </div>
+    </div>
+
+    <!-- Music Player Modal -->
+    <div class="music-player-modal" id="musicPlayerModal">
+        <div class="music-player-content">
+            <div class="music-player-header">
+                <!-- Removed <h1 class="music-player-title">音樂播放器</h1> -->
+                <button class="close-music-player" id="closeMusicPlayer" title="返回">
+                    <svg class="close-music-player-icon" viewBox="0 0 24 24">
+                        <path d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z" />
+                    </svg>
+                </button>
+            </div>
+
+
+<!-- CD Cover Container -->
+<div class="cd-cover-container">
+    <div class="cd-cover-wrapper">
+        <img id="cdCoverImage" src="https://i.ibb.co/0X0X0X0/placeholder.png" alt="CD Cover" class="cd-cover-img">
+        <div class="cd-cover-overlay"></div>
+    </div>
+</div>
+
+
+            <div class="now-playing" id="nowPlaying">正在播放: 無</div>
+            <div class="lyrics-container" id="lyricsContainer">
+                <div class="no-lyrics">無歌詞</div>
+            </div>
+            <div class="player-controls">
+                <button class="player-btn" id="prevBtn" title="上一首" disabled>&#9664;&#9664;</button>
+                <button class="player-btn play-pause-btn" id="playPauseBtn" title="播放/暫停">&#9658;</button>
+                <button class="player-btn" id="nextBtn" title="下一首" disabled>&#9654;&#9654;</button>
+            </div>
+            <div class="progress-slider-container">
+                <input type="range" class="progress-slider" id="progressSlider" min="0" max="100" value="0">
+            </div>
+            <div class="time-display">
+                <span id="currentTime">0:00</span>
+                <span id="duration">0:00</span>
+            </div>
+            <div class="volume-control-player">
+                <label for="volumeSliderPlayer">音量:</label>
+                <input type="range" class="setting-slider" id="volumeSliderPlayer" min="0" max="1" step="0.01" value="0.7">
+            </div>
+            <ul class="playlist" id="playlist">
+                <!-- Playlist items will be populated here -->
+            </ul>
+        </div>
+    </div>
+
+    <!-- Unlock Modal -->
+    <div class="unlock-modal" id="unlockModal">
+        <div class="unlock-content">
+            <div class="unlock-icon">&#128274;</div> <!-- Lock Emoji -->
+            <h2 class="unlock-message">此項目尚未解鎖</h2>
+            <p class="unlock-requirement" id="unlockRequirement">在普通模式下達到 40000 分以解鎖。</p>
+            <button class="close-unlock" id="closeUnlock">我知道了</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+           // --- Constants and Configuration ---
+// [修訂] 歌曲解鎖條件：需要達到普通難度最高分的 80%
+const SONG_UNLOCK_PERCENTAGE = 0.6; 
+// [修訂] 難度解鎖條件：需要達到當前難度最高分的 100%
+const DIFFICULTY_UNLOCK_PERCENTAGE = 0.75;
+
+const difficultySettings = {
+    // Easy 難度：在細密網格上，以 80% 的機率放置音符
+    easy: { speedMultiplier: 0.9, longNoteChance: 0.2, noteDensity: 0.8, maxSimultaneous: 4, cooldown: 400 },
+    // Normal 難度：在細密網格上，以 150% 的機率放置音符 (即幾乎必中)
+    normal: { speedMultiplier: 1.1, longNoteChance: 0.30, noteDensity: 1.5, maxSimultaneous: 4, cooldown: 200 },
+    // Hard 難度：在細密網格上，以 250% 的機率放置音符，並提高長音符比例
+    hard: { speedMultiplier: 1.6, longNoteChance: 0.40, noteDensity: 2.5, maxSimultaneous: 4, cooldown: 100 },
+    // Hell 難度：在細密網格上，以 400% 的機率放置音符，製造真正的音符風暴
+    hell: { speedMultiplier: 2.2, longNoteChance: 0.50, noteDensity: 4.0, maxSimultaneous: 4, cooldown: 50 }
+};
+            
+            // Max possible scores for each song and difficulty (for display purposes)
+            const maxPossibleScores = {
+                "Battle-Abysswalker.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "Battle-Rosemoon.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "Battle-deadly.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "Battle-rapier.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "Ariadne-Battle.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "battle-arms.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "Battle.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "Wanderers-City.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "Remotest-Liblary.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "Nostalgia.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "sunbeams.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "village.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "Take-a-Rest.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "winter-snow.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "Forgotten-Place.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "Rest-in-Peace.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "Farewell.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "reminiscence.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "starry-night.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "last-wish.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "sorrow.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "hotarumichi.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "Sky-Airship.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "Voyage_SE.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "main-theme01.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                },
+                "saikai637.mp3": {
+                    easy: 150000, normal: 300000, hard: 450000, hell: 600000
+                }
+            };
+
+            // Sample Lyrics Data
+            const songLyrics = {
+                "等待.mp3": [
+        { "time": 9, "text": "月亮高掛在夜空之上" },
+        { "time": 13, "text": "宛如不眠的眼睛一樣" },
+        { "time": 17, "text": "靜靜注視著喧囂的人間" },
+        { "time": 21, "text": "有多少悲歡離合在上演" },
+        { "time": 27, "text": "他守望著月的蒼茫" },
+        { "time": 29, "text": "也守望著黎明的曙光" },
+        { "time": 33, "text": "在漫長歲月裡等待著" },
+        { "time": 36, "text": "等待著某個人的出現" },
+        { "time": 49, "text": "他已經記不清你的模樣" },
+        { "time": 54, "text": "卻依然在原地默默守望" },
+        { "time": 58, "text": "那是一種怎樣的心情" },
+        { "time": 61, "text": "才能如此執著又漫長" },
+        { "time": 67, "text": "也許你早已忘了遺忘" },
+        { "time": 72, "text": "而他卻還在為你惆悵" },
+        { "time": 76, "text": "在這城市的喧囂之中" },
+        { "time": 80, "text": "還有多少人在等待著" }
+    ],
+                "白影.mp3": [
+    {
+      "time": 12,
+      "text": "他走進了一個荒誕的夢境"
+    },
+    {
+      "time": 18,
+      "text": "夢裡有個重複出現的白影"
+    },
+    {
+      "time": 24,
+      "text": "白影微笑著準備登上"
+    },
+    {
+      "time": 30,
+      "text": "有獠牙的火車廂頂"
+    },
+    {
+      "time": 35,
+      "text": "黃昏一次次的把白影擄走"
+    },
+    {
+      "time": 41,
+      "text": "他一次次的站在原地目送"
+    },
+    {
+      "time": 47,
+      "text": "他沒有辦法挽留"
+    },
+    {
+      "time": 51,
+      "text": "他沒有辦法伸出手"
+    },
+    {
+      "time": 71,
+      "text": "多年後他還是會常常驚醒"
+    },
+    {
+      "time": 77,
+      "text": "枕邊總是濕潤的一片狼藉"
+    },
+    {
+      "time": 83,
+      "text": "白影像餃子皮一樣包裹著他"
+    },
+    {
+      "time": 90,
+      "text": "越掙扎越陷進去"
+    },
+    {
+      "time": 95,
+      "text": "黃昏一次次的把白影擄走"
+    },
+    {
+      "time": 101,
+      "text": "他一次次的站在原地目送"
+    },
+    {
+      "time": 107,
+      "text": "他只能默默地看"
+    },
+    {
+      "time": 112,
+      "text": "他只能默默地吐"
+    }
+  ],
+
+"下一枝的惆悵.mp3":    [
+{ "time": 16, "text": "北京的雨是" },
+{ "time": 18, "text": "四月未停歇的傾訴" },
+{ "time": 23, "text": "胡同的路是我" },
+{ "time": 26, "text": "無法忘卻的孤獨" },
+{ "time": 31, "text": "拆遷的通知" },
+{ "time": 34, "text": "是我還未收拾的包袱" },
+{ "time": 39, "text": "騎行的外賣" },
+{ "time": 42, "text": "是我唯一能做的救贖" },
+{ "time": 46, "text": "有那麼一刻我以為我" },
+{ "time": 50, "text": "忘記了哭" },
+{ "time": 53, "text": "直到又聞到中華牌香菸的溫度" },
+{ "time": 59, "text": "有那麼一刻我以為我" },
+{ "time": 62, "text": "習慣了哭" },
+{ "time": 65, "text": "直到又看到中華牌香菸的閃爍" },
+{ "time": 82, "text": "你說歲月漫長" },
+{ "time": 86, "text": "八年釀成不過卻也轉眼一晃" },
+{ "time": 89, "text": "我說光陰匆忙" },
+{ "time": 91, "text": "我只是忘了我是誰的兒郎" },
+{ "time": 97, "text": "你說未來長河" },
+{ "time": 101, "text": "你又點起了下一支的惆悵" },
+{ "time": 104, "text": "我說人生匆忙" },
+{ "time": 106, "text": "可我又躲不過" },
+{ "time": 108, "text": "歲月的滄桑" }
+],
+
+                "餘燼落入虛無.mp3": [
+  { "time": 11, "text": "火焰跳著靈動的舞蹈" },
+  { "time": 16, "text": "灰燼飄落最後一早" },
+  { "time": 20, "text": "燒化的紙錢開始飛向雲霄" },
+  { "time": 25, "text": "地獄的大門即將來到" },
+  { "time": 30, "text": "就像那風中飄零的草" },
+  { "time": 34, "text": "沒有根基只能隨風起" },
+  { "time": 39, "text": "若飄搖你看那天空中瀰漫的煙" },
+  { "time": 44, "text": "那是你我生命最終的樣貌" },
+  { "time": 58, "text": "火焰跳著靈動的舞蹈" },
+  { "time": 102, "text": "灰燼飄落最後一早" },
+  { "time": 107, "text": "燒化的紙錢開始飛向雲霄" },
+  { "time": 111, "text": "一切似乎就要結束了" },
+  { "time": 116, "text": "就像那風中飄零的草" },
+  { "time": 121, "text": "沒有根基只能隨風起" },
+  { "time": 126, "text": "若飄搖你看那天空中瀰漫的煙" },
+  { "time": 131, "text": "那是你我生命最終的樣貌" }
+],
+
+          "老屋回憶.mp3":    [
+  { "time": 16, "text": "老屋的木門常年虛掩" },
+  { "time": 22, "text": "門外種着一棵桂花樹" },
+  { "time": 28, "text": "秋深時節 花瓣零散一地" },
+  { "time": 35, "text": "我與爺爺用竹箕收集" },
+  { "time": 42, "text": "回憶的碎片" },
+  { "time": 44, "text": "那時的快樂 那時的快樂" },
+  { "time": 46, "text": "是被捕捉後又放生的小魚" },
+  { "time": 55, "text": "是桂花糕出鍋時的蒸汽" },
+  { "time": 62, "text": "是一串串銀鈴般的蟲鳴鳥囀" },
+  { "time": 69, "text": "然而後來" },
+  { "time": 71, "text": "鈴聲中斷了我所邂逅的花鳥蟲魚" },
+  { "time": 79, "text": "已是活生生的標本" }
+]
+
+                
+
+
+                
+                // Add lyrics for more songs here
+            };
+
+
+
+// --- CD Cover Images ---
+const songCovers = {
+
+    "白影.mp3": "https://i.ibb.co/0pYsv0m1/image.png",
+   
+    // 為其他歌曲添加封面，格式為 "歌曲文件名.mp3": "圖片URL"
+    // 如果沒有特定封面，可以使用一個通用的默認封面
+    "default": "https://i.ibb.co/xK1QfwsW/image.png" // 默認封面
+};
+
+
+
+            // --- DOM Elements ---
+            const mainGameContainer = document.getElementById('mainGameContainer');
+            const tracksContainer = document.getElementById('tracksContainer');
+            const scoreDisplay = document.getElementById('score');
+            const startBtn = document.getElementById('startBtn');
+            const musicSelect = document.getElementById('musicSelect');
+            const progressBar = document.getElementById('progressBar');
+            const gameOverModal = document.getElementById('gameOverModal');
+            const finalScoreDisplay = document.getElementById('finalScore');
+            const finalComboDisplay = document.getElementById('finalCombo');
+            const restartBtn = document.getElementById('restartBtn');
+            const settingsModal = document.getElementById('settingsModal');
+            const settingsBtn = document.getElementById('settingsBtn');
+            const closeSettings = document.getElementById('closeSettings');
+    
+            const volumeControlModal = document.getElementById('volumeControlModal');
+            const sfxVolumeControl = document.getElementById('sfxVolumeControl');
+            const touchKeys = document.querySelectorAll('.touch-key');
+            const difficultySelect = document.getElementById('difficultySelect');
+            const audio = new Audio();
+            audio.volume = 0.7;
+
+            // New DOM Elements
+            const personalHighScoreBtn = document.getElementById('personalHighScoreBtn');
+            const personalHighScoreModal = document.getElementById('personalHighScoreModal');
+            const closePersonalHighScore = document.getElementById('closePersonalHighScore');
+            const personalHighScoreList = document.getElementById('personalHighScoreList');
+            const musicPlayerBtn = document.getElementById('musicPlayerBtn');
+            const musicPlayerModal = document.getElementById('musicPlayerModal');
+            const closeMusicPlayer = document.getElementById('closeMusicPlayer');
+            const nowPlaying = document.getElementById('nowPlaying');
+            const lyricsContainer = document.getElementById('lyricsContainer');
+            const prevBtn = document.getElementById('prevBtn');
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const progressSlider = document.getElementById('progressSlider');
+            const currentTimeDisplay = document.getElementById('currentTime');
+            const durationDisplay = document.getElementById('duration');
+            const volumeSliderPlayer = document.getElementById('volumeSliderPlayer');
+            const playlist = document.getElementById('playlist');
+            const unlockModal = document.getElementById('unlockModal');
+            const closeUnlock = document.getElementById('closeUnlock');
+            const unlockRequirement = document.getElementById('unlockRequirement');
+             // ▼▼▼ 新增通知視窗的 DOM 元素 ▼▼▼
+            const notificationModal = document.getElementById('notificationModal');
+            const notificationIcon = document.getElementById('notificationIcon');
+            const notificationTitle = document.getElementById('notificationTitle');
+            const notificationMessage = document.getElementById('notificationMessage');
+            const closeNotification = document.getElementById('closeNotification');
+
+            // ▼▼▼ 新增的 DOM 元素 ▼▼▼
+            const unlockProgressContainer = document.getElementById('unlockProgressContainer');
+            const unlockProgressBar = document.getElementById('unlockProgressBar');
+            const unlockProgressMarker = document.getElementById('unlockProgressMarker');
+            // ▲▲▲ 新增結束 ▲▲▲
+
+            // --- Game State Variables ---
+            let gameActive = false;
+let maxScoreForCurrentLevel = 0; // ▼▼▼ 新增狀態變數
+            let unlockThresholdPercentage = 0; // ▼▼▼ 新增狀態變數
+            let score = 0; // 總分，包含連擊獎勵
+let pureHitScore = 0; // 新增：純擊打分數，用於解鎖計算
+            let combo = 0;
+            let maxCombo = 0;
+            let notes = [];
+            let noteSpeed = 3000;
+            let animationFrame;
+            let gameStartTime = 0;
+            let currentSongDuration = 0;
+            let noteQueue = [];
+            let generateNotesTimer = null;
+            let progressInterval = null;
+            const musicSelectorDiv = document.querySelector('.music-selector');
+            const progressContainerDiv = document.querySelector('.progress-container');
+            const tracks = 4;
+            const keys = ['A', 'S', 'D', 'F'];
+            const keyCodes = [65, 83, 68, 70];
+            const keyStates = { 65: false, 83: false, 68: false, 70: false };
+            let trackCooldownUntil = new Array(tracks).fill(0);
+      
+            let sfxVolume = 0.5;
+
+            // Music Player State
+            let playerAudio = new Audio();
+            playerAudio.volume = 0.7;
+            let playerIsPlaying = false;
+            let playlistItems = [];
+            let currentPlaylistIndex = 0;
+            let lyrics = [];
+            let lyricsInterval = null;
+            let isUpdatingSlider = false; // Flag to prevent slider update conflicts
+
+            // --- Audio Context for SFX ---
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            let isAudioContextStarted = false;
+            function startAudioContext() {
+                if (!isAudioContextStarted) {
+                    audioContext.resume().then(() => {
+                        isAudioContextStarted = true;
+                        console.log("AudioContext started");
+                    }).catch(e => console.error("Failed to start AudioContext:", e));
+                }
+            }
+            document.body.addEventListener('click', startAudioContext, { once: true });
+            document.body.addEventListener('touchstart', startAudioContext, { once: true });
+
+            function createSound(frequency, type = 'sine', duration = 0.1, baseVolume = 0.2) {
+                return function() {
+                    if (!isAudioContextStarted) return;
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    oscillator.type = type;
+                    oscillator.frequency.value = frequency;
+                    gainNode.gain.value = baseVolume * sfxVolume;
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + duration);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + duration);
+                };
+            }
+            const sounds = {
+                perfect: createSound(523.25, 'sine', 0.15, 0.3),
+                great: createSound(392.00, 'sine', 0.15, 0.25),
+                good: createSound(329.63, 'sine', 0.15, 0.2),
+                miss: createSound(220.00, 'square', 0.2, 0.15),
+                combo: createSound(659.25, 'triangle', 0.1, 0.2)
+            };
+
+            // --- Local Storage Management ---
+           const STORAGE_KEY = 'musicGameSaveData';
+const PLAYER_STORAGE_KEY = 'musicPlayerSettings';
+
+let saveData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
+    unlockedSongs: ["白影.mp3"],
+    unlockedDifficulties: {}, 
+    personalHighScores: {} 
+};
+
+// 新增播放器設定的儲存結構
+let playerSettings = JSON.parse(localStorage.getItem(PLAYER_STORAGE_KEY)) || {
+    currentSong: null,
+    currentTime: 0,
+    volume: 0.7,
+    isPlaying: false,
+    playlistStates: {}, // 記錄每首歌的啟用/停用狀態
+    currentPlaylistIndex: 0
+};
+
+            // Initialize unlocked difficulties for existing unlocked songs
+            saveData.unlockedSongs.forEach(song => {
+                if (!saveData.unlockedDifficulties[song]) {
+                    saveData.unlockedDifficulties[song] = { normal: true, hard: false, hell: false };
+                }
+            });
+
+           function saveGame() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+}
+
+// 新增播放器設定保存函數
+function savePlayerSettings() {
+    // 更新當前播放狀態
+    if (playlistItems.length > 0 && currentPlaylistIndex >= 0) {
+        playerSettings.currentSong = playlistItems[currentPlaylistIndex]?.url || null;
+        playerSettings.currentTime = playerAudio.currentTime || 0;
+        playerSettings.volume = playerAudio.volume || 0.7;
+        playerSettings.isPlaying = playerIsPlaying;
+        playerSettings.currentPlaylistIndex = currentPlaylistIndex;
+    }
+    
+    // 保存播放清單狀態
+    const playlistElements = document.querySelectorAll('.playlist-item');
+    playerSettings.playlistStates = {};
+    playlistElements.forEach((item, index) => {
+        if (playlistItems[index]) {
+            playerSettings.playlistStates[playlistItems[index].url] = {
+                enabled: item.dataset.enabled === 'true',
+                index: index
+            };
+        }
+    });
+    
+    localStorage.setItem(PLAYER_STORAGE_KEY, JSON.stringify(playerSettings));
+}
+
+// 載入播放器設定
+function loadPlayerSettings() {
+    // 恢復音量設定
+    if (playerSettings.volume !== undefined) {
+        playerAudio.volume = playerSettings.volume;
+        volumeSliderPlayer.value = playerSettings.volume;
+    }
+}
+
+            // --- Unlock System ---
+            function isSongUnlocked(songUrl) {
+                return saveData.unlockedSongs.includes(songUrl);
+            }
+
+            function isDifficultyUnlocked(songUrl, difficulty) {
+                if (difficulty === 'easy' || difficulty === 'normal') return true; // Easy/Normal always unlocked for unlocked songs
+                return saveData.unlockedDifficulties[songUrl] && saveData.unlockedDifficulties[songUrl][difficulty];
+            }
+
+         function unlockNextSong(songJustPlayed) {
+                const allSongs = Array.from(musicSelect.options).map(opt => opt.value);
+                const lastUnlockedSong = saveData.unlockedSongs[saveData.unlockedSongs.length - 1];
+
+                if (songJustPlayed === lastUnlockedSong) {
+                    const currentIndex = allSongs.indexOf(lastUnlockedSong);
+                    if (currentIndex >= 0 && currentIndex < allSongs.length - 1) {
+                        const nextSong = allSongs[currentIndex + 1];
+                        if (!isSongUnlocked(nextSong)) {
+                            saveData.unlockedSongs.push(nextSong);
+                            saveData.unlockedDifficulties[nextSong] = { normal: true, hard: false, hell: false };
+                            saveGame();
+                            updateSongOptions();
+
+                            const songDisplayName = Array.from(musicSelect.options).find(opt => opt.value === nextSong)?.textContent || nextSong;
+                            showNotification('success', '新歌曲已解鎖！', `恭喜您！歌曲 <strong>${songDisplayName}</strong> 現在可以在播放清單中選擇了。`);
+                            
+                            return true; // 【新增】成功解鎖，回傳 true
+                        }
+                    }
+                }
+                return false; // 【新增】沒有發生解鎖，回傳 false
+            }
+
+           function unlockDifficulty(songUrl, difficulty) {
+                if (!saveData.unlockedDifficulties[songUrl]) {
+                    saveData.unlockedDifficulties[songUrl] = { normal: true, hard: false, hell: false };
+                }
+                if (!saveData.unlockedDifficulties[songUrl][difficulty]) {
+                    saveData.unlockedDifficulties[songUrl][difficulty] = true;
+                    saveGame();
+                    updateSongOptions();
+                    
+                    const songTitle = Array.from(musicSelect.options).find(opt => opt.value === songUrl)?.textContent || songUrl;
+                    const difficultyText = difficultySelect.querySelector(`option[value="${difficulty}"]`).textContent.replace(' (未解鎖)', '');
+                    showNotification('success', '新難度已解鎖！', `<strong>${songTitle}</strong> 的 <strong>${difficultyText}</strong> 難度現已開放挑戰！`);
+
+                    return true; // 【新增】成功解鎖，回傳 true
+                }
+                return false; // 【新增】沒有發生解鎖，回傳 false
+            }
+
+          // 修訂後的 checkAndUnlockDifficulties 函數
+function checkAndUnlockDifficulties(songUrl, difficulty, score) {
+    // 我們不再依賴 maxPossibleScores，而是根據遊戲開始時動態計算的 maxScoreForCurrentLevel
+    // 但需要知道目標難度的理論最高分，所以我們需要一個輔助函數來獲取它
+
+    // 輔助函數：根據歌曲和難度，模擬計算其理論最高分
+    function getTheoreticalMaxScoreForDifficulty(song, targetDifficulty) {
+        // 這是一個簡化版的模擬，它複用了 generateSongData 的邏輯
+        // 在真實項目中，為了性能，您可能希望預先計算並緩存這些值
+        const diffSettings = difficultySettings[targetDifficulty];
+        // 假設歌曲時長相同，我們可以基於難度設置來估算音符數量
+        // 這裡用一個非常簡化的公式：(時長 / 平均音符間隔) * 最大同時音符數 * 難度密度
+        // 這僅供示例，實際應與 startGame 中的邏輯保持一致
+        const estimatedNoteCount = Math.floor((currentSongDuration / ((0.25 + 0.15) / diffSettings.noteDensity)) * diffSettings.maxSimultaneous);
+        return estimatedNoteCount * 100; // 假設每個音符 Perfect 是 100 分
+    }
+
+    if (difficulty === 'normal' && !isDifficultyUnlocked(songUrl, 'hard')) {
+        const theoreticalMaxForHard = getTheoreticalMaxScoreForDifficulty(songUrl, 'hard');
+        const requiredScoreForHard = theoreticalMaxForHard * DIFFICULTY_UNLOCK_PERCENTAGE;
+        if (score >= requiredScoreForHard) {
+            unlockDifficulty(songUrl, 'hard');
+        }
+    }
+
+    if (difficulty === 'hard' && !isDifficultyUnlocked(songUrl, 'hell')) {
+        const theoreticalMaxForHell = getTheoreticalMaxScoreForDifficulty(songUrl, 'hell');
+        const requiredScoreForHell = theoreticalMaxForHell * DIFFICULTY_UNLOCK_PERCENTAGE;
+        if (score >= requiredScoreForHell) {
+            unlockDifficulty(songUrl, 'hell');
+        }
+    }
+}
+
+            function showUnlockModal(message) {
+                unlockRequirement.textContent = message;
+                unlockModal.classList.add('active');
+            }
+
+            // --- UI Updates ---
+
+let notificationTimer = null; // 用於自動關閉通知
+
+            // 創建一個通用函數來顯示通知
+            function showNotification(type, title, message, duration = 5000) {
+                // 如果已有計時器，先清除，避免閃爍
+                if (notificationTimer) {
+                    clearTimeout(notificationTimer);
+                }
+
+                const content = notificationModal.querySelector('.notification-content');
+                
+                // 設置文字內容
+                notificationTitle.textContent = title;
+                notificationMessage.innerHTML = message; // 使用 innerHTML 才能解析 <strong> 標籤
+
+                // 根據類型設置樣式和圖標
+                content.classList.remove('success', 'info'); // 先移除舊樣式
+                if (type === 'success') {
+                    content.classList.add('success');
+                    notificationIcon.innerHTML = '&#127881;'; // 🎉 彩炮圖示
+                } else { // 'info' 或其他類型
+                    content.classList.add('info');
+                    notificationIcon.innerHTML = '&#128220;'; // 📌 圖釘圖示
+                }
+                
+                // 顯示視窗
+                notificationModal.classList.add('active');
+
+                // 在指定時間後自動隱藏
+                notificationTimer = setTimeout(() => {
+                    notificationModal.classList.remove('active');
+                }, duration);
+            }
+
+            // 為通知視窗的關閉按鈕添加點擊事件
+            closeNotification.addEventListener('click', () => {
+                if (notificationTimer) {
+                    clearTimeout(notificationTimer); // 如果手動關閉，則取消自動關閉計時器
+                }
+                notificationModal.classList.remove('active');
+            });
+
+
+            
+            function updateSongOptions() {
+                const selectedSong = musicSelect.value;
+                const selectedDifficulty = difficultySelect.value;
+
+                Array.from(musicSelect.options).forEach(option => {
+                    const songUrl = option.value;
+                    if (isSongUnlocked(songUrl)) {
+                        option.disabled = false;
+                        option.text = option.text.replace(' (未解鎖)', ''); // Remove unlock tag if present
+                    } else {
+                        option.disabled = true;
+                        if (!option.text.includes('(未解鎖)')) {
+                            option.text += ' (未解鎖)';
+                        }
+                    }
+                });
+
+                // Update difficulty options based on selected song
+                updateDifficultyOptions(selectedSong);
+
+                // Restore selection if it's still valid
+                if (isSongUnlocked(selectedSong)) {
+                    musicSelect.value = selectedSong;
+                } else {
+                    // Select the first unlocked song if current is locked
+                    const firstUnlocked = saveData.unlockedSongs[0];
+                    if (firstUnlocked) musicSelect.value = firstUnlocked;
+                }
+                if (!isDifficultyUnlocked(musicSelect.value, selectedDifficulty)) {
+                    difficultySelect.value = 'normal'; // Default to normal if selected is locked
+                }
+            }
+
+            function updateDifficultyOptions(songUrl) {
+                const difficulties = ['easy', 'normal', 'hard', 'hell'];
+                difficulties.forEach(diff => {
+                    const option = difficultySelect.querySelector(`option[value="${diff}"]`);
+                    if (isDifficultyUnlocked(songUrl, diff)) {
+                        option.disabled = false;
+                        option.text = option.text.replace(' (未解鎖)', '');
+                    } else {
+                        option.disabled = true;
+                        if (!option.text.includes('(未解鎖)')) {
+                            option.text += ' (未解鎖)';
+                        }
+                    }
+                });
+            }
+
+            function updatePersonalHighScore(songUrl, difficulty, newScore) {
+                 if (!saveData.personalHighScores[songUrl]) {
+                    saveData.personalHighScores[songUrl] = {};
+                 }
+                 const currentHigh = saveData.personalHighScores[songUrl][difficulty] || 0;
+                 if (newScore > currentHigh) {
+                    saveData.personalHighScores[songUrl][difficulty] = newScore;
+                    saveGame();
+                 }
+            }
+
+            function populatePersonalHighScoreList(songUrl) {
+                personalHighScoreList.innerHTML = '';
+                const difficulties = ['easy', 'normal', 'hard', 'hell'];
+                difficulties.forEach(diff => {
+                    const li = document.createElement('li');
+                    li.className = 'personal-high-score-item';
+
+                    const labelSpan = document.createElement('span');
+                    labelSpan.className = 'personal-high-score-label';
+                    labelSpan.textContent = `${diff.toUpperCase()}:`;
+
+                    const valueSpan = document.createElement('span');
+                    valueSpan.className = 'personal-high-score-value';
+                    const score = saveData.personalHighScores[songUrl] ? saveData.personalHighScores[songUrl][diff] : 0;
+                    valueSpan.textContent = score ? score.toLocaleString() : '0';
+
+                    li.appendChild(labelSpan);
+                    li.appendChild(valueSpan);
+                    personalHighScoreList.appendChild(li);
+                });
+            }
+
+            function initGame() {
+                tracksContainer.innerHTML = '';
+                for (let i = 0; i < tracks; i++) {
+                    const track = document.createElement('div');
+                    track.className = 'track';
+                    track.dataset.track = i;
+                    const hitLine = document.createElement('div');
+                    hitLine.className = 'hit-line';
+                    track.appendChild(hitLine);
+                    const keyHint = document.createElement('div');
+                    keyHint.className = 'key-hint';
+                    keyHint.textContent = keys[i];
+                    track.appendChild(keyHint);
+                    tracksContainer.appendChild(track);
+                }
+                score = 0;
+                combo = 0;
+                maxCombo = 0;
+                notes = [];
+                noteQueue = [];
+                progressBar.style.width = '0%';
+                updateUI();
+                tracksContainer.className = 'tracks';
+                const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+                if (isMobile) {
+                    document.getElementById('touchControls').style.display = 'flex';
+                    document.querySelectorAll('.key-hint').forEach(hint => hint.style.display = 'none');
+                }
+            }
+
+            function updateUI() {
+                scoreDisplay.textContent = score;
+            }
+
+            function updateProgress() {
+                if (gameActive && currentSongDuration > 0) {
+                    const elapsed = (Date.now() - gameStartTime) / 1000;
+                    const progress = Math.min(100, (elapsed / currentSongDuration) * 100);
+                    progressBar.style.width = `${progress}%`;
+                }
+            }
+
+            // --- Game Logic ---
+            function generateNote(noteData) {
+                if (!gameActive) return;
+                const trackIndex = noteData.track;
+                const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
+                if (!track) return;
+                const note = document.createElement('div');
+                note.className = noteData.type === 'long' ? 'long-note' : 'note';
+                note.dataset.track = trackIndex;
+                note.style.animationDuration = `${noteSpeed}ms`;
+                if (noteData.type === 'long') {
+                    const noteHeight = (noteData.duration / (noteSpeed / 1000)) * (tracksContainer.clientHeight + 50);
+                    note.style.height = `${Math.max(30, noteHeight)}px`;
+                }
+                track.appendChild(note);
+                const noteObj = {
+                    element: note,
+                    track: trackIndex,
+                    type: noteData.type,
+                    duration: noteData.duration || 0,
+                    active: true,
+                    hitStarted: false,
+                    creationTime: Date.now(), // 【新增】記錄音符的創建時間戳
+                };
+                notes.push(noteObj);
+            }
+
+            function createHitParticles(trackIndex, judgment) {
+                const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
+                if (!track) return;
+                const particleCount = judgment === 'perfect' ? 12 : (judgment === 'great' ? 8 : 5);
+                const colors = {
+                    perfect: '#ffcc00',
+                    great: '#00ccff',
+                    good: '#00ff99'
+                };
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'hit-particle';
+                    particle.style.background = colors[judgment] || '#fff';
+                    const x = (Math.random() - 0.5) * 80;
+                    const y = (Math.random() * -80) - 20;
+                    particle.style.setProperty('--x', `${x}px`);
+                    particle.style.setProperty('--y', `${y}px`);
+                    particle.style.left = `calc(50% - 4px)`;
+                    track.appendChild(particle);
+                    setTimeout(() => particle.remove(), 500);
+                }
+            }
+
+            function judgeHit(trackIndex, type) {
+                const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
+                if (sounds[type]) {
+                    sounds[type]();
+                }
+                const judgment = document.createElement('div');
+                judgment.className = `judgment ${type}`;
+                judgment.textContent = `${type.toUpperCase()}!`;
+                if (track) track.appendChild(judgment);
+                setTimeout(() => judgment.remove(), 1000);
+                if (type !== 'miss') {
+                    createHitParticles(trackIndex, type);
+                    const hitLine = track.querySelector('.hit-line');
+                    if (hitLine) {
+                        hitLine.classList.remove('pulse-effect');
+                        void hitLine.offsetWidth;
+                        hitLine.classList.add('pulse-effect');
+                    }
+                    if (type === 'perfect') {
+                        mainGameContainer.classList.remove('shake-effect');
+                        void mainGameContainer.offsetWidth;
+                        mainGameContainer.classList.add('shake-effect');
+                    }
+                }
+                if (type === 'miss') {
+                    combo = 0;
+                    const difficulty = getCurrentDifficulty();
+                    trackCooldownUntil[trackIndex] = Date.now() + difficulty.cooldown;
+                } else {
+                    let baseScore = 0;
+                    if (type === 'perfect') baseScore = 100;
+                    else if (type === 'great') baseScore = 70;
+                    else if (type === 'good') baseScore = 40;
+                    addScore(baseScore);
+                }
+                updateUI();
+            }
+
+            function addScore(baseScore) {
+                combo++;
+                if (combo > maxCombo) maxCombo = combo;
+                score += baseScore + Math.floor(baseScore * (Math.floor(combo / 10) * 0.1));
+
+ // 核心修訂：分開計算
+    pureHitScore += baseScore; // 純擊打分數，用於解鎖
+    score += baseScore + Math.floor(baseScore * (Math.floor(combo / 10) * 0.1)); // 總分，包含連擊獎勵，用於顯示
+
+                if (combo > 5) {
+                    const comboEl = document.createElement('div');
+                    comboEl.className = 'combo-display';
+                    comboEl.textContent = `${combo} COMBO!`;
+                    if (combo >= 1000) comboEl.classList.add('combo-rainbow');
+                    else if (combo >= 500) comboEl.classList.add('combo-purple');
+                    else if (combo >= 200) comboEl.classList.add('combo-pink');
+                    else if (combo >= 100) comboEl.classList.add('combo-orange');
+                    else if (combo >= 50) comboEl.classList.add('combo-blue');
+                    else comboEl.classList.add('combo-base');
+                    tracksContainer.appendChild(comboEl);
+                    if (sounds.combo) sounds.combo();
+                    setTimeout(() => comboEl.remove(), 500);
+                }
+                let trackComboClass = '';
+                if (combo >= 1000) trackComboClass = 'combo-rainbow';
+                else if (combo >= 500) trackComboClass = 'combo-purple';
+                else if (combo >= 200) trackComboClass = 'combo-pink';
+                else if (combo >= 100) trackComboClass = 'combo-orange';
+                else if (combo >= 50) trackComboClass = 'combo-blue';
+                tracksContainer.className = 'tracks';
+                if (trackComboClass) tracksContainer.classList.add(trackComboClass);
+updateUnlockMeter(); // ▼▼▼ 在 addScore 結尾呼叫新函數
+            }
+
+ // ▼▼▼ 新增的函數 ▼▼▼
+           // ▼▼▼ 修正後的函數 ▼▼▼
+function updateUnlockMeter() {
+    if (maxScoreForCurrentLevel === 0) return;
+    // 核心修訂：使用 pureHitScore 來計算百分比
+    const currentPercent = Math.min(100, (pureHitScore / maxScoreForCurrentLevel) * 100);
+    unlockProgressBar.style.width = `${currentPercent}%`;
+    if (currentPercent >= unlockThresholdPercentage * 100) {
+        unlockProgressBar.classList.add('glowing');
+    } else {
+        unlockProgressBar.classList.remove('glowing');
+    }
+}
+            // ▲▲▲ 新增結束 ▲▲▲
+
+            async function getAudioDuration(src) {
+                return new Promise((resolve) => {
+                    const tempAudio = new Audio(src);
+                    tempAudio.addEventListener('loadedmetadata', () => resolve(tempAudio.duration));
+                    tempAudio.addEventListener('error', () => resolve(120));
+                });
+            }
+
+            async function analyzeAudioForBeats(url) {
+                try {
+                    const response = await fetch(url);
+                    const arrayBuffer = await response.arrayBuffer();
+                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    const channelData = audioBuffer.getChannelData(0);
+                    const sampleRate = audioBuffer.sampleRate;
+                    const beats = [];
+                    const bufferSize = 1024;
+                    const historySize = 43;
+                    const C = 1.3;
+                    const energyHistory = []; // <-- [修訂] 新增這一行
+
+
+                    
+                    const getEnergy = (buffer) => {
+                        let sum = 0;
+                        for (let i = 0; i < buffer.length; i++) {
+                            sum += buffer[i] * buffer[i];
+                        }
+                        return Math.sqrt(sum / buffer.length);
+                    };
+                    for (let i = 0; i < channelData.length; i += bufferSize) {
+                        const buffer = channelData.slice(i, i + bufferSize);
+                        const currentEnergy = getEnergy(buffer);
+                        let averageEnergy = energyHistory.length > 0 ?
+                            energyHistory.reduce((a, b) => a + b, 0) / energyHistory.length : 0;
+                        if (currentEnergy > averageEnergy * C) {
+                            const beatTime = i / sampleRate;
+                            if (beats.length === 0 || beatTime > beats[beats.length - 1] + 0.2) {
+                                beats.push(beatTime);
+                            }
+                        }
+                        energyHistory.push(currentEnergy);
+                        if (energyHistory.length > historySize) {
+                            energyHistory.shift();
+                        }
+                    }
+                    console.log(`偵測到 ${beats.length} 個節拍。`);
+                    return beats;
+                } catch (error) {
+                    console.error("音訊分析失敗（可能是 CORS 跨域問題）:", error);
+                    return [];
+                }
+            }
+
+            function getCurrentDifficulty() {
+                return difficultySettings[difficultySelect.value] || difficultySettings.normal;
+            }
+
+           async function startGame() {
+    const selectedSong = musicSelect.value;
+    const selectedDifficulty = difficultySelect.value;
+    if (!isSongUnlocked(selectedSong)) {
+        showUnlockModal(`在普通模式下達到 ${SONG_UNLOCK_SCORE} 分以解鎖下一首歌曲。`);
+        return;
+    }
+    if (!isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
+        let reqScore = 0;
+        let reqDiff = '';
+        if (selectedDifficulty === 'hard') {
+            reqScore = DIFFICULTY_UNLOCK_SCORE_NORMAL_TO_HARD;
+            reqDiff = '普通';
+        } else if (selectedDifficulty === 'hell') {
+            reqScore = DIFFICULTY_UNLOCK_SCORE_HARD_TO_HELL;
+            reqDiff = '困難';
+        }
+        showUnlockModal(`在 ${reqDiff} 模式下達到 ${reqScore} 分以解鎖此難度。`);
+        return;
+    }
+    if (gameActive) return;
+    gameActive = true;
+    startBtn.disabled = true;
+    musicSelect.disabled = true;
+    difficultySelect.disabled = true;
+    // ▼▼▼ 新增邏輯：設定與顯示解鎖進度條 ▼▼▼
+    mainGameContainer.classList.add('game-running'); // 套用 class 以隱藏其他 UI
+    // 【原始代碼已移除】不再從 maxPossibleScores 獲取固定的理論最高分
+    // maxScoreForCurrentLevel = maxPossibleScores[selectedSong]?.[selectedDifficulty] || 300000;
+    // ▼▼▼ [修訂] 在所有難度下顯示進度條，並根據難度設置不同的解鎖目標 ▼▼▼
+    unlockProgressContainer.style.display = 'flex'; // 總是顯示容器
+    // 判斷當前的解鎖目標百分比
+    if (selectedDifficulty === 'normal') {
+        // 普通難度下，目標是解鎖下一首歌 (60%)
+        unlockThresholdPercentage = SONG_UNLOCK_PERCENTAGE;
+    } else if (selectedDifficulty === 'hard') {
+        // 困難難度下，目標是解鎖地獄難度 (75%)
+        unlockThresholdPercentage = DIFFICULTY_UNLOCK_PERCENTAGE;
+    } else if (selectedDifficulty === 'hell') {
+        // 地獄難度下，目標是解鎖地獄難度 (75%) - 雖然已是最高難度，但仍可顯示進度
+        unlockThresholdPercentage = DIFFICULTY_UNLOCK_PERCENTAGE;
+    }
+    // ▼▼▼ [可選新增] 根據難度改變標記線顏色 ▼▼▼
+    if (selectedDifficulty === 'normal') {
+        unlockProgressMarker.style.background = '#FFD700'; // 黃金 (歌曲解鎖)
+        unlockProgressMarker.style.boxShadow = '0 0 8px #FFD700';
+    } else {
+        unlockProgressMarker.style.background = '#17a2b8'; // 珊瑚紅/青色 (難度解鎖)
+        unlockProgressMarker.style.boxShadow = '0 0 8px #17a2b8';
+    }
+    // ▲▲▲ [可選新增結束] ▲▲▲
+    // ▲▲▲ [修訂結束] ▲▲▲
+    // 更新標記線的位置
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile) {
+        unlockProgressMarker.style.left = `${unlockThresholdPercentage * 100}%`;
+    } else {
+        unlockProgressMarker.style.bottom = `${unlockThresholdPercentage * 100}%`;
+    }
+    // ▲▲▲ 新增結束 ▲▲▲
+    startBtn.innerHTML = `<svg class="start-button-svg" viewBox="0 0 40 40" style="width:40px;height:40px;">
+        <circle cx="20" cy="20" r="18" stroke="#ff8a00" stroke-width="3" fill="none" stroke-dasharray="89" stroke-dashoffset="20">
+            <animateTransform attributeName="transform" type="rotate" from="0 20 20" to="360 20 20" dur="1s" repeatCount="indefinite" />
+        </circle>
+    </svg>`;
+    const difficulty = getCurrentDifficulty();
+    const beatTimestamps = await analyzeAudioForBeats(selectedSong);
+    startBtn.innerHTML = originalStartButtonSVG;
+    progressContainerDiv.style.display = 'block';
+    trackCooldownUntil.fill(0); 
+    trackNextAvailableTime.fill(0); // 【新增】重置軌道可用時間
+    lastNoteType.fill(null); // 【新增】重置軌道上最後一個音符的類型
+    audio.src = selectedSong;
+    audio.volume = volumeControlModal.value;
+    currentSongDuration = await getAudioDuration(selectedSong);
+    noteSpeed = Math.floor(4000 / difficulty.speedMultiplier);
+    // ▼▼▼ [修訂] 生成基於歌曲和難度的固定種子 ▼▼▼
+    const songAndDifficultyString = selectedSong + selectedDifficulty;
+    let seed = 0;
+    for (let i = 0; i < songAndDifficultyString.length; i++) {
+        const char = songAndDifficultyString.charCodeAt(i);
+        seed = ((seed << 5) - seed) + char;
+        seed |= 0; // Convert to 32bit integer
+    }
+    // 確保種子為正數
+    seed = Math.abs(seed) || 1; // 避免種子為 0
+    console.log(`Generating notes for ${selectedSong} (${selectedDifficulty}) with seed: ${seed}`);
+    // ▲▲▲ [修訂結束] ▲▲▲
+    // ▼▼▼ [修訂] 傳入種子 ▼▼▼
+    noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed); // 傳入 noteSpeed
+    // ▲▲▲ [修訂結束] ▲▲▲
+    // ▼▼▼ 【修訂後的核心邏輯】 ▼▼▼
+    // 在生成音符後，動態計算不含連擊獎勵的理論最高分
+    const maxBaseScorePerNote = 100; // "Perfect" 的基礎分數是 100
+    maxScoreForCurrentLevel = noteQueue.length * maxBaseScorePerNote;
+    // 如果計算結果為 0 (例如歌曲沒有音符)，則提供一個預設值以避免錯誤
+    if (maxScoreForCurrentLevel === 0) {
+        maxScoreForCurrentLevel = 300000; // 設置一個後備值
+    }
+    // ▲▲▲ 【修訂結束】 ▲▲▲
+    await audio.play().catch(e => console.log("音訊播放失敗:", e));
+    gameStartTime = Date.now();
+    generateNotesContinuously();
+    gameLoop();
+    progressInterval = setInterval(updateProgress, 100);
+    setTimeout(() => { if (gameActive) endGame(); }, currentSongDuration * 1000 + 2000);
+}
+
+
+
+// ▼▼▼ 【新增】音符緩衝區管理器 ▼▼▼
+/**
+ * 音符緩衝區管理器
+ * 為每個軌道維護一個待生成音符的隊列，並根據物理規則計算生成時機。
+ */
+const noteBufferManager = {
+    // 每個軌道的待生成音符隊列
+    buffers: Array.from({ length: tracks }, () => []),
+    // 每個軌道下一個音符允許生成的時間戳 (ms)
+    nextAllowedGenerateTime: new Array(tracks).fill(0),
+
+    /**
+     * 將一個音符數據加入指定軌道的緩衝區。
+     * @param {number} trackIndex - 軌道索引 (0-3)
+     * @param {Object} noteData - 音符數據對象 { time, track, type, duration }
+     */
+    enqueueNote(trackIndex, noteData) {
+        this.buffers[trackIndex].push(noteData);
+    },
+
+    /**
+     * 檢查指定軌道是否可以生成下一個音符。
+     * @param {number} trackIndex - 軌道索引 (0-3)
+     * @param {number} currentTime - 當前遊戲時間 (秒)
+     * @returns {boolean} - 如果可以生成，返回 true；否則返回 false。
+     */
+    canGenerateNote(trackIndex, currentTime) {
+        const currentTimestamp = Date.now();
+        // 檢查全局時間戳，確保物理間隔
+        return currentTimestamp >= this.nextAllowedGenerateTime[trackIndex];
+    },
+
+    /**
+     * 從指定軌道的緩衝區中取出並生成下一個音符。
+     * 在生成後，會根據音符的物理屬性計算下一個音符的生成時間。
+     * @param {number} trackIndex - 軌道索引 (0-3)
+     * @param {number} noteSpeed - 音符下落速度 (ms)
+     */
+    generateNextNote(trackIndex, noteSpeed) {
+        if (this.buffers[trackIndex].length === 0) {
+            return;
+        }
+
+        const noteData = this.buffers[trackIndex].shift(); // 取出隊列中的第一個音符
+        generateNote(noteData); // 生成音符
+
+        // --- 【核心計算】計算下一個音符的最早生成時間 ---
+        // 1. 計算當前音符的尾部何時會完全離開屏幕頂部（即生成點）。
+        //    尾部離開時間 = 當前時間 + 音符持續時間 + 音符從生成點落到判定線所需的時間
+        const noteFallTime = noteSpeed / 1000; // 秒
+        const noteTailClearTime = (Date.now() / 1000) + noteData.duration + noteFallTime; // 秒
+        // 2. 定義安全緩衝時間 (秒)
+        const safetyBuffer = 0.3; // 您可以根據需要調整此值
+        // 3. 計算下一個音符允許生成的絕對時間戳 (毫秒)
+        const nextAllowedTime = (noteTailClearTime + safetyBuffer) * 1000; // 轉換為毫秒
+        // 4. 更新軌道的狀態
+        this.nextAllowedGenerateTime[trackIndex] = nextAllowedTime;
+    }
+};
+// ▲▲▲ 【新增結束】 ▲▲▲
+            
+
+
+// 新增輔助函數：分析節拍間隔，估算基本時間單位（如十六分音符長度）
+function analyzeBeatIntervals(beatTimestamps) {
+    if (!beatTimestamps || beatTimestamps.length < 2) {
+        console.warn("節拍數據不足，無法分析。");
+        return { baseInterval: 0.5 }; // 返回一個默認值
+    }
+
+    const intervals = [];
+    for (let i = 1; i < beatTimestamps.length; i++) {
+        // 計算相鄰節拍之間的時間差
+        const interval = beatTimestamps[i] - beatTimestamps[i - 1];
+        // 過濾掉過於短或過於長的異常值（可選，根據實際數據調整）
+        if (interval > 0.05 && interval < 5.0) {
+             intervals.push(interval);
+        }
+    }
+
+    if (intervals.length === 0) {
+        console.warn("無有效節拍間隔數據。");
+        return { baseInterval: 0.5 };
+    }
+
+    // 簡單方法：假設最小間隔對應於最短的音符（如十六分音符）
+    // 更複雜的方法可以統計間隔的分佈，找出基頻
+    const minInterval = Math.min(...intervals);
+    // 四分音符間隔通常是這個最小間隔的倍數 (e.g., 4倍)
+    // 我們可以估算一個基準間隔，這裡簡化為直接使用最小間隔或其一部分作為十六分音符長度
+    // 假設最小間隔是十六分音符 (1/16) 的長度
+    const baseInterval = minInterval; // 這代表 1/16 音符的長度
+
+    console.log(`分析得出的基準間隔 (估計1/16音符長度): ${baseInterval.toFixed(3)} 秒`);
+    return { baseInterval };
+}
+
+
+           // ▼▼▼ [新增] PRNG 函數 (確保這段代碼存在於你的腳本中) ▼▼▼
+// Mulberry32 PRNG - https://gist.github.com/tommyettinger/46a874533244883189143505d203312c
+function mulberry32(a) {
+    return function() {
+        a |= 0; a = a + 0x6D2B79F5 | 0;
+        var t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    }
+}
+// ▲▲▲ [新增結束] ▲▲▲
+
+
+   function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, noteSpeed) {
+    console.log(`Generating notes with seed: ${seed}`);
+    const seededRandom = mulberry32(seed);
+    const tracks = 4;
+    const noteFallDuration = noteSpeed / 1000; // 音符從生成點落到判定線所需的時間
+    const MIN_NOTE_GAP = 0.02; // 20毫秒 (規劃用最小間隔)
+    const data = [];
+    // ▼▼▼ 【關鍵修訂】將 `trackFreeAt` 替換為 `trackPhysicallyFreeAt` ▼▼▼
+    // 這個數組記錄的是，該軌道在物理上何時才能安全地生成下一個音符。
+    // 它考慮了：音符生成時間 + 音符持續時間 + 音符下落時間 + 安全緩衝區。
+    const trackPhysicallyFreeAt = new Array(tracks).fill(0);
+    // ▲▲▲ 【關鍵修訂結束】 ▲▲▲
+    const baseIntervalAnalysis = analyzeBeatIntervals(beatTimestamps);
+    const baseInterval = baseIntervalAnalysis.baseInterval;
+    // ▼▼▼ 1. 簡化節奏步長：只決定音符之間的時間間隔 ▼▼▼
+    // 我們不再定義複雜的連音，只使用最基礎的8分和16分音符作為節奏骨架。
+    // ▼▼▼ 1. 修訂節奏步長：大幅提高高密度節奏的權重 ▼▼▼
+const rhythmPatterns = [
+    // 【大幅降低權重】二分音符，僅作為點綴
+    { name: "二分音符", duration: baseInterval * 8, weight: 0.02 }, 
+    // 【降低權重】
+    { name: "四分音符", duration: baseInterval * 4, weight: 0.08 }, 
+    // 【權重不變】
+    { name: "八分音符", duration: baseInterval * 2, weight: 0.20 }, 
+    // 【大幅提升權重】這是構成高密度譜面的主力
+    { name: "十六分音符", duration: baseInterval, weight: 0.45 }, 
+    // 【大幅提升權重】用於製造極速連打
+    { name: "三十二分音符", duration: baseInterval / 2, weight: 0.25 }
+];
+// ▲▲▲ 修訂結束 ▲▲▲
+    // ▼▼▼ 2. 直接定義長短音符比例：清晰、直觀 ▼▼▼
+    // 在決定要放置音符後，從這裡選擇具體類型。
+    // 這裡的權重直接控制了長短音符的最終比例。
+    const noteGenerationTypes = [
+        // 75% 的機率生成普通短音符
+        { type: 'short', weight: 0.75 },
+        // 25% 的機率生成長音符
+        { type: 'long', weight: 0.25 }
+    ];
+    // ▲▲▲ 您可以隨意調整上面的 weight 來改變長短音符的比例 ▲▲▲
+    const totalRhythmWeight = rhythmPatterns.reduce((sum, p) => sum + p.weight, 0);
+    const totalTypeWeight = noteGenerationTypes.reduce((sum, t) => sum + t.weight, 0);
+    let currentTime = 1.0; // 從 1 秒後開始生成音符
+    while (currentTime < duration - (2.0 + noteFallDuration)) {
+        // 步驟 A: 根據權重隨機選擇一個節奏步長
+        let randomRhythm = seededRandom() * totalRhythmWeight;
+        let selectedRhythm = rhythmPatterns[0];
+        for (const pattern of rhythmPatterns) {
+            randomRhythm -= pattern.weight;
+            if (randomRhythm <= 0) {
+                selectedRhythm = pattern;
+                break;
+            }
+        }
+        const stepDuration = selectedRhythm.duration;
+        // 步驟 B: 根據難度密度決定是否在此時間點放置音符
+        if (seededRandom() < difficulty.noteDensity) {
+            const availableTracks = [];
+            for (let i = 0; i < tracks; i++) {
+                // ▼▼▼ 【關鍵修訂】檢查條件從 `trackFreeAt` 改為 `trackPhysicallyFreeAt` ▼▼▼
+                if (currentTime >= trackPhysicallyFreeAt[i]) {
+                    availableTracks.push(i);
+                }
+                // ▲▲▲ 【關鍵修訂結束】 ▲▲▲
+            }
+            if (availableTracks.length > 0) {
+                const trackIndex = availableTracks[Math.floor(seededRandom() * availableTracks.length)];
+                // ▼▼▼ 步驟 C: 根據 noteGenerationTypes 決定音符是長是短 ▼▼▼
+                let randomType = seededRandom() * totalTypeWeight;
+                let selectedType = noteGenerationTypes[0];
+                for (const type of noteGenerationTypes) {
+                    randomType -= type.weight;
+                    if (randomType <= 0) {
+                        selectedType = type;
+                        break;
+                    }
+                }
+                let finalNoteDuration = 0;
+                if (selectedType.type === 'long') {
+                    // 為長音符設定一個固定的、有意義的音樂時長（例如一個四分音符）
+                    // 這比之前隨機乘以步長要更穩定和有樂感
+                    const randomMultiplier = 2 + (seededRandom() * 6); // 生成 2.0 到 8.0 之間的隨機數
+                    const longNoteDuration = baseInterval * randomMultiplier;
+                    finalNoteDuration = Math.min(longNoteDuration, 3.0); // 最長不超過3秒，避免過長
+                }
+                // ▼▼▼ 【關鍵修訂】在將音符加入數據前，計算並更新該軌道下一次可生成的物理時間點 ▼▼▼
+                // 1. 計算當前音符的“尾部”何時會離開判定區。
+                //    尾部離開時間 = 生成時間 + 音符自身持續時間 + 音符下落所需時間
+                const noteTailClearTime = currentTime + finalNoteDuration + noteFallDuration;
+                // 2. 定義安全緩衝時間。您可以根據需要調整這個值。
+                //    這裡我們定義一個基礎緩衝，並為“短接長”的情況增加額外緩衝。
+                const baseSafetyBuffer = 0.5; // 基础安全緩衝
+                const longNoteSafetyBuffer = 0.3; // 當前一個是短音符，下一個是長音符時的額外緩衝
+                let safetyBuffer = baseSafetyBuffer;
+                // （可選）如果您想在規劃階段就實現“短接長”的特殊規則，可以在此處添加邏輯。
+                // 但由於我們在規劃階段沒有“上一個音符”的信息，這比較複雜。
+                // 最簡單的方式是只使用基礎緩衝。
+                // 3. 計算該軌道下一次可以安全生成新音符的時間。
+                const nextPhysicallyAvailableTime = noteTailClearTime + safetyBuffer;
+                // 4. 更新軌道的物理可用時間。
+                trackPhysicallyFreeAt[trackIndex] = nextPhysicallyAvailableTime;
+                // ▲▲▲ 【關鍵修訂結束】 ▲▲▲
+                // 5. 將音符數據加入列表。
+                data.push({
+                    time: currentTime,
+                    track: trackIndex,
+                    type: finalNoteDuration > 0 ? 'long' : 'short',
+                    duration: finalNoteDuration
+                });
+                // ▼▼▼ 【刪除舊代碼】移除下面這一行，因為它只考慮了音樂間隔，不考慮物理下落 ▼▼▼
+                // trackFreeAt[trackIndex] = currentTime + finalNoteDuration + MIN_NOTE_GAP;
+                // ▲▲▲ 【刪除舊代碼結束】 ▲▲▲
+            }
+        }
+        currentTime += stepDuration;
+    }
+    return data.sort((a, b) => a.time - b.time);
+}
+
+
+            
+
+          function generateNotesContinuously() {
+    if (!gameActive) return;
+
+    const currentTime = (Date.now() - gameStartTime) / 1000;
+
+    // 遍歷所有軌道
+    for (let trackIndex = 0; trackIndex < tracks; trackIndex++) {
+        // 如果該軌道的緩衝區為空，則跳過
+        if (noteBufferManager.buffers[trackIndex].length === 0) {
+            continue;
+        }
+
+        // 檢查緩衝區中的第一個音符是否已經到達了它的預定生成時間
+        const nextNoteInBuffer = noteBufferManager.buffers[trackIndex][0];
+        if (nextNoteInBuffer.time <= currentTime + (noteSpeed / 1000)) {
+            // 檢查物理規則：該軌道是否已經準備好生成下一個音符？
+            if (noteBufferManager.canGenerateNote(trackIndex, currentTime)) {
+                // 生成音符
+                noteBufferManager.generateNextNote(trackIndex, noteSpeed);
+            }
+            // 如果不能生成，則保持音符在緩衝區中，等待下一次檢查。
+            // 這確保了音符會嚴格按照物理規則和時間順序生成。
+        }
+    }
+
+    if (gameActive) {
+        generateNotesTimer = setTimeout(generateNotesContinuously, 20); // 將間隔縮短到 20ms 以提高響應速度
+    }
+}
+
+           function endGame() {
+                gameActive = false;
+                audio.pause();
+                audio.currentTime = 0;
+                clearTimeout(generateNotesTimer);
+                clearInterval(progressInterval);
+                cancelAnimationFrame(animationFrame);
+                startBtn.disabled = false;
+                musicSelect.disabled = false;
+                difficultySelect.disabled = false;
+ 
+                // ▼▼▼ 新增邏輯：隱藏和重置進度條 ▼▼▼
+                mainGameContainer.classList.remove('game-running'); 
+                unlockProgressBar.style.height = '0%';
+                unlockProgressBar.style.width = '0%';
+                unlockProgressBar.classList.remove('glowing');
+                // ▲▲▲ 新增結束 ▲▲▲
+                musicSelectorDiv.style.display = '';
+                progressContainerDiv.style.display = 'none';
+                progressBar.style.width = '0%';
+                notes.forEach(note => note.element.remove());
+                notes = [];
+
+                // --- Post-Game Logic ---
+    const selectedSong = musicSelect.value;
+    const selectedDifficulty = difficultySelect.value;
+    updatePersonalHighScore(selectedSong, selectedDifficulty, score); // 個人高分記錄總分
+
+    let songWasUnlocked = false;
+    if (selectedDifficulty === 'normal') {
+        const requiredScoreToUnlock = maxScoreForCurrentLevel * SONG_UNLOCK_PERCENTAGE;
+        // 核心修訂：使用 pureHitScore 來判斷歌曲解鎖
+        if (pureHitScore >= requiredScoreToUnlock) {
+            songWasUnlocked = unlockNextSong(selectedSong);
+        } else {
+            const remainingScore = Math.ceil(requiredScoreToUnlock - pureHitScore); // 這裡也用 pureHitScore
+                        const allSongs = Array.from(musicSelect.options).map(opt => opt.value);
+                        const isLastSong = saveData.unlockedSongs.length === allSongs.length;
+                        if (!isLastSong) {
+                            showNotification('info', '目標差一點！', `您在「普通」難度下還差 <strong>${remainingScore.toLocaleString()}</strong> 分就能解鎖下一首歌曲了。再加把勁！`, 6000);
+                        }
+                    }
+                }
+
+                // 【優先級判斷】
+                // 只有在「沒有」成功解鎖新歌曲的情況下，才去檢查是否解鎖了新難度
+                if (!songWasUnlocked) {
+                    checkAndUnlockDifficulties(selectedSong, selectedDifficulty, score);
+                }
+               unlockNextSong(selectedSong); 
+showGameOver();
+
+                showGameOver();
+            }
+
+            function showGameOver() {
+                finalScoreDisplay.textContent = score.toLocaleString();
+                finalComboDisplay.textContent = maxCombo;
+                gameOverModal.classList.add('active');
+            }
+
+            function restartGame() {
+                gameOverModal.classList.remove('active');
+                initGame();
+            }
+
+            function gameLoop() {
+                if (!gameActive) return;
+                const trackRect = tracksContainer.getBoundingClientRect();
+                const hitLineY = trackRect.top + trackRect.height - 100;
+                for (let i = notes.length - 1; i >= 0; i--) {
+                    const note = notes[i];
+                    if (!note.active) continue;
+                    const rect = note.element.getBoundingClientRect();
+                    
+                    // 當音符的頂部完全超過判定線加一個緩衝區時
+                    if (rect.top > hitLineY + 20) {
+                         // ▼▼▼ 修訂核心邏輯開始 ▼▼▼
+                        
+                        // 檢查該軌道上是否有正在被按下的長音符 (進入無敵狀態)
+                        const isTrackInvincible = notes.some(n =>
+                            n.track === note.track && // 條件1: 是同一個軌道
+                            n.type === 'long' &&      // 條件2: 該軌道上有一個長音符
+                            n.hitStarted              // 條件3: 並且那個長音符已經開始被按住
+                        );
+
+                        // 只有在軌道不是無敵狀態時，才判定為 MISS
+                        if (!isTrackInvincible) {
+                            judgeHit(note.track, 'miss');
+                        }
+                        
+                        // 無論軌道是否無敵，這個已經錯過的音符都必須被移除
+                        note.active = false;
+                        note.element.remove();
+                        notes.splice(i, 1);
+                        
+                        // ▲▲▲ 修訂核心邏輯結束 ▲▲▲
+                    }
+                }
+                animationFrame = requestAnimationFrame(gameLoop);
+            }
+
+         function handleKeyDown(e) {
+                if (!gameActive) return;
+                const keyCode = e.keyCode;
+                if (keyStates[keyCode]) return;
+                keyStates[keyCode] = true;
+                const trackIndex = keyCodes.indexOf(keyCode);
+                if (trackIndex !== -1) {
+                    const trackEl = document.querySelector(`.track[data-track="${trackIndex}"]`);
+                    if (trackEl) {
+                        trackEl.classList.remove('hit-effect');
+                        void trackEl.offsetWidth;
+                        trackEl.classList.add('hit-effect');
+                    }
+                    const trackRect = tracksContainer.getBoundingClientRect();
+                    const hitLineY = trackRect.top + trackRect.height - 100;
+                    let hitNote = null;
+                    let minDistance = Infinity;
+                    let hitIndex = -1;
+                    notes.forEach((note, index) => {
+                        if (note.track === trackIndex && note.active && !note.hitStarted) {
+                            const rect = note.element.getBoundingClientRect();
+                            const distance = Math.abs(rect.bottom - hitLineY);
+                            if (distance < minDistance) {
+                                minDistance = distance;
+                                hitNote = note;
+                                hitIndex = index;
+                            }
+                        }
+                    });
+                    if (hitNote && minDistance < 50) {
+                        let judgment;
+                        if (minDistance < 15) judgment = 'perfect';
+                        else if (minDistance < 30) judgment = 'great';
+                        else judgment = 'good';
+                        if (hitNote.type === 'long') {
+                            hitNote.hitStarted = true;
+                            hitNote.element.classList.add('held');
+                            judgeHit(trackIndex, judgment);
+                        } else {
+                            hitNote.active = false;
+                            hitNote.element.remove();
+                            notes.splice(hitIndex, 1);
+                            judgeHit(trackIndex, judgment);
+                        }
+                    } else {
+                        // 如果按下時，沒有任何音符在可擊中範圍內，則判定為 MISS
+                        judgeHit(trackIndex, 'miss');
+
+                        // ▼▼▼ 修訂的關鍵之處 ▼▼▼
+                        // 並且，如果軌道上確實有一個最近的音符（只是太遠了），
+                        // 則將該音符移除，以懲罰提早按鍵的行為。
+                        if (hitNote) {
+                            hitNote.active = false;
+                            hitNote.element.remove();
+                            notes.splice(hitIndex, 1);
+                        }
+                        // ▲▲▲ 修訂結束 ▲▲▲
+                    }
+                }
+            }
+
+            function handleKeyUp(e) {
+                if (!gameActive) return;
+                const keyCode = e.keyCode;
+                keyStates[keyCode] = false;
+                const trackIndex = keyCodes.indexOf(keyCode);
+                if (trackIndex !== -1) {
+                    const heldNoteIndex = notes.findIndex(note =>
+                        note.track === trackIndex && note.type === 'long' && note.hitStarted
+                    );
+                    if (heldNoteIndex !== -1) {
+                        const note = notes[heldNoteIndex];
+                        const trackRect = tracksContainer.getBoundingClientRect();
+                        const hitLineY = trackRect.top + trackRect.height - 100;
+                        const rect = note.element.getBoundingClientRect();
+                        const noteTailY = rect.top;
+                        const distance = Math.abs(noteTailY - hitLineY);
+                        if (distance < 50) {
+                            let judgment;
+                            if (distance < 15) judgment = 'perfect';
+                            else if (distance < 30) judgment = 'great';
+                            else judgment = 'good';
+                            judgeHit(trackIndex, judgment);
+                        } else {
+                            judgeHit(trackIndex, 'miss');
+                        }
+                        note.active = false;
+                        note.element.remove();
+                        notes.splice(heldNoteIndex, 1);
+                    }
+                }
+            }
+
+            function onTouchStart(e) {
+                e.preventDefault();
+                const keyElement = e.target.closest('.touch-key');
+                if (keyElement) {
+                    keyElement.classList.add('pressed');
+                    handleKeyDown({ keyCode: parseInt(keyElement.dataset.key) });
+                }
+            }
+
+            function onTouchEnd(e) {
+                e.preventDefault();
+                const changedTouches = e.changedTouches || [e];
+                for (const touch of changedTouches) {
+                    const originalKeyElement = e.target.closest('.touch-key');
+                    if (originalKeyElement) {
+                        originalKeyElement.classList.remove('pressed');
+                        handleKeyUp({ keyCode: parseInt(originalKeyElement.dataset.key) });
+                    }
+                }
+            }
+
+
+// 尋找下一首啟用的歌曲
+function findNextEnabledSong(currentIndex) {
+    for (let i = currentIndex + 1; i < playlistItems.length; i++) {
+        const playlistItem = playlist.children[i];
+        if (playlistItem && playlistItem.dataset.enabled === 'true') {
+            return i;
+        }
+    }
+    return -1; // 沒有找到下一首啟用的歌曲
+}
+
+// 尋找上一首啟用的歌曲
+function findPrevEnabledSong(currentIndex) {
+    for (let i = currentIndex - 1; i >= 0; i--) {
+        const playlistItem = playlist.children[i];
+        if (playlistItem && playlistItem.dataset.enabled === 'true') {
+            return i;
+        }
+    }
+    return -1; // 沒有找到上一首啟用的歌曲
+}
+
+
+            // --- Music Player Logic ---
+            function initMusicPlayer() {
+                // Filter playlist items to only include unlocked songs
+                const unlockedSongsSet = new Set(saveData.unlockedSongs);
+                playlistItems = Array.from(musicSelect.options)
+                    .filter(opt => unlockedSongsSet.has(opt.value)) // Only unlocked songs
+                    .map((opt, index) => ({
+                        url: opt.value,
+                        title: opt.textContent.replace(' (未解鎖)', ''),
+                        index: index
+                    }));
+
+                playlist.innerHTML = '';
+playlistItems.forEach(item => {
+    const li = document.createElement('li');
+    li.className = 'playlist-item';
+    li.textContent = item.title;
+    li.dataset.index = item.index;
+    
+    // 從儲存的設定中恢復歌曲狀態
+    const savedState = playerSettings.playlistStates[item.url];
+    const isEnabled = savedState ? savedState.enabled : true;
+    li.dataset.enabled = isEnabled ? 'true' : 'false';
+    
+    if (!isEnabled) {
+        li.classList.add('disabled');
+    }
+    
+    let clickCount = 0;
+    let clickTimer = null;
+    
+    li.addEventListener('click', () => {
+        clickCount++;
+        
+        if (clickTimer) {
+            clearTimeout(clickTimer);
+        }
+        
+       clickTimer = setTimeout(() => {
+    if (clickCount === 1) {
+        // 單擊：播放該歌曲或啟用該歌曲
+        li.dataset.enabled = 'true';
+        li.classList.remove('disabled');
+        playSong(item.index);
+        savePlayerSettings(); // 保存設定
+    } else if (clickCount === 2) {
+        // 雙擊：停用該歌曲，不播放
+        li.dataset.enabled = 'false';
+        li.classList.add('disabled');
+        savePlayerSettings(); // 保存設定
+                
+                // 如果當前正在播放這首歌，則暫停並尋找下一首啟用的歌曲
+                if (currentPlaylistIndex === item.index && playerIsPlaying) {
+                    const nextIndex = findNextEnabledSong(currentPlaylistIndex);
+                    if (nextIndex !== -1) {
+                        playSong(nextIndex);
+                    } else {
+                        playerAudio.pause();
+                    }
+                }
+            }
+            clickCount = 0;
+        }, 300); // 300毫秒內的點擊視為雙擊
+    });
+    
+    playlist.appendChild(li);
+});
+
+                playerAudio.addEventListener('loadedmetadata', () => {
+                    durationDisplay.textContent = formatTime(playerAudio.duration);
+                    progressSlider.max = playerAudio.duration;
+                });
+
+               playerAudio.addEventListener('timeupdate', () => {
+    if (!isUpdatingSlider) {
+        currentTimeDisplay.textContent = formatTime(playerAudio.currentTime);
+        progressSlider.value = playerAudio.currentTime;
+        updateLyrics(playerAudio.currentTime);
+        
+        // 每5秒自動保存播放進度
+        if (Math.floor(playerAudio.currentTime) % 5 === 0) {
+            savePlayerSettings();
+        }
+    }
+});
+
+playerAudio.addEventListener('play', () => {
+    playerIsPlaying = true;
+    playPauseBtn.textContent = '\u275A\u275A';
+    updatePlayerUI();
+    savePlayerSettings(); // 保存播放狀態
+});
+
+playerAudio.addEventListener('pause', () => {
+    playerIsPlaying = false;
+    playPauseBtn.textContent = '\u25B6';
+    updatePlayerUI();
+    savePlayerSettings(); // 保存暫停狀態
+});
+               playerAudio.addEventListener('ended', () => {
+    playerIsPlaying = false;
+    playPauseBtn.textContent = '\u25B6'; // Play icon
+ocument.getElementById('cdCoverImage').classList.remove('playing'); // 新增：停止旋轉
+    
+    // 尋找下一首啟用的歌曲
+    const nextIndex = findNextEnabledSong(currentPlaylistIndex);
+    if (nextIndex !== -1) {
+        playSong(nextIndex);
+    }
+    updatePlayerUI();
+});
+
+                playerAudio.addEventListener('play', () => {
+                    playerIsPlaying = true;
+                    playPauseBtn.textContent = '\u275A\u275A'; // Pause icon
+                    updatePlayerUI();
+                });
+
+                playerAudio.addEventListener('pause', () => {
+                    playerIsPlaying = false;
+                    playPauseBtn.textContent = '\u25B6'; // Play icon
+                    updatePlayerUI();
+// 新增：停止 CD 旋轉
+    document.getElementById('cdCoverImage').classList.remove('playing');
+                });
+            }
+
+            function formatTime(seconds) {
+                const mins = Math.floor(seconds / 60);
+                const secs = Math.floor(seconds % 60);
+                return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+            }
+
+            function playSong(index) {
+    if (index < 0 || index >= playlistItems.length) return;
+    
+    // 檢查歌曲是否被停用
+    const playlistItem = playlist.children[index];
+    if (playlistItem && playlistItem.dataset.enabled === 'false') {
+        console.log('歌曲已被停用，跳過播放');
+        return;
+    }
+    
+    // Check if the song is unlocked before playing
+    const songToPlay = playlistItems[index];
+    if (!isSongUnlocked(songToPlay.url)) {
+        console.warn(`嘗試播放未解鎖的歌曲: ${songToPlay.title}`);
+        return; // Do not play if not unlocked
+    }
+
+                currentPlaylistIndex = index;
+                const song = playlistItems[index];
+                playerAudio.src = song.url;
+                playerAudio.volume = volumeSliderPlayer.value;
+                nowPlaying.textContent = `正在播放: ${song.title}`;
+updateCdCover(song.url); // 更新 CD 封面
+                lyrics = songLyrics[song.url] || [];
+                updateLyricsContainer();
+                updatePlayerUI();
+document.getElementById('cdCoverImage').classList.add('playing'); // 開始旋轉
+playerAudio.play().catch(e => console.error("播放器播放失敗:", e));
+savePlayerSettings(); // 保存當前播放狀態
+            }
+
+// 在現有函數之前新增這兩個輔助函數
+function findNextEnabledSong(currentIndex) {
+    for (let i = currentIndex + 1; i < playlistItems.length; i++) {
+        const playlistItem = playlist.children[i];
+        if (playlistItem && playlistItem.dataset.enabled === 'true') {
+            return i;
+        }
+    }
+    return -1; // 沒有找到下一首啟用的歌曲
+}
+
+function findPrevEnabledSong(currentIndex) {
+    for (let i = currentIndex - 1; i >= 0; i--) {
+        const playlistItem = playlist.children[i];
+        if (playlistItem && playlistItem.dataset.enabled === 'true') {
+            return i;
+        }
+    }
+    return -1; // 沒有找到上一首啟用的歌曲
+}
+
+            function updateLyricsContainer() {
+                lyricsContainer.innerHTML = '';
+                if (lyrics.length === 0) {
+                    lyricsContainer.innerHTML = '<div class="no-lyrics">無歌詞</div>';
+                    return;
+                }
+                lyrics.forEach((line, i) => {
+                    const p = document.createElement('p');
+                    p.className = 'lyric-line';
+                    p.textContent = line.text;
+                    p.dataset.time = line.time;
+                    lyricsContainer.appendChild(p);
+                });
+            }
+
+            function updateLyrics(currentTime) {
+                if (lyrics.length === 0) return;
+                let activeIndex = -1;
+                for (let i = 0; i < lyrics.length; i++) {
+                    if (lyrics[i].time <= currentTime) {
+                        activeIndex = i;
+                    } else {
+                        break;
+                    }
+                }
+                document.querySelectorAll('.lyric-line').forEach((line, i) => {
+                    line.classList.toggle('active', i === activeIndex);
+                    if (i === activeIndex) {
+                        line.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                });
+            }
+
+
+
+// 更新 CD 封面的函數
+function updateCdCover(songUrl) {
+    const coverImage = document.getElementById('cdCoverImage');
+    // 根據歌曲 URL 獲取對應的封面，如果沒有則使用默認封面
+    const coverUrl = songCovers[songUrl] || songCovers["default"];
+    coverImage.src = coverUrl;
+    // 可選：添加加載錯誤的回退
+    coverImage.onerror = function() {
+        this.src = songCovers["default"];
+    };
+}
+
+
+
+            function updatePlayerUI() {
+    document.querySelectorAll('.playlist-item').forEach((item, i) => {
+        item.classList.toggle('active', i === currentPlaylistIndex);
+    });
+    
+    // 檢查是否有上一首/下一首啟用的歌曲來決定按鈕狀態
+    const hasPrev = findPrevEnabledSong(currentPlaylistIndex) !== -1;
+    const hasNext = findNextEnabledSong(currentPlaylistIndex) !== -1;
+    
+    prevBtn.disabled = !hasPrev;
+    nextBtn.disabled = !hasNext;
+}
+
+            // --- Event Listeners ---
+            touchKeys.forEach(key => {
+                key.addEventListener('touchstart', onTouchStart, { passive: false });
+                key.addEventListener('touchend', onTouchEnd, { passive: false });
+                key.addEventListener('touchcancel', onTouchEnd, { passive: false });
+            });
+
+            settingsBtn.addEventListener('click', () => settingsModal.classList.add('active'));
+            closeSettings.addEventListener('click', () => settingsModal.classList.remove('active'));
+            window.addEventListener('click', (e) => {
+                if (e.target === settingsModal) settingsModal.classList.remove('active');
+                if (e.target === personalHighScoreModal) personalHighScoreModal.classList.remove('active');
+                if (e.target === unlockModal) unlockModal.classList.remove('active');
+            });
+
+            // Fixed volume slider input listeners to use 'change' event for full range
+            volumeControlModal.addEventListener('change', () => {
+                const value = parseFloat(volumeControlModal.value);
+                audio.volume = isNaN(value) ? 0.7 : value;
+            });
+            sfxVolumeControl.addEventListener('change', () => {
+                const value = parseFloat(sfxVolumeControl.value);
+                sfxVolume = isNaN(value) ? 0.5 : value;
+            });
+            
+            startBtn.addEventListener('click', startGame);
+            document.addEventListener('keydown', handleKeyDown);
+            document.addEventListener('keyup', handleKeyUp);
+            restartBtn.addEventListener('click', restartGame);
+            // --- Handle Page Visibility to Prevent Ghost Notes ---
+            document.addEventListener('visibilitychange', () => {
+                // 我們只關心頁面從「隱藏」變為「可見」的那個瞬間
+                // 並且只有在遊戲正在進行中才需要處理
+                if (!document.hidden && gameActive) {
+                    const now = Date.now();
+                    
+                    // 遍歷所有當前在畫面上的音符
+                    // 我們從後往前遍歷，這樣在刪除陣列元素時才不會出錯
+                    for (let i = notes.length - 1; i >= 0; i--) {
+                        const note = notes[i];
+                        const timeAlive = now - note.creationTime;
+
+                        // 【核心清理邏輯】
+                        // 如果一個音符的存活時間，已經超過了它跑完整個軌道所需的時間 (noteSpeed)
+                        // 再加上一個小的緩衝時間（例如 500 毫秒），
+                        // 我們就認定它是一個在頁面隱藏期間就應該消失的「幽靈音符」。
+                        if (timeAlive > noteSpeed + 500) {
+                            note.active = false;      // 標記為非作用中
+                            note.element.remove();    // 從畫面中移除 DOM 元素
+                            notes.splice(i, 1);       // 從我們的遊戲邏輯陣列中移除
+                        }
+                    }
+                }
+            });
+
+            // New Event Listeners
+            personalHighScoreBtn.addEventListener('click', () => {
+                const selectedSong = musicSelect.value;
+                populatePersonalHighScoreList(selectedSong);
+                personalHighScoreModal.classList.add('active');
+            });
+            closePersonalHighScore.addEventListener('click', () => personalHighScoreModal.classList.remove('active'));
+
+           musicPlayerBtn.addEventListener('click', () => {
+    musicPlayerModal.classList.add('active');
+    initMusicPlayer(); // Re-initialize playlist on open to reflect unlocks
+    loadPlayerSettings(); // 載入儲存的設定
+    
+    // 恢復上次的播放狀態
+    if (playerSettings.currentSong && playlistItems.length > 0) {
+        const songIndex = playlistItems.findIndex(item => item.url === playerSettings.currentSong);
+        if (songIndex !== -1) {
+            currentPlaylistIndex = songIndex;
+            playerAudio.src = playerSettings.currentSong;
+            playerAudio.currentTime = playerSettings.currentTime || 0;
+            nowPlaying.textContent = `正在播放: ${playlistItems[songIndex].title}`;
+            
+            // 恢復歌詞和UI
+            const song = playlistItems[songIndex];
+            lyrics = songLyrics[song.url] || [];
+            updateLyricsContainer();
+            updatePlayerUI();
+            
+            // 如果之前是播放狀態，則自動繼續播放
+            if (playerSettings.isPlaying) {
+                playerAudio.play().catch(e => console.error("自動播放失敗:", e));
+            }
+        }
+    }
+});
+           closeMusicPlayer.addEventListener('click', () => {
+    savePlayerSettings(); // 保存當前狀態再關閉
+    musicPlayerModal.classList.remove('active');
+    playerAudio.pause();
+});
+            playPauseBtn.addEventListener('click', () => {
+    if (playerAudio.src) {
+        if (playerIsPlaying) {
+            playerAudio.pause();
+        } else {
+            playerAudio.play();
+        }
+    } else {
+        // 如果沒有音源，播放第一首啟用的歌曲
+        const firstEnabledIndex = findNextEnabledSong(-1);
+        if (firstEnabledIndex !== -1) {
+            playSong(firstEnabledIndex);
+        }
+    }
+});
+          prevBtn.addEventListener('click', () => {
+    const prevIndex = findPrevEnabledSong(currentPlaylistIndex);
+    if (prevIndex !== -1) {
+        playSong(prevIndex);
+    }
+});
+
+nextBtn.addEventListener('click', () => {
+    const nextIndex = findNextEnabledSong(currentPlaylistIndex);
+    if (nextIndex !== -1) {
+        playSong(nextIndex);
+    }
+});
+
+            progressSlider.addEventListener('input', () => {
+                isUpdatingSlider = true;
+                playerAudio.currentTime = progressSlider.value;
+                currentTimeDisplay.textContent = formatTime(progressSlider.value);
+            });
+            progressSlider.addEventListener('change', () => {
+                 isUpdatingSlider = false;
+            });
+
+            // Fixed volume slider input listeners for player to use 'change' event for full range
+            volumeSliderPlayer.addEventListener('change', () => {
+    const value = parseFloat(volumeSliderPlayer.value);
+    playerAudio.volume = isNaN(value) ? 0.7 : value;
+    savePlayerSettings(); // 保存音量設定
+});
+
+            musicSelect.addEventListener('change', () => {
+                const selectedSong = musicSelect.value;
+                updateDifficultyOptions(selectedSong);
+                populatePersonalHighScoreList(selectedSong); // Update personal score list on song change
+            });
+
+            difficultySelect.addEventListener('change', () => {
+                // Optional: Add logic if difficulty change needs immediate UI update
+            });
+
+            closeUnlock.addEventListener('click', () => unlockModal.classList.remove('active'));
+
+            // --- Initialization ---
+            const originalStartButtonSVG = startBtn.innerHTML;
+            updateSongOptions(); // Apply unlock status on load
+            populatePersonalHighScoreList(musicSelect.value); // Show scores for initially selected song
+            initGame();
+
+
+// 為版權聲明按鈕添加事件監聽器
+const showDisclaimerBtn = document.getElementById('showDisclaimerBtn');
+const disclaimerModal = document.getElementById('disclaimerModal');
+const closeDisclaimer = document.getElementById('closeDisclaimer');
+
+showDisclaimerBtn.addEventListener('click', () => {
+    disclaimerModal.classList.add('active');
+});
+
+closeDisclaimer.addEventListener('click', () => {
+    disclaimerModal.classList.remove('active');
+});
+
+// 點擊模態框外部關閉
+disclaimerModal.addEventListener('click', (e) => {
+    if (e.target === disclaimerModal) {
+        disclaimerModal.classList.remove('active');
+    }
+});
+});
+    </script>
+
+
+<!-- Copyright Disclaimer Modal -->
+<div class="copyright-disclaimer-modal" id="disclaimerModal">
+    <div class="disclaimer-content">
+        <button class="close-disclaimer" id="closeDisclaimer">&times;</button>
+        <h2 class="disclaimer-title">音樂版權聲明</h2>
+        <div class="disclaimer-section">
+            <h3>音樂來源</h3>
+            <p>本專案中使用的音樂由 AI 工具（豆包）生成。</p>
+        </div>
+        <div class="disclaimer-section">
+            <h3>使用限制</h3>
+            <p>本音樂僅用於非商業的教育遊戲，禁止任何用戶下載後用於其他場景，尤其是商業場景。</p>
+        </div>
+        <div class="disclaimer-section">
+            <h3>免責聲明</h3>
+            <p>若音樂違反潛在版權問題，本人將立即刪除。</p>
+        </div>
+    </div>
+</div>
+
+
+</body>
+</html>
