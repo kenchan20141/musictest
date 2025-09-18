@@ -2610,9 +2610,31 @@ function loadPlayerSettings() {
             }
 
           // 修訂後的 checkAndUnlockDifficulties 函數
-function checkAndUnlockDifficulties(songUrl, difficulty, score) {
-    // 我們不再依賴 maxPossibleScores，而是根據遊戲開始時動態計算的 maxScoreForCurrentLevel
-    // 但需要知道目標難度的理論最高分，所以我們需要一個輔助函數來獲取它
+// 【修正後的版本】請用這段程式碼完整替換舊的 checkAndUnlockDifficulties 函數
+
+function checkAndUnlockDifficulties(songUrl, difficulty, pureHitScore) {
+    // 檢查是否可以從 "普通" 解鎖 "困難"
+    if (difficulty === 'normal' && !isDifficultyUnlocked(songUrl, 'hard')) {
+        // 使用與進度條完全相同的、準確的理論最高分來計算門檻
+        const requiredScore = maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE;
+        
+        // 使用與進度條完全相同的純粹打擊分數來進行比較
+        if (pureHitScore >= requiredScore) {
+            unlockDifficulty(songUrl, 'hard');
+        }
+    }
+
+    // 檢查是否可以從 "困難" 解鎖 "地獄"
+    if (difficulty === 'hard' && !isDifficultyUnlocked(songUrl, 'hell')) {
+        // 同樣，使用準確的理論最高分來計算門檻
+        const requiredScore = maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE;
+        
+        // 同樣，使用純粹打擊分數來進行比較
+        if (pureHitScore >= requiredScore) {
+            unlockDifficulty(songUrl, 'hell');
+        }
+    }
+}
 
     // 輔助函數：根據歌曲和難度，模擬計算其理論最高分
     function getTheoreticalMaxScoreForDifficulty(song, targetDifficulty) {
@@ -3315,7 +3337,9 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                 }
             }
 
-           function endGame() {
+         // 【最終修正版的 endGame 函數】
+
+function endGame() {
     gameActive = false;
     audio.pause();
     audio.currentTime = 0;
@@ -3326,12 +3350,11 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     musicSelect.disabled = false;
     difficultySelect.disabled = false;
 
-    // ▼▼▼ 新增邏輯：隱藏和重置進度條 ▼▼▼
     mainGameContainer.classList.remove('game-running'); 
     unlockProgressBar.style.height = '0%';
     unlockProgressBar.style.width = '0%';
     unlockProgressBar.classList.remove('glowing');
-    // ▲▲▲ 新增結束 ▲▲▲
+
     musicSelectorDiv.style.display = '';
     progressContainerDiv.style.display = 'none';
     progressBar.style.width = '0%';
@@ -3341,13 +3364,13 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     // --- Post-Game Logic ---
     const selectedSong = musicSelect.value;
     const selectedDifficulty = difficultySelect.value;
-    updatePersonalHighScore(selectedSong, selectedDifficulty, score); // 個人高分記錄總分
+    updatePersonalHighScore(selectedSong, selectedDifficulty, score);
 
     // 步驟 1: 獨立檢查歌曲解鎖 (僅限普通難度)
     if (selectedDifficulty === 'normal') {
         const requiredScoreToUnlock = maxScoreForCurrentLevel * SONG_UNLOCK_PERCENTAGE;
         if (pureHitScore >= requiredScoreToUnlock) {
-            unlockNextSong(selectedSong); // 達到條件就解鎖歌曲
+            unlockNextSong(selectedSong);
         } else {
             const remainingScore = Math.ceil(requiredScoreToUnlock - pureHitScore);
             const allSongs = Array.from(musicSelect.options).map(opt => opt.value);
@@ -3358,8 +3381,8 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
         }
     }
 
-    // 步驟 2: 獨立檢查難度解鎖 (不受歌曲解鎖影響)
-    checkAndUnlockDifficulties(selectedSong, selectedDifficulty, score);
+    // 步驟 2: 獨立檢查難度解鎖 (傳入正確的 pureHitScore)
+    checkAndUnlockDifficulties(selectedSong, selectedDifficulty, pureHitScore);
 
     // 步驟 3: 顯示結束畫面
     showGameOver();
