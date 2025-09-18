@@ -2110,19 +2110,19 @@ const difficultySettings = {
         longNoteMaxMultiplier: 6,
         visualGap: 50
     },
-    // Hard 難度：長音符變短，間距縮小，節奏更緊湊
+    // 【修訂】Hard 難度：進一步縮短長音符最大長度
     hard: { 
         speedMultiplier: 1.6, longNoteChance: 0.30, noteDensity: 4.5, maxSimultaneous: 4, cooldown: 100,
         longNoteMinMultiplier: 2,
-        longNoteMaxMultiplier: 4,   // 明顯縮短長音符最大長度
-        visualGap: 25               // 大幅縮小物理間隙
+        longNoteMaxMultiplier: 3.5,   // 從 4 縮短至 3.5
+        visualGap: 25               
     },
-    // Hell 難度：長音符非常短，間距極小，為音符風暴創造條件
+    // 【修訂】Hell 難度：大幅縮短長音符最大長度，使其更像一個「稍長的短音符」
     hell: { 
         speedMultiplier: 2.2, longNoteChance: 0.35, noteDensity: 5.0, maxSimultaneous: 4, cooldown: 50,
-        longNoteMinMultiplier: 1.5, // 允許出現更短的長音符
-        longNoteMaxMultiplier: 3,   // 長音符最長不超過 3 倍基礎間隔
-        visualGap: 10               // 物理間隙壓縮到極致
+        longNoteMinMultiplier: 1.5, 
+        longNoteMaxMultiplier: 2.5,   // 從 3 大幅縮短至 2.5，接近您提到的 baseInterval * 2
+        visualGap: 10               
     }
 };
             // Max possible scores for each song and difficulty (for display purposes)
@@ -3304,9 +3304,10 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                         // 如果是長音符，軌道將被鎖定直到長音符結束
                         trackFreeAtTime[trackIndex] = currentTime + finalNoteDuration;
                     } else {
-                        // 如果是短音符，也給予一個極短的鎖定時間（例如一個三十二分音符的長度），
-                        // 防止在同一個時間點生成兩個音符，並確保合理的最小間隔。
-                        trackFreeAtTime[trackIndex] = currentTime + (baseInterval / 2);
+                        // 【修訂】如果是短音符，鎖定時間應為「當前的節奏步長」，而非一個固定的值。
+                        // 這能確保下一個時間點 (currentTime + stepDuration) 必定小於新的 trackFreeAtTime，
+                        // 從而完美地防止了在臨界點生成重疊音符的 BUG。
+                        trackFreeAtTime[trackIndex] = currentTime + stepDuration;
                     }
                     // ▲▲▲ 修訂結束 ▲▲▲
                 }
