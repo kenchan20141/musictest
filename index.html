@@ -3286,46 +3286,37 @@ const rhythmPatterns = [
 
             
 
-      function generateNotesContinuously() {
+     function generateNotesContinuously() {
+    // 檢查遊戲是否仍在進行
     if (!gameActive) return;
 
+    // 獲取當前遊戲時間（秒）
     const currentTime = (Date.now() - gameStartTime) / 1000;
-    // 計算音符下落所需的時間 (秒)
+    // 計算音符從頂部落到底部所需的時間（秒）
     const noteFallTime = noteSpeed / 1000;
 
-    // 【修訂】為每個軌道創建一個計數器，記錄當前有多少個“活躍”音符
-    const activeNotesPerTrack = new Array(tracks).fill(0);
-    notes.forEach(note => {
-        if (note.active) {
-            activeNotesPerTrack[note.track]++;
-        }
-    });
+    // 【修訂】移除 activeNotesPerTrack 計數器和相關的 if/else/break 邏輯
+    // 目標：允許音符在軌道上排隊，不再限制同時生成的數量
 
     // 遍歷檢查隊列中的音符
-    while (noteQueue.length > 0 && noteQueue[0].time < currentTime + noteFallTime) {
-        const noteData = noteQueue[0];
+    // 只要隊列不為空，且隊列中最前面的音符的出現時間小於當前時間加上下落時間
+    while (noteQueue.length > 0 && noteQueue[0].time <= currentTime + noteFallTime) {
+        // 取出隊列中最前面的音符數據
+        const noteData = noteQueue.shift(); // 使用 shift() 取出並移除隊首元素
 
-        // 【修訂】檢查條件：如果該軌道的活躍音符數量小於最大允許數量，則可以生成
-        if (activeNotesPerTrack[noteData.track] < 3) { // 這裡的 "3" 是最大同時音符數，您可以調整為 2, 3, 4 來控制難度
-            noteQueue.shift(); // 從隊列中移除
+        // 【修訂】移除 if (activeNotesPerTrack[noteData.track] < 3) 的條件檢查
+        // 【修訂】移除 activeNotesPerTrack[noteData.track]++; 的計數更新
 
-            // 【刪除】移除所有與 `trackNextAvailableTime` 和 `lastNoteType` 相關的更新邏輯
-            // trackNextAvailableTime[noteData.track] = ... ;
-            // lastNoteType[noteData.track] = ... ;
+        // 生成音符（無論軌道上已經有多少音符）
+        generateNote(noteData);
 
-            // 生成音符
-            generateNote(noteData);
-
-            // 【修訂】更新計數器
-            activeNotesPerTrack[noteData.track]++;
-        } else {
-            // 如果當前軌道音符已滿，則跳出循環，等待下一次檢查。
-            break;
-        }
+        // 【修訂】移除 else { break; } 的部分
+        // 這樣循環會繼續檢查隊列中的下一個音符
     }
 
+    // 如果遊戲仍在進行，則設定下一次檢查
     if (gameActive) {
-        generateNotesTimer = setTimeout(generateNotesContinuously, 50);
+        generateNotesTimer = setTimeout(generateNotesContinuously, 50); // 50ms 後再次執行
     }
 }
 
