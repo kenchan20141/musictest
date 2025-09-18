@@ -53,16 +53,18 @@
         }
 
         .unlock-progress-marker {
-    position: absolute;
-    left: 35%; /* [修訂] 由 JS 更新，改為控制 left */
-    top: -5px;     /* [修訂] 讓標記線在垂直方向上延伸出去 */
-    bottom: -5px;  /* [修訂] 讓標記線在垂直方向上延伸出去 */
-    width: 2px;    /* [修訂] 標記線寬度 */
-    height: auto;  /* [修訂] 高度自動 */
-    background: #FFD700;
-    box-shadow: 0 0 8px #FFD700;
-    z-index: 2;
-}
+            position: absolute;
+            left: 35%; /* [修訂] 由 JS 更新，改為控制 left */
+            top: -5px;     /* [修訂] 讓標記線在垂直方向上延伸出去 */
+            bottom: -5px;  /* [修訂] 讓標記線在垂直方向上延伸出去 */
+            width: 2px;    /* [修訂] 標記線寬度 */
+            height: auto;  /* [修訂] 高度自動 */
+            background: #FFD700;
+            box-shadow: 0 0 8px #FFD700;
+            z-index: 2;
+            /* ▼▼▼ 新增過渡效果，讓顏色變化更平滑 ▼▼▼ */
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
         
         .unlock-progress-label {
             position: absolute;
@@ -3034,47 +3036,26 @@ function updateUnlockMeter() {
                 musicSelect.disabled = true;
                 difficultySelect.disabled = true;
 
-                // ▼▼▼ 新增邏輯：設定與顯示解鎖進度條 ▼▼▼
-                mainGameContainer.classList.add('game-running'); // 套用 class 以隱藏其他 UI
+                // ▼▼▼ 【修訂】根據難度設定解鎖目標，並動態改變合格線顏色 ▼▼▼
+                mainGameContainer.classList.add('game-running'); 
+                unlockProgressContainer.style.display = 'flex'; // 確保進度條容器可見
 
-                // 【原始代碼已移除】不再從 maxPossibleScores 獲取固定的理論最高分
-                // maxScoreForCurrentLevel = maxPossibleScores[selectedSong]?.[selectedDifficulty] || 300000;
-
-        // ▼▼▼ [修訂] 在所有難度下顯示進度條，並根據難度設置不同的解鎖目標 ▼▼▼
-unlockProgressContainer.style.display = 'flex'; // 總是顯示容器
-
-// 判斷當前的解鎖目標百分比
-if (selectedDifficulty === 'normal') {
-    // 普通難度下，目標是解鎖下一首歌 (60%)
-    unlockThresholdPercentage = SONG_UNLOCK_PERCENTAGE;
-} else if (selectedDifficulty === 'hard') {
-    // 困難難度下，目標是解鎖地獄難度 (75%)
-    unlockThresholdPercentage = DIFFICULTY_UNLOCK_PERCENTAGE;
-} else if (selectedDifficulty === 'hell') {
-    // 地獄難度下，目標是解鎖地獄難度 (75%) - 雖然已是最高難度，但仍可顯示進度
-    unlockThresholdPercentage = DIFFICULTY_UNLOCK_PERCENTAGE;
-}
-
-// ▼▼▼ [可選新增] 根據難度改變標記線顏色 ▼▼▼
-if (selectedDifficulty === 'normal') {
-    unlockProgressMarker.style.background = '#FFD700'; // 黃金 (歌曲解鎖)
-    unlockProgressMarker.style.boxShadow = '0 0 8px #FFD700';
-} else {
-    unlockProgressMarker.style.background = '#17a2b8'; // 珊瑚紅/青色 (難度解鎖)
-    unlockProgressMarker.style.boxShadow = '0 0 8px #17a2b8';
-}
-// ▲▲▲ [可選新增結束] ▲▲▲
-
-// ▲▲▲ [修訂結束] ▲▲▲
-
-                // 更新標記線的位置
-                const isMobile = window.innerWidth <= 768;
-                if (isMobile) {
-                    unlockProgressMarker.style.left = `${unlockThresholdPercentage * 100}%`;
+                // 判斷當前是解鎖歌曲還是解鎖難度，並設定對應的百分比門檻
+                if (selectedDifficulty === 'normal') {
+                    // 目標：解鎖下一首歌曲
+                    unlockThresholdPercentage = SONG_UNLOCK_PERCENTAGE;
+                    unlockProgressMarker.style.background = '#FFD700'; // 黃金色代表歌曲解鎖
+                    unlockProgressMarker.style.boxShadow = '0 0 8px #FFD700';
                 } else {
-                    unlockProgressMarker.style.bottom = `${unlockThresholdPercentage * 100}%`;
+                    // 目標：解鎖更高難度
+                    unlockThresholdPercentage = DIFFICULTY_UNLOCK_PERCENTAGE;
+                    unlockProgressMarker.style.background = '#F96666'; // 紅色代表難度挑戰
+                    unlockProgressMarker.style.boxShadow = '0 0 8px #F96666';
                 }
-                // ▲▲▲ 新增結束 ▲▲▲
+
+                // 根據計算出的門檻，設定合格線的視覺位置
+                unlockProgressMarker.style.left = `${unlockThresholdPercentage * 100}%`;
+                // ▲▲▲ 修訂結束 ▲▲▲
                 
                 startBtn.innerHTML = `<svg class="start-button-svg" viewBox="0 0 40 40" style="width:40px;height:40px;">
                     <circle cx="20" cy="20" r="18" stroke="#ff8a00" stroke-width="3" fill="none" stroke-dasharray="89" stroke-dashoffset="20">
