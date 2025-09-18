@@ -3159,29 +3159,26 @@ function mulberry32(a) {
 // ▲▲▲ [新增結束] ▲▲▲
 
 
-   // ▼▼▼ [修訂] 請將舊的 generateSongData 函數完整替換為此版本 ▼▼▼
+  // ▼▼▼ [最終修訂版] 請將舊的 generateSongData 函數完整替換為此版本 ▼▼▼
 function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, noteSpeed) {
     console.log(`Generating notes with seed: ${seed}`);
     const seededRandom = mulberry32(seed);
     const tracks = 4;
-    // ▼▼▼ 【新增】計算一個音符的基礎物理高度 ▼▼▼
-    // 這是關鍵：我們需要知道在當前速度下，一個單位時間的音符在屏幕上佔多少像素。
-    // 這裡的 `tracksContainer.clientHeight + 50` 是音符從頂部落到底部擊打線的總移動距離。
+
+    // --- 計算物理單位 ---
     const pixelsPerSecond = (tracksContainer.clientHeight + 50) / (noteSpeed / 1000);
-    // 定義一個最小物理間隙，例如 10 像素，確保音符之間有可見的空隙。
-    const MIN_PHYSICAL_GAP = 10;
-    // ▲▲▲ 【新增結束】 ▲▲▲
+    const MIN_PHYSICAL_GAP = 15; // 增大物理間隙，確保視覺上絕對不重疊
+    const MIN_TIME_GAP = 0.05;   // 新增：最小時間間隙，確保邏輯上不衝突
 
     const data = [];
-    // ▼▼▼ 【修訂】將 `trackFreeAt` 從時間數組改為物理位置數組 ▼▼▼
-    // 初始化為0，表示軌道頂部。
+    // 同時追蹤物理位置和時間
     const trackFreeAtPixel = new Array(tracks).fill(0);
-    // ▲▲▲ 【修訂結束】 ▲▲▲
+    const trackFreeAtTime = new Array(tracks).fill(0); // 新增：追蹤時間閾值
 
     const baseIntervalAnalysis = analyzeBeatIntervals(beatTimestamps);
     const baseInterval = baseIntervalAnalysis.baseInterval;
 
-    // 節奏模式保持不變
+    // 節奏模式
     const rhythmPatterns = [
         { name: "二分音符", duration: baseInterval * 8, weight: 0.10 },
         { name: "四分音符", duration: baseInterval * 4, weight: 0.15 },
@@ -3190,7 +3187,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
         { name: "三十二分音符", duration: baseInterval / 2, weight: 0.15 }
     ];
 
-    // 音符類型比例保持不變
+    // 音符類型比例
     const noteGenerationTypes = [
         { type: 'short', weight: 0.75 },
         { type: 'long', weight: 0.25 }
@@ -3218,7 +3215,10 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
         if (seededRandom() < difficulty.noteDensity) {
             const availableTracks = [];
             for (let i = 0; i < tracks; i++) {
-                availableTracks.push(i);
+                // 【核心修訂】同時檢查時間和物理位置閾值
+                if (currentTime >= trackFreeAtTime[i]) {
+                    availableTracks.push(i);
+                }
             }
 
             if (availableTracks.length > 0) {
@@ -3241,20 +3241,17 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                     finalNoteDuration = Math.min(longNoteDuration, 2.0);
                 }
 
-                // ▼▼▼ 【核心修訂】計算新音符的物理起始位置 ▼▼▼
-                // 新音符的起始位置 = 當前時間 * 每秒移動像素數
+                // 【核心修訂】計算新音符的物理起始位置
                 const newNoteStartPixel = currentTime * pixelsPerSecond;
 
-                // 檢查是否與前一個音符重疊
-                // 新音符的頭部（起始位置）必須在前一個音符的尾部之後
+                // 【核心修訂】雙重檢查：時間閾值 + 物理位置閾值
                 if (newNoteStartPixel >= trackFreeAtPixel[trackIndex]) {
                     // 計算當前音符的物理高度
                     let currentNoteHeight = 0;
                     if (finalNoteDuration > 0) {
                         currentNoteHeight = finalNoteDuration * pixelsPerSecond;
                     } else {
-                        // 短音符也有一個基礎高度，這裡取一個固定值，例如 30 像素，與 CSS 中的 .note 高度一致。
-                        currentNoteHeight = 30;
+                        currentNoteHeight = 30; // 短音符的基礎高度
                     }
 
                     // 將新音符的數據加入隊列
@@ -3265,11 +3262,12 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                         duration: finalNoteDuration
                     });
 
-                    // 更新該軌道下一個音符允許生成的物理位置
-                    // = 當前音符的尾部位置 + 最小物理間隙
+                    // 【核心修訂】同時更新時間和物理位置閾值
+                    // 時間閾值 = 當前時間 + 音符持續時間 + 最小時間間隙
+                    trackFreeAtTime[trackIndex] = currentTime + finalNoteDuration + MIN_TIME_GAP;
+                    // 物理位置閾值 = 當前音符尾部位置 + 最小物理間隙
                     trackFreeAtPixel[trackIndex] = newNoteStartPixel + currentNoteHeight + MIN_PHYSICAL_GAP;
                 }
-                // ▲▲▲ 【核心修訂結束】 ▲▲▲
             }
         }
 
@@ -3278,7 +3276,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
 
     return data.sort((a, b) => a.time - b.time);
 }
-// ▲▲▲ [修訂] 替換結束 ▲▲▲
+// ▲▲▲ [最終修訂版] 替換結束 ▲▲▲
 
             function generateNotesContinuously() {
                 if (!gameActive) return;
