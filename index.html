@@ -3185,35 +3185,43 @@ function mulberry32(a) {
 // ▲▲▲ [新增結束] ▲▲▲
 
 
-// ▼▼▼ [根本性修復版] 請將舊的 generateSongData 函數完整替換為此版本 ▼▼▼
+// ▼▼▼ [終極修訂版] 請將舊的 generateSongData 函數完整替換為此版本 ▼▼▼
 function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, noteSpeed) {
     console.log(`Generating notes with seed: ${seed}`);
     const seededRandom = mulberry32(seed);
     const tracks = 4;
 
-    // --- 步驟 1: 將視覺安全距離（像素）轉換為等效的「時間長度」 ---
-    // 這是本次修復的核心，我們將不再於循環中進行像素運算。
+    // --- 核心計算：物理像素與絕對安全高度 ---
+    // 計算音符下落的總距離（從頂部落到底部擊打線）
     const totalFallDistance = tracksContainer.clientHeight + 50;
+    // 計算每秒移動的像素數 (用於將時間轉換為像素位置)
     const pixelsPerSecond = totalFallDistance / (noteSpeed / 1000);
 
-    // 計算短音符、長音符的最小安全高度、以及視覺間隙，它們各等同於多少秒。
-    const SHORT_NOTE_SAFE_DURATION = 40 / pixelsPerSecond;
-    const MIN_LONG_NOTE_SAFE_DURATION = 50 / pixelsPerSecond;
-    const VISUAL_COMFORT_GAP_DURATION = 50 / pixelsPerSecond; // 視覺舒適區間也轉換為時間
+    // 【終極修訂】定義絕對安全高度
+    // 這些值是固定的，大於CSS中定義的實際高度，確保萬無一失的視覺分隔。
+    // 短音符 CSS 高度為 25px，我們定義為 40px。
+    const SHORT_NOTE_SAFE_HEIGHT = 40;
+    // 長音符的最小安全高度，即使是一個很短的長音符，也至少有 50px。
+    const MIN_LONG_NOTE_SAFE_HEIGHT = 50;
+    // 定義最小物理間隙，確保絕對清晰可見。
+    const ABSOLUTE_MIN_PHYSICAL_GAP = 20;
+    const VISUAL_COMFORT_GAP = 50; // <-- 這是您需要調整的關鍵數值
 
     const data = [];
-    // 【核心修訂】狀態變數從 trackFreeAtPixel 改為 trackFreeAtTime
-    // 這個陣列將記錄每個軌道在「哪個時間點」之後才允許生成新音符。
-    const trackFreeAtTime = new Array(tracks).fill(0);
+    // 追蹤每個軌道上，下一個音符允許生成的最早物理位置（像素值）
+    const trackFreeAtPixel = new Array(tracks).fill(0);
 
     const baseIntervalAnalysis = analyzeBeatIntervals(beatTimestamps);
     const baseInterval = baseIntervalAnalysis.baseInterval;
 
-    const rhythmPatterns = [
-        { name: "十六分音符", duration: baseInterval, weight: 0.70 },
-        { name: "三十二分音符", duration: baseInterval / 2, weight: 0.30 }
-    ];
+    // 節奏模式
+   const rhythmPatterns = [
+    { name: "十六分音符", duration: baseInterval, weight: 0.70 },     // 主力節奏，佔比70%
+    { name: "三十二分音符", duration: baseInterval / 2, weight: 0.30 } // 高速連打，佔比30%
+    // 完全移除所有長間隔音符（四分、八分），確保節奏永不停歇
+];
 
+    // 音符類型比例
     const noteGenerationTypes = [
         { type: 'short', weight: 0.75 },
         { type: 'long', weight: 0.25 }
@@ -3222,10 +3230,10 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     const totalRhythmWeight = rhythmPatterns.reduce((sum, p) => sum + p.weight, 0);
     const totalTypeWeight = noteGenerationTypes.reduce((sum, t) => sum + t.weight, 0);
 
-    let currentTime = 1.0;
+    let currentTime = 1.0; // 從 1 秒後開始生成音符
 
     while (currentTime < duration - (2.0 + (noteSpeed / 1000))) {
-        // 選擇節奏步長 (與您原版邏輯相同)
+        // 步驟 A: 選擇節奏步長
         let randomRhythm = seededRandom() * totalRhythmWeight;
         let selectedRhythm = rhythmPatterns[0];
         for (const pattern of rhythmPatterns) {
@@ -3237,6 +3245,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
         }
         const stepDuration = selectedRhythm.duration;
 
+        // 步驟 B: 根據難度密度決定是否放置音符
         if (seededRandom() < difficulty.noteDensity) {
             const availableTracks = [];
             for (let i = 0; i < tracks; i++) {
@@ -3246,40 +3255,53 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
             if (availableTracks.length > 0) {
                 const trackIndex = availableTracks[Math.floor(seededRandom() * availableTracks.length)];
 
-                // 【核心修訂】檢查時間點：當前時間是否已經晚於軌道被釋放的時間
-                if (currentTime >= trackFreeAtTime[trackIndex]) {
-                    // 選擇音符類型 (與您原版邏輯相同)
-                    let randomType = seededRandom() * totalTypeWeight;
-                    let selectedType = noteGenerationTypes[0];
-                    for (const type of noteGenerationTypes) {
-                        randomType -= type.weight;
-                        if (randomType <= 0) {
-                            selectedType = type;
-                            break;
-                        }
+                // 步驟 C: 決定音符類型
+                let randomType = seededRandom() * totalTypeWeight;
+                let selectedType = noteGenerationTypes[0];
+                for (const type of noteGenerationTypes) {
+                    randomType -= type.weight;
+                    if (randomType <= 0) {
+                        selectedType = type;
+                        break;
+                    }
+                }
+
+                let finalNoteDuration = 0;
+               if (selectedType.type === 'long') {
+            // --- 修改開始 ---
+            // 定義長音符長度的隨機範圍（以 baseInterval 為單位）
+            const minLongDurationInBaseIntervals = 2; // 最短 2 個 baseInterval
+            const maxLongDurationInBaseIntervals = 6; // 最長 6 個 baseInterval
+
+            // 使用 seededRandom 產生隨機倍數
+            const randomMultiplier = minLongDurationInBaseIntervals +
+                                     seededRandom() * (maxLongDurationInBaseIntervals - minLongDurationInBaseIntervals);
+
+            // 計算最終長度
+            let longNoteDuration = baseInterval * randomMultiplier;
+
+            // 保留原有的最大長度限制 (2.0 秒)
+            finalNoteDuration = Math.min(longNoteDuration, 2.0);
+            // --- 修改結束 ---
+        }
+
+                // 【核心邏輯】計算新音符的物理起始位置
+                const newNoteStartPixel = currentTime * pixelsPerSecond;
+
+                // 【核心邏輯】檢查物理位置：新音符的頭部必須在前一個音符的尾部之下
+                if (newNoteStartPixel >= trackFreeAtPixel[trackIndex]) {
+                    // 【終極修訂】計算當前音符的“安全高度”，而非真實渲染高度
+                    let currentNoteSafeHeight = 0;
+                    if (finalNoteDuration > 0) {
+                        // 對於長音符，其安全高度取決於其音樂時長，但設置一個最小值。
+                        const calculatedHeight = finalNoteDuration * pixelsPerSecond;
+                        currentNoteSafeHeight = Math.max(MIN_LONG_NOTE_SAFE_HEIGHT, calculatedHeight);
+                    } else {
+                        // 對於短音符，使用固定的、保守的安全高度。
+                        currentNoteSafeHeight = SHORT_NOTE_SAFE_HEIGHT;
                     }
 
-                    let finalNoteDuration = 0;
-                    if (selectedType.type === 'long') {
-                        // 【優化】除了引入短長音，同時也限制最大長度，避免鎖定時間過長
-                        const minLongDurationInBaseIntervals = 2;
-                        const maxLongDurationInBaseIntervals = 4; // 從 6 降至 4，減少極端情況
-                        const randomMultiplier = minLongDurationInBaseIntervals +
-                                                 seededRandom() * (maxLongDurationInBaseIntervals - minLongDurationInBaseIntervals);
-                        let longNoteDuration = baseInterval * randomMultiplier;
-                        finalNoteDuration = Math.min(longNoteDuration, 2.0);
-                    }
-
-                    // 步驟 2: 計算當前音符在時間軸上需要佔用的總時長
-                    let currentNoteTimeOccupation = 0;
-                    if (finalNoteDuration > 0) { // 長音符
-                        // 長音符的佔用時間 = max(它本身的音樂時長, 它的最小安全時長)
-                        currentNoteTimeOccupation = Math.max(MIN_LONG_NOTE_SAFE_DURATION, finalNoteDuration);
-                    } else { // 短音符
-                        // 短音符的佔用時間 = 它的固定安全時長
-                        currentNoteTimeOccupation = SHORT_NOTE_SAFE_DURATION;
-                    }
-
+                    // 將新音符的數據加入隊列
                     data.push({
                         time: currentTime,
                         track: trackIndex,
@@ -3287,18 +3309,18 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                         duration: finalNoteDuration
                     });
 
-                    // 步驟 3: 【核心修訂】更新軌道釋放時間點
-                    // 下一個音符的最早生成時間 = 當前時間 + 當前音符佔用時間 + 視覺間隔時間
-                    trackFreeAtTime[trackIndex] = currentTime + currentNoteTimeOccupation + VISUAL_COMFORT_GAP_DURATION;
+                    // 【核心邏輯】更新閾值：下一個音符的起始位置 = 當前音符的“安全高度”底部 + 絕對最小間隙
+                   trackFreeAtPixel[trackIndex] = newNoteStartPixel + currentNoteSafeHeight + VISUAL_COMFORT_GAP;
                 }
             }
         }
+
         currentTime += stepDuration;
     }
 
     return data.sort((a, b) => a.time - b.time);
 }
-            
+// ▲▲▲ [終極修訂版] 替換結束 ▲▲▲
 
             function generateNotesContinuously() {
                 if (!gameActive) return;
