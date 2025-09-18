@@ -2079,16 +2079,15 @@ const SONG_UNLOCK_PERCENTAGE = 0.6;
 const DIFFICULTY_UNLOCK_PERCENTAGE = 0.75;
 
 const difficultySettings = {
-    // Easy 難度：大幅提升音符密度
-    easy: { speedMultiplier: 0.9, longNoteChance: 0.2, noteDensity: 2.0, maxSimultaneous: 4, cooldown: 400 },
-    // Normal 難度：大幅提升音符密度
-    normal: { speedMultiplier: 1.1, longNoteChance: 0.30, noteDensity: 4.0, maxSimultaneous: 4, cooldown: 200 },
-    // Hard 難度：大幅提升音符密度
-    hard: { speedMultiplier: 1.6, longNoteChance: 0.40, noteDensity: 6.0, maxSimultaneous: 4, cooldown: 100 },
-    // Hell 難度：極致音符風暴
-    hell: { speedMultiplier: 2.2, longNoteChance: 0.50, noteDensity: 8.0, maxSimultaneous: 4, cooldown: 50 }
+    // Easy 難度：密度從 1.5 翻倍至 3.0
+    easy: { speedMultiplier: 0.9, longNoteChance: 0.2, noteDensity: 0.8, maxSimultaneous: 3, cooldown: 400 },
+    // Normal 難度：密度從 2.8 翻倍至 5.6
+    normal: { speedMultiplier: 1.1, longNoteChance: 0.30, noteDensity: 1.0, maxSimultaneous: 4, cooldown: 200 },
+    // Hard 難度：密度從 3.8 翻倍至 7.6
+    hard: { speedMultiplier: 1.6, longNoteChance: 0.30, noteDensity: 1.5, maxSimultaneous: 4, cooldown: 100 },
+    // Hell 難度：密度從 5.0 翻倍至 10.0，這將是真正的音符風暴
+    hell: { speedMultiplier: 2.2, longNoteChance: 0.35, noteDensity: 2.0, maxSimultaneous: 4, cooldown: 50 }
 };
-            
             // Max possible scores for each song and difficulty (for display purposes)
             const maxPossibleScores = {
                 "Battle-Abysswalker.mp3": {
@@ -2474,7 +2473,7 @@ let pureHitScore = 0; // 新增：純擊打分數，用於解鎖計算
 const PLAYER_STORAGE_KEY = 'musicPlayerSettings';
 
 let saveData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
-    unlockedSongs: ["老屋回憶.mp3"],
+    unlockedSongs: ["白影.mp3"],
     unlockedDifficulties: {}, 
     personalHighScores: {} 
 };
@@ -3180,21 +3179,18 @@ function mulberry32(a) {
     const baseInterval = baseIntervalAnalysis.baseInterval;
     // ▼▼▼ 1. 簡化節奏步長：只決定音符之間的時間間隔 ▼▼▼
     // 我們不再定義複雜的連音，只使用最基礎的8分和16分音符作為節奏骨架。
-    // ▼▼▼ 1. 修訂節奏步長：大幅提高高密度節奏的權重 ▼▼▼
-// ▼▼▼ 1. 修訂節奏步長：進一步大幅提升高密度節奏的權重 ▼▼▼
-const rhythmPatterns = [
-    // 【極度降低權重或移除】二分音符，極少出現
-    { name: "二分音符", duration: baseInterval * 8, weight: 0.005 }, // 或設為 0
-    // 【極度降低權重】四分音符，很少出現
-    { name: "四分音符", duration: baseInterval * 4, weight: 0.015 },
-    // 【提高權重】八分音符，作為中等密度的基礎
-    { name: "八分音符", duration: baseInterval * 2, weight: 0.30 },
-    // 【極大提升權重】這是構成超高密度譜面的絕對主力
-    { name: "十六分音符", duration: baseInterval, weight: 0.55 },
-    // 【極大提升權重】用於製造最極致的連打風暴
-    { name: "三十二分音符", duration: baseInterval / 2, weight: 0.35 } // 注意：權重總和變為 1.22，這是可以的，程式會按比例計算
-];
-// ▲▲▲ 修訂結束 ▲▲▲
+    const rhythmPatterns = [
+        // 【新增】二分音符，時長最長，出現權重最低
+        { name: "二分音符", duration: baseInterval * 8, weight: 0.10 }, 
+        // 【權重不變】
+        { name: "四分音符", duration: baseInterval * 4, weight: 0.15 }, 
+        // 【權重調降】
+        { name: "八分音符", duration: baseInterval * 2, weight: 0.25 }, 
+        // 【權重調降】
+        { name: "十六分音符", duration: baseInterval, weight: 0.35 }, 
+        // 【權重不變】
+        { name: "三十二分音符", duration: baseInterval / 2, weight: 0.15 }
+    ];
     // ▼▼▼ 2. 直接定義長短音符比例：清晰、直觀 ▼▼▼
     // 在決定要放置音符後，從這裡選擇具體類型。
     // 這裡的權重直接控制了長短音符的最終比例。
@@ -3287,37 +3283,40 @@ const rhythmPatterns = [
 
             
 
-     function generateNotesContinuously() {
-    // 檢查遊戲是否仍在進行
+           function generateNotesContinuously() {
     if (!gameActive) return;
-
-    // 獲取當前遊戲時間（秒）
     const currentTime = (Date.now() - gameStartTime) / 1000;
-    // 計算音符從頂部落到底部所需的時間（秒）
-    const noteFallTime = noteSpeed / 1000;
-
-    // 【修訂】移除 activeNotesPerTrack 計數器和相關的 if/else/break 邏輯
-    // 目標：允許音符在軌道上排隊，不再限制同時生成的數量
-
-    // 遍歷檢查隊列中的音符
-    // 只要隊列不為空，且隊列中最前面的音符的出現時間小於當前時間加上下落時間
-    while (noteQueue.length > 0 && noteQueue[0].time <= currentTime + noteFallTime) {
-        // 取出隊列中最前面的音符數據
-        const noteData = noteQueue.shift(); // 使用 shift() 取出並移除隊首元素
-
-        // 【修訂】移除 if (activeNotesPerTrack[noteData.track] < 3) 的條件檢查
-        // 【修訂】移除 activeNotesPerTrack[noteData.track]++; 的計數更新
-
-        // 生成音符（無論軌道上已經有多少音符）
-        generateNote(noteData);
-
-        // 【修訂】移除 else { break; } 的部分
-        // 這樣循環會繼續檢查隊列中的下一個音符
+    while (noteQueue.length > 0 && noteQueue[0].time < currentTime + (noteSpeed / 1000)) {
+        const noteData = noteQueue[0]; // 先查看隊列頭部的音符
+        // 【修訂】徹底解決重疊：檢查軌道是否已準備好接收新音符
+        if (currentTime >= trackNextAvailableTime[noteData.track]) {
+            noteQueue.shift(); // 從隊列中移除
+            // 【核心修訂】動態計算安全緩衝時間
+            // 基礎緩衝：任何音符尾部離開後都必須等待的時間
+            const baseSafetyBuffer = 0.5;
+            // 額外緩衝：當前一個是短音符，下一個是長音符時，需要額外的時間
+            const longNoteSafetyBuffer = 0.3;
+            let safetyBuffer = baseSafetyBuffer;
+            // 檢查規則：如果前一個是短音符，下一個是長音符，則增加緩衝
+            if (lastNoteType[noteData.track] === 'short' && noteData.type === 'long') {
+                safetyBuffer += longNoteSafetyBuffer;
+            }
+            // 計算並更新該軌道下一次可生成音符的時間點
+            // 音符尾部離開生成點的時間 = 音符生成時間 + 音符持續時間 + 音符下落所需時間
+            const noteFallTime = noteSpeed / 1000;
+            const noteEndTime = noteData.time + noteData.duration + noteFallTime;
+            const nextAvailableTime = noteEndTime + safetyBuffer; // 使用動態計算的安全緩衝
+            trackNextAvailableTime[noteData.track] = nextAvailableTime;
+            lastNoteType[noteData.track] = noteData.type; // 【新增】更新該軌道最後一個音符的類型
+            // 生成音符
+            generateNote(noteData);
+        } else {
+            // 軌道尚未準備好，跳出循環，等待下一次檢查
+            break;
+        }
     }
-
-    // 如果遊戲仍在進行，則設定下一次檢查
     if (gameActive) {
-        generateNotesTimer = setTimeout(generateNotesContinuously, 50); // 50ms 後再次執行
+        generateNotesTimer = setTimeout(generateNotesContinuously, 50);
     }
 }
 
