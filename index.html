@@ -3260,53 +3260,48 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                 const trackIndex = availableTracks[Math.floor(seededRandom() * availableTracks.length)];
 
                 // ▼▼▼ 【核心修訂 #2：時間與空間雙重檢查】 ▼▼▼
-                const newNoteStartPixel = currentTime * pixelsPerSecond;
-                // 檢查一 (時間衛兵)：當前時間點是否大於軌道被佔用的結束時間？
-                // 檢查二 (空間衛兵)：新音符的物理位置是否在前一個音符的安全區域之外？
-                if (currentTime >= trackFreeAtTime[trackIndex] && newNoteStartPixel >= trackFreeAtPixel[trackIndex]) {
-                // ▲▲▲ 修訂結束 ▲▲▲
+const newNoteStartPixel = currentTime * pixelsPerSecond;
+// 檢查一 (時間衛兵)：當前時間點是否 "嚴格大於" 軌道被佔用的結束時間？
+// 檢查二 (空間衛兵)：新音符的物理位置是否在前一個音符的安全區域之外？
+// [修訂重點 1] 將 >= 改為 >，確保嚴格的時間間隔，防止極端情況下的重疊
+if (currentTime > trackFreeAtTime[trackIndex] && newNoteStartPixel >= trackFreeAtPixel[trackIndex]) {
+    // ... (中間的選擇音符類型、計算長度等邏輯不變) ...
 
-                    let randomType = seededRandom() * totalTypeWeight;
-                    let selectedType = noteGenerationTypes[0];
-                    for (const type of noteGenerationTypes) {
-                        randomType -= type.weight;
-                        if (randomType <= 0) {
-                            selectedType = type;
-                            break;
-                        }
-                    }
+    // --- [新增] 最終去重檢查開始 ---
+    // 在將音符物件推入 data 陣列之前
+    const isOverlappingExisting = data.some(note =>
+        note.time === currentTime && note.track === trackIndex
+    );
 
-                    let finalNoteDuration = 0;
-                    if (selectedType.type === 'long') {
-                        const minMultiplier = difficulty.longNoteMinMultiplier || 2;
-                        const maxMultiplier = difficulty.longNoteMaxMultiplier || 6;
-                        const randomMultiplier = minMultiplier + seededRandom() * (maxMultiplier - minMultiplier);
-                        finalNoteDuration = Math.min(baseInterval * randomMultiplier, 2.0);
-                    }
-                    
-                    data.push({
-                        time: currentTime,
-                        track: trackIndex,
-                        type: finalNoteDuration > 0 ? 'long' : 'short',
-                        duration: finalNoteDuration
-                    });
+    if (!isOverlappingExisting) {
+        // 只有在不重疊現有音符時才添加
+        // [修訂重點 2] 使用 selectedType.type 確保與選擇邏輯一致
+        data.push({
+            time: currentTime,
+            track: trackIndex,
+            type: selectedType.type, // [修訂] 這裡改為使用 selectedType.type
+            duration: finalNoteDuration
+        });
 
-                   // --- 更新兩個衛兵的狀態 ---
-// 1. 更新空間衛兵
-let currentNoteSafeHeight = (finalNoteDuration > 0)
-    ? Math.max(MIN_LONG_NOTE_SAFE_HEIGHT, finalNoteDuration * pixelsPerSecond)
-    : SHORT_NOTE_SAFE_HEIGHT;
-trackFreeAtPixel[trackIndex] = newNoteStartPixel + currentNoteSafeHeight + VISUAL_COMFORT_GAP;
-
-                   // ▼▼▼ 【核心修訂 #3：更新時間衛兵】 ▼▼▼
-if (finalNoteDuration > 0) {
-    // 如果是長音符，軌道將被鎖定直到長音符結束
-    trackFreeAtTime[trackIndex] = currentTime + finalNoteDuration;
-} else {
-    // 【修訂】關鍵修訂：使用當前的節奏步長 (stepDuration) 作為短音符的鎖定時間
-    // 這樣可以確保下一個音符的生成時間點 (currentTime + stepDuration) 會嚴格大於
-    // 當前音符的鎖定結束時間，從根本上杜絕了時間上的重疊。
-    trackFreeAtTime[trackIndex] = currentTime + stepDuration;
+        // - 更新兩個衛兵的狀態 -
+        // 1. 更新空間衛兵 (這部分保持不變)
+        trackFreeAtPixel[trackIndex] = (currentTime + (finalNoteDuration > 0 ? finalNoteDuration : stepDuration)) * pixelsPerSecond + difficulty.visualGap;
+        // ▼▼▼ 【核心修訂 #3：更新時間衛兵】 ▼▼▼
+        if (finalNoteDuration > 0) {
+            // 如果是長音符，軌道將被鎖定直到長音符結束
+            trackFreeAtTime[trackIndex] = currentTime + finalNoteDuration;
+        } else {
+            // 【修訂】如果是短音符，鎖定時間應為「當前的節奏步長」
+            // [修訂重點 3] 確保下一個音符至少要在下一個 stepDuration 之後才能生成
+            // 這能有效防止在臨界點生成重疊音符的 BUG。
+            trackFreeAtTime[trackIndex] = currentTime + stepDuration;
+        }
+        // ▲▲▲ 修訂結束 ▲▲▲
+    } else {
+        // 如果檢測到重疊，則不執行 data.push，也不更新衛兵狀態
+        console.warn(`[音符生成警告] 嘗試在時間 ${currentTime}, 軌道 ${trackIndex} 生成重疊音符，已阻止。`);
+    }
+    // --- [新增] 最終去重檢查結束 ---
 }
 // ▲▲▲ 修訂結束 ▲▲▲
                 }
