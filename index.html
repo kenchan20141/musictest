@@ -3489,37 +3489,49 @@ if (finalNoteDuration > 0) {
                 }
             }
 
-            function handleKeyUp(e) {
-                if (!gameActive) return;
-                const keyCode = e.keyCode;
-                keyStates[keyCode] = false;
-                const trackIndex = keyCodes.indexOf(keyCode);
-                if (trackIndex !== -1) {
-                    const heldNoteIndex = notes.findIndex(note =>
-                        note.track === trackIndex && note.type === 'long' && note.hitStarted
-                    );
-                    if (heldNoteIndex !== -1) {
-                        const note = notes[heldNoteIndex];
-                        const trackRect = tracksContainer.getBoundingClientRect();
-                        const hitLineY = trackRect.top + trackRect.height - 100;
-                        const rect = note.element.getBoundingClientRect();
-                        const noteTailY = rect.top;
-                        const distance = Math.abs(noteTailY - hitLineY);
-                        if (distance < 50) {
-                            let judgment;
-                            if (distance < 15) judgment = 'perfect';
-                            else if (distance < 30) judgment = 'great';
-                            else judgment = 'good';
-                            judgeHit(trackIndex, judgment);
-                        } else {
-                            judgeHit(trackIndex, 'miss');
-                        }
-                        note.active = false;
-                        note.element.remove();
-                        notes.splice(heldNoteIndex, 1);
-                    }
-                }
+           function handleKeyUp(e) {
+    if (!gameActive) return;
+    const keyCode = e.keyCode;
+    keyStates[keyCode] = false;
+    const trackIndex = keyCodes.indexOf(keyCode);
+    if (trackIndex !== -1) {
+        // 【核心修訂】找到第一個 hitStarted 為 true 的長音符
+        // 我們不使用 findIndex，而是直接用 find 獲取元素，這樣可以避免後續的 notes.splice(heldNoteIndex, 1) 錯誤
+        const heldNote = notes.find(note =>
+            note.track === trackIndex && note.type === 'long' && note.hitStarted
+        );
+
+        // 【修訂】只有當確實找到了一個正在被按住的長音符時，才進行後續處理
+        if (heldNote) {
+            const trackRect = tracksContainer.getBoundingClientRect();
+            const hitLineY = trackRect.top + trackRect.height - 100;
+            const rect = heldNote.element.getBoundingClientRect();
+            const noteTailY = rect.top; // 長音符的頂部就是它的尾部
+            const distance = Math.abs(noteTailY - hitLineY);
+
+            if (distance < 50) {
+                let judgment;
+                if (distance < 15) judgment = 'perfect';
+                else if (distance < 30) judgment = 'great';
+                else judgment = 'good';
+                judgeHit(trackIndex, judgment);
+            } else {
+                judgeHit(trackIndex, 'miss');
             }
+
+            // 【修訂】將該長音符標記為非活動並從DOM和陣列中移除
+            heldNote.active = false;
+            heldNote.element.remove();
+            // 從 notes 陣列中移除這個特定的音符
+            const indexToRemove = notes.indexOf(heldNote);
+            if (indexToRemove > -1) {
+                notes.splice(indexToRemove, 1);
+            }
+        }
+        // 【重要】如果沒有找到 hitStarted 的長音符，則不做任何事。
+        // 這可以防止在鬆開按鍵時錯誤地處理軌道上的其他短音符。
+    }
+}
 
             function onTouchStart(e) {
                 e.preventDefault();
