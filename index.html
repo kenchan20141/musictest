@@ -2538,6 +2538,7 @@ let playerSettings = JSON.parse(localStorage.getItem(PLAYER_STORAGE_KEY)) || {
            function saveGame() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
 }
+            
 
 // 新增播放器設定保存函數
 function savePlayerSettings() {
@@ -2564,6 +2565,103 @@ function savePlayerSettings() {
     
     localStorage.setItem(PLAYER_STORAGE_KEY, JSON.stringify(playerSettings));
 }
+
+
+            // ▼▼▼ 【新增】音符重疊合併保護機制 ▼▼▼
+/**
+ * 後處理音符隊列，合併所有時間上重疊的音符。
+ * 規則:
+ * 1. 短音符 + 短音符重疊 -> 合併為一個短音符 (保留第一個)
+ * 2. 長音符 + 短音符重疊 -> 合併為一個長音符 (保留第一個，擴展時長)
+ * 3. 短音符 + 長音符重疊 -> 合併為一個長音符 (保留第二個，擴展時長)
+ * 4. 長音符 + 長音符重疊 -> 合併為一個長音符 (保留第一個，擴展時長)
+ * @param {Array} noteQueue - 由 generateSongData 生成的原始音符隊列
+ * @returns {Array} - 處理後，無重疊的音符隊列
+ */
+function mergeOverlappingNotes(noteQueue) {
+    if (!Array.isArray(noteQueue) || noteQueue.length <= 1) {
+        // 如果隊列為空或只有一個音符，則無需處理
+        return noteQueue;
+    }
+
+    console.log(`[音符合併保護] 開始處理 ${noteQueue.length} 個音符...`);
+    let mergedCount = 0; // 用於追蹤合併了多少對音符
+
+    // 1. 按軌道(track)將音符分組，提高處理效率
+    const notesByTrack = {};
+    noteQueue.forEach(note => {
+        if (!notesByTrack[note.track]) {
+            notesByTrack[note.track] = [];
+        }
+        notesByTrack[note.track].push(note);
+    });
+
+    // 2. 處理每個軌道上的音符
+    const processedNotes = [];
+    for (const trackId in notesByTrack) {
+        let trackNotes = notesByTrack[trackId];
+        // 3. 確保軌道內的音符按時間順序排列
+        trackNotes.sort((a, b) => a.time - b.time);
+
+        const notesToKeep = [];
+        let i = 0;
+        while (i < trackNotes.length) {
+            let currentNote = trackNotes[i];
+            let hasMerged = false;
+
+            // 檢查與下一個音符是否重疊
+            let j = i + 1;
+            if (j < trackNotes.length) {
+                const nextNote = trackNotes[j];
+                const currentNoteEnd = currentNote.time + (currentNote.duration || 0);
+
+                // 判斷是否重疊: 當前音符的結束時間 > 下一個音符的開始時間
+                if (currentNoteEnd > nextNote.time) {
+                    hasMerged = true;
+                    mergedCount++;
+
+                    // --- 執行合併 ---
+                    // 計算合併後的總時長
+                    const mergedEnd = Math.max(currentNoteEnd, nextNote.time + (nextNote.duration || 0));
+                    const newDuration = mergedEnd - currentNote.time;
+
+                    if (currentNote.type === 'short' && nextNote.type === 'short') {
+                        // 規則 1: 短 + 短 -> 保留 current 為 short
+                        // 類型不變，時長不變（因為 short duration 為 0 或很小，通常忽略）
+                        // nextNote 被吞併，不加入 notesToKeep
+                        console.log(`[音符合併保護] 軌道 ${trackId}: 合併短音符 @${currentNote.time}s 和 @${nextNote.time}s`);
+                        
+                    } else {
+                        // 規則 2, 3, 4: 只要有一個是長音符 -> 保留 current 為 long
+                        // 更新 currentNote 的時長
+                        currentNote.type = 'long';
+                        currentNote.duration = newDuration;
+                        console.log(`[音符合併保護] 軌道 ${trackId}: 合併為長音符 @${currentNote.time}s, 新時長: ${newDuration}s`);
+                        // nextNote 被吞併，不加入 notesToKeep
+                    }
+                    // currentNote 已被修改或確認保留，將其加入結果
+                    notesToKeep.push(currentNote);
+                    // 跳過下一個音符 (j)，因為它已被合併處理
+                    i = j + 1;
+                    continue; // 繼續檢查新的 currentNote (即原 nextNote 的下一個)
+                }
+            }
+
+            // 如果沒有發生合併，則直接保留當前音符
+            if (!hasMerged) {
+                notesToKeep.push(currentNote);
+            }
+            i++;
+        }
+        // 將處理完的當前軌道音符加入最終列表
+        processedNotes.push(...notesToKeep);
+    }
+
+    console.log(`[音符合併保護] 處理完畢。共合併了 ${mergedCount} 對重疊音符。`);
+    // 4. 返回最終清理後的音符隊列
+    return processedNotes;
+}
+// ▲▲▲ 【新增結束】 ▲▲▲
 
 // 載入播放器設定
 function loadPlayerSettings() {
@@ -3128,9 +3226,10 @@ seed = Math.abs(seed) || 1; // 避免種子為 0
 console.log(`Generating notes for ${selectedSong} (${selectedDifficulty}) with seed: ${seed}`);
 // ▲▲▲ [修訂結束] ▲▲▲
 
-// ▼▼▼ [修訂] 傳入種子 ▼▼▼
-noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed); // 傳入 noteSpeed
-// ▲▲▲ [修訂結束] ▲▲▲
+ // ▼▼▼ 【修訂】生成音符並立即應用重疊合併保護 ▼▼▼
+        let rawNoteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed); // 原始生成
+        noteQueue = mergeOverlappingNotes(rawNoteQueue); // 應用保護機制
+        // ▲▲▲ 【修訂結束】 ▲▲▲
 
                 // ▼▼▼ 【修訂後的核心邏輯】 ▼▼▼
                 // 在生成音符後，動態計算不含連擊獎勵的理論最高分
