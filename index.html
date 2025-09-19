@@ -3606,38 +3606,84 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                 }
             }
 
-            function handleKeyUp(e) {
-                if (!gameActive) return;
-                const keyCode = e.keyCode;
-                keyStates[keyCode] = false;
-                const trackIndex = keyCodes.indexOf(keyCode);
-                if (trackIndex !== -1) {
-                    const heldNoteIndex = notes.findIndex(note =>
-                        note.track === trackIndex && note.type === 'long' && note.hitStarted
-                    );
-                    if (heldNoteIndex !== -1) {
-                        const note = notes[heldNoteIndex];
-                        const trackRect = tracksContainer.getBoundingClientRect();
-                        const hitLineY = trackRect.top + trackRect.height - 100;
-                        const rect = note.element.getBoundingClientRect();
-                        const noteTailY = rect.top;
-                        const distance = Math.abs(noteTailY - hitLineY);
-                        if (distance < 50) {
-                            let judgment;
-                            if (distance < 15) judgment = 'perfect';
-                            else if (distance < 30) judgment = 'great';
-                            else judgment = 'good';
-                            judgeHit(trackIndex, judgment);
-                        } else {
-                            judgeHit(trackIndex, 'miss');
-                        }
-                        note.active = false;
-                        note.element.remove();
-                        notes.splice(heldNoteIndex, 1);
-                    }
-                }
+           function handleKeyUp(e) {
+    if (!gameActive) return;
+    const keyCode = e.keyCode;
+    keyStates[keyCode] = false;
+
+    const trackIndex = keyCodes.indexOf(keyCode);
+    if (trackIndex !== -1) {
+        // --- [修訂] 強化長音符尋找邏輯 ---
+        // 尋找該軌道上 "正在被按住" 的長音符
+        // [修訂重點] 使用更精確的條件來定位目標長音符
+        const heldNoteIndex = notes.findIndex(note =>
+            note.track === trackIndex &&
+            note.type === 'long' &&
+            note.hitStarted === true // [修訂] 明確要求 hitStarted 為 true
+            // 理論上，以上條件已足夠。下方的 element 比較是額外的保險。
+            // && note.element // [可選保險] 確保 element 存在
+        );
+
+        // console.log(`[KeyUp] Track: ${trackIndex}, Found Held Long Note Index: ${heldNoteIndex}`); // [可選調試]
+
+        if (heldNoteIndex !== -1) {
+            const note = notes[heldNoteIndex];
+
+            // [可選調試] 打印找到的音符資訊
+            // console.log(`[KeyUp] Releasing Long Note at Index ${heldNoteIndex}: Time=${note.creationTime}, Track=${note.track}`);
+
+            // --- 進行判定 ---
+            const trackRect = tracksContainer.getBoundingClientRect();
+            const hitLineY = trackRect.top + trackRect.height - 100;
+            const rect = note.element.getBoundingClientRect();
+            const distance = Math.abs(rect.top - hitLineY);
+            let judgment = 'miss';
+
+            if (distance < 100) {
+                if (distance < 20) judgment = 'perfect';
+                else if (distance < 50) judgment = 'great';
+                else judgment = 'good';
             }
 
+            // --- 移除音符 ---
+            // [修訂重點] 確保只移除找到的那個長音符物件
+            note.active = false;
+            note.element.remove();
+            // 使用 `splice` 移除陣列中對應索引的元素
+            notes.splice(heldNoteIndex, 1);
+
+            // --- 處理判定分數 ---
+            // [修訂] 將判定邏輯移至音符移除之後，避免狀態混亂
+            if (trackCooldownUntil[trackIndex] <= Date.now()) {
+                let baseScore = 0;
+                if (judgment === 'perfect') baseScore = 100;
+                else if (judgment === 'great') baseScore = 70;
+                else if (judgment === 'good') baseScore = 40;
+                // Miss 不給基礎分
+                if (judgment !== 'miss') {
+                    addScore(baseScore);
+                } else {
+                    // 處理 Miss 的 combo
+                    combo = 0;
+                    updateUI();
+                }
+                // 顯示判定文字
+                showJudgment(trackIndex, judgment);
+                // 設置軌道冷卻
+                if (judgment === 'miss') {
+                     trackCooldownUntil[trackIndex] = Date.now() + getCurrentDifficulty().cooldown;
+                }
+
+            } else {
+                // 軌道仍在冷卻中，判定為 Miss
+                judgeHit(trackIndex, 'miss');
+            }
+        }
+        // 如果找不到正在按住的長音符 (heldNoteIndex === -1)，則不執行任何操作。
+        // 這通常發生在按住長音符期間，先釋放了其他鍵，或者長音符已經因為其他原因被移除。
+        // --- [修訂] 強化長音符尋找邏輯 結束 ---
+    }
+}
             function onTouchStart(e) {
                 e.preventDefault();
                 const keyElement = e.target.closest('.touch-key');
