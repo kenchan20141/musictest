@@ -3229,32 +3229,52 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     const seededRandom = mulberry32(seed);
     const tracks = 4;
 
-    // --- 空間衛兵設定 ---
+    // - 空間衛兵設定 -
     const totalFallDistance = tracksContainer.clientHeight + 50;
     const pixelsPerSecond = totalFallDistance / (noteSpeed / 1000);
     const SHORT_NOTE_SAFE_HEIGHT = 40;
     const MIN_LONG_NOTE_SAFE_HEIGHT = 50;
     const VISUAL_COMFORT_GAP = difficulty.visualGap || 50;
-    
     const data = [];
+
     // 空間衛兵：追蹤每個軌道在物理像素上的可用位置
     const trackFreeAtPixel = new Array(tracks).fill(0);
-    
+
     // ▼▼▼ 【核心修訂 #1：引入時間衛兵】 ▼▼▼
     // 時間衛兵：追蹤每個軌道在音樂時間上的可用時間點
     const trackFreeAtTime = new Array(tracks).fill(0);
     // ▲▲▲ 修訂結束 ▲▲▲
 
+    // ▼▼▼ 【新增】追蹤每個軌道最後生成短音符的時間 ▼▼▼
+    const lastShortNoteTime = new Array(tracks).fill(-1); // 初始化為 -1，表示尚未生成過短音符
+    // ▲▲▲ 【新增結束】 ▲▲▲
+
     const baseIntervalAnalysis = analyzeBeatIntervals(beatTimestamps);
     const baseInterval = baseIntervalAnalysis.baseInterval;
 
-    const rhythmPatterns = [
-        { name: "十六分音符", duration: baseInterval, weight: 0.70 },
-        { name: "三十二分音符", duration: baseInterval / 2, weight: 0.30 }
-    ];
+    // - 節奏與音符類型設定 -
+    // [修訂] 根據難度調整節奏模式的權重
+    let rhythmPatterns = [];
+    if (difficulty.maxSimultaneous <= 3) {
+        // Easy / Hell 難度：偏向較慢的節奏
+        rhythmPatterns = [
+            { name: "四分音符", duration: baseInterval * 4, weight: 0.10 },
+            { name: "八分音符", duration: baseInterval * 2, weight: 0.40 },
+            { name: "十六分音符", duration: baseInterval, weight: 0.40 },
+            { name: "三十二分音符", duration: baseInterval / 2, weight: 0.10 }
+        ];
+    } else {
+        // Normal / Hard 難度：包含更快的節奏
+        rhythmPatterns = [
+            { name: "八分音符", duration: baseInterval * 2, weight: 0.20 },
+            { name: "十六分音符", duration: baseInterval, weight: 0.50 },
+            { name: "三十二分音符", duration: baseInterval / 2, weight: 0.30 }
+        ];
+    }
+
     const noteGenerationTypes = [
-        { type: 'short', weight: 0.75 },
-        { type: 'long', weight: 0.25 }
+        { type: 'short', weight: 1.0 - (difficulty.longNoteChance || 0.25) },
+        { type: 'long', weight: difficulty.longNoteChance || 0.25 }
     ];
 
     const totalRhythmWeight = rhythmPatterns.reduce((sum, p) => sum + p.weight, 0);
@@ -3263,6 +3283,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     let currentTime = 1.0;
 
     while (currentTime < duration - (2.0 + (noteSpeed / 1000))) {
+        // - 節奏選擇 -
         let randomRhythm = seededRandom() * totalRhythmWeight;
         let selectedRhythm = rhythmPatterns[0];
         for (const pattern of rhythmPatterns) {
@@ -3272,9 +3293,12 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                 break;
             }
         }
+
         const stepDuration = selectedRhythm.duration;
 
+        // - 音符密度控制 -
         if (seededRandom() < difficulty.noteDensity) {
+            // - 軌道選擇 -
             const availableTracks = [];
             for (let i = 0; i < tracks; i++) {
                 availableTracks.push(i);
@@ -3283,7 +3307,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
             if (availableTracks.length > 0) {
                 const trackIndex = availableTracks[Math.floor(seededRandom() * availableTracks.length)];
 
-                  // ▼▼▼ 【核心修訂 #2：時間與空間雙重檢查】 ▼▼▼
+                // ▼▼▼ 【核心修訂 #2：時間與空間雙重檢查】 ▼▼▼
                 const newNoteStartPixel = currentTime * pixelsPerSecond;
                 // 檢查一 (時間衛兵)：當前時間點是否 "嚴格大於" 軌道被佔用的結束時間？
                 // 檢查二 (空間衛兵)：新音符的物理位置是否在前一個音符的安全區域之外？
@@ -3291,6 +3315,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                 if (currentTime > trackFreeAtTime[trackIndex] && newNoteStartPixel >= trackFreeAtPixel[trackIndex]) {
                     // ▲▲▲ 修訂結束 ▲▲▲
 
+                    // - 音符類型選擇 -
                     let randomType = seededRandom() * totalTypeWeight;
                     let selectedType = noteGenerationTypes[0];
                     for (const type of noteGenerationTypes) {
@@ -3309,25 +3334,34 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                         finalNoteDuration = Math.min(baseInterval * randomMultiplier, 2.0);
                     }
 
-                    // --- [新增] 最終去重檢查開始 ---
-                    // 在將音符物件推入 data 陣列之前
-                    const isOverlappingExisting = data.some(note =>
-                        note.time === currentTime && note.track === trackIndex
-                    );
+                    // --- [新增] 短音符間隔檢查開始 ---
+                    let shouldGenerateNote = true; // 預設允許生成
 
-                    if (!isOverlappingExisting) {
-                        // 只有在不重疊現有音符時才添加
+                    if (selectedType.type === 'short') {
+                        // [新增邏輯] 定義最小短音符間隔 (例如，至少等於 baseInterval)
+                        // 這可以防止在極短時間內需要連擊兩次短音符
+                        const MIN_SHORT_NOTE_INTERVAL = baseInterval; // 或者一個固定的最小值，如 0.1
+
+                        // 檢查當前時間與該軌道上次生成短音符的時間差
+                        if (lastShortNoteTime[trackIndex] !== -1 && (currentTime - lastShortNoteTime[trackIndex]) < MIN_SHORT_NOTE_INTERVAL) {
+                            // 如果間隔太短，則不生成這個短音符
+                            shouldGenerateNote = false;
+                            // console.log(`[短音符間隔阻止] Track ${trackIndex} 在 ${currentTime.toFixed(3)}s 被阻止，距離上次短音符 (${lastShortNoteTime[trackIndex].toFixed(3)}s) 間隔太短 (${(currentTime - lastShortNoteTime[trackIndex]).toFixed(3)}s < ${MIN_SHORT_NOTE_INTERVAL.toFixed(3)}s)`);
+                        }
+                    }
+
+                    if (shouldGenerateNote) {
+                        // 生成音符物件
                         // [修訂重點 2] 使用 selectedType.type 確保與選擇邏輯一致
                         data.push({
                             time: currentTime,
                             track: trackIndex,
-                            type: selectedType.type, // [修訂] 這裡改為使用 selectedType.type
+                            type: selectedType.type,
                             duration: finalNoteDuration
                         });
 
-                        // --- 更新兩個衛兵的狀態 ---
-                        
-                        // 1. 更新空間衛兵 (這部分保持不變)
+                        // - 更新兩個衛兵的狀態 -
+                        // 1. 更新空間衛兵
                         let currentNoteSafeHeight = (finalNoteDuration > 0)
                             ? Math.max(MIN_LONG_NOTE_SAFE_HEIGHT, finalNoteDuration * pixelsPerSecond)
                             : SHORT_NOTE_SAFE_HEIGHT;
@@ -3342,13 +3376,13 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                             // [修訂重點 3] 確保下一個音符至少要在下一個 stepDuration 之後才能生成
                             // 這能有效防止在臨界點生成重疊音符的 BUG。
                             trackFreeAtTime[trackIndex] = currentTime + stepDuration;
+                            // ▼▼▼ 【新增】更新短音符時間追蹤器 ▼▼▼
+                            lastShortNoteTime[trackIndex] = currentTime;
+                            // ▲▲▲ 【新增結束】 ▲▲▲
                         }
                         // ▲▲▲ 修訂結束 ▲▲▲
-                    } else {
-                        // 如果檢測到重疊，則不執行 data.push，也不更新衛兵狀態
-                        console.warn(`[音符生成警告] 嘗試在時間 ${currentTime}, 軌道 ${trackIndex} 生成重疊音符，已阻止。`);
-                    }
-                    // --- [新增] 最終去重檢查結束 ---
+                    } // else: shouldGenerateNote 為 false，不執行任何操作，相當於跳過了這個音符
+                    // --- [新增] 短音符間隔檢查結束 ---
                 }
             }
         }
