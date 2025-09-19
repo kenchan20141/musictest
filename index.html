@@ -3013,85 +3013,51 @@ function updateUnlockMeter() {
                 });
             }
 
-           // --- 在腳本開頭，新增全局緩存變數 ---
-let audioBufferCache = {}; // 儲存歌曲 URL -> AudioBuffer 的映射
+            async function analyzeAudioForBeats(url) {
+                try {
+                    const response = await fetch(url);
+                    const arrayBuffer = await response.arrayBuffer();
+                    const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                    const channelData = audioBuffer.getChannelData(0);
+                    const sampleRate = audioBuffer.sampleRate;
+                    const beats = [];
+                    const bufferSize = 1024;
+                    const historySize = 43;
+                    const C = 1.3;
+                    const energyHistory = []; // <-- [修訂] 新增這一行
 
-// --- 修改 analyzeAudioForBeats 函數（完整替換原有版本） ---
-async function analyzeAudioForBeats(url) {
-    try {
-        // 先檢查緩存
-        if (audioBufferCache[url]) {
-            console.log(`Using cached AudioBuffer for ${url}`);
-            const audioBuffer = audioBufferCache[url];
-            const channelData = audioBuffer.getChannelData(0);
-            const sampleRate = audioBuffer.sampleRate;
-            // ... (原有分析邏輯，從這裡開始複製原有代碼)
-            const beats = [];
-            const bufferSize = 1024;
-            const historySize = 43;
-            const C = 1.3;
-            const energyHistory = [];
-            
-            const getEnergy = (buffer) => {
-                let sum = 0;
-                for (let i = 0; i < buffer.length; i++) {
-                    sum += buffer[i] * buffer[i];
-                }
-                return Math.sqrt(sum / buffer.length);
-            };
-            for (let i = 0; i < channelData.length; i += bufferSize) {
-                const buffer = channelData.slice(i, i + bufferSize);
-                const currentEnergy = getEnergy(buffer);
-                let averageEnergy = energyHistory.length > 0 ?
-                    energyHistory.reduce((a, b) => a + b, 0) / energyHistory.length : 0;
-                if (currentEnergy > averageEnergy * C) {
-                    const beatTime = i / sampleRate;
-                    if (beats.length === 0 || beatTime > beats[beats.length - 1] + 0.2) {
-                        beats.push(beatTime);
+
+                    
+                    const getEnergy = (buffer) => {
+                        let sum = 0;
+                        for (let i = 0; i < buffer.length; i++) {
+                            sum += buffer[i] * buffer[i];
+                        }
+                        return Math.sqrt(sum / buffer.length);
+                    };
+                    for (let i = 0; i < channelData.length; i += bufferSize) {
+                        const buffer = channelData.slice(i, i + bufferSize);
+                        const currentEnergy = getEnergy(buffer);
+                        let averageEnergy = energyHistory.length > 0 ?
+                            energyHistory.reduce((a, b) => a + b, 0) / energyHistory.length : 0;
+                        if (currentEnergy > averageEnergy * C) {
+                            const beatTime = i / sampleRate;
+                            if (beats.length === 0 || beatTime > beats[beats.length - 1] + 0.2) {
+                                beats.push(beatTime);
+                            }
+                        }
+                        energyHistory.push(currentEnergy);
+                        if (energyHistory.length > historySize) {
+                            energyHistory.shift();
+                        }
                     }
-                }
-                energyHistory.push(currentEnergy);
-                if (energyHistory.length > historySize) {
-                    energyHistory.shift();
+                    console.log(`偵測到 ${beats.length} 個節拍。`);
+                    return beats;
+                } catch (error) {
+                    console.error("音訊分析失敗（可能是 CORS 跨域問題）:", error);
+                    return [];
                 }
             }
-            console.log(`偵測到 ${beats.length} 個節拍。`);
-            return beats;
-        }
-
-        // 無緩存：fetch 並解碼
-        const response = await fetch(url);
-        const arrayBuffer = await response.arrayBuffer();
-        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-        
-        // 存入緩存
-        audioBufferCache[url] = audioBuffer;
-        console.log(`Decoded and cached AudioBuffer for ${url}`);
-
-        // 繼續原有分析邏輯...
-        const channelData = audioBuffer.getChannelData(0);
-        const sampleRate = audioBuffer.sampleRate;
-        // (同上，從 getEnergy 開始到 return beats; )
-        // ... (貼上原有分析代碼)
-    } catch (error) {
-        console.error("音訊分析失敗（可能是 CORS 跨域問題）:", error);
-        return [];
-    }
-}
-
-// --- 在事件監聽器中，新增預解碼邏輯 ---
-// (在 musicSelect.addEventListener('change', ...) 中新增以下)
-musicSelect.addEventListener('change', () => {
-    const selectedSong = musicSelect.value;
-    updateDifficultyOptions(selectedSong);
-    populatePersonalHighScoreList(selectedSong);
-
-    // 新增：預解碼選中的歌曲（背景運行）
-    if (!audioBufferCache[selectedSong]) {
-        console.log(`Pre-decoding audio for ${selectedSong}`);
-        analyzeAudioForBeats(selectedSong); // 這會觸發解碼並緩存，但不阻塞（異步）
-    }
-});
 
             function getCurrentDifficulty() {
                 return difficultySettings[difficultySelect.value] || difficultySettings.normal;
@@ -4050,4 +4016,3 @@ disclaimerModal.addEventListener('click', (e) => {
 
 </body>
 </html>
-
