@@ -1926,186 +1926,7 @@
         top: 5%;         /* [修訂] 小螢幕上移，避免擋軌道 */
         font-size: 1rem; /* [修訂] 縮小字體 */
     }
-}    
-
-
-/* ▼▼▼ 新增的樣式 ▼▼▼ */
-
-/* 遊戲進行中，顯示解鎖進度條 */
-.game-running .unlock-progress-container {
-    opacity: 1;
-    transform: translateY(0); /* [修訂] 改為 Y 軸方向的滑入動畫 */
-}
-
-.unlock-progress-container {
-    position: absolute;
-    /* [修訂] 重新計算 bottom 值：音樂進度條 bottom 10px + 高度 12px + 間距 5px = 27px */
-    bottom: 27px; 
-    left: 10px;
-    right: 10px;
-    width: auto;
-    height: 12px;         /* [修訂] 加粗進度條 */
-    transform: translateY(100%); 
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 6px;   /* [修訂] 配合新的高度調整圓角 */
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    overflow: hidden;
-    z-index: 50;
-    opacity: 0;
-    transition: opacity 0.5s ease, transform 0.5s ease;
-    display: flex;
-    align-items: center;
-    flex-direction: row;
-}
-
-.unlock-progress-bar {
-    height: 100%; /* [修訂] 高度填滿容器 */
-    width: 0%;    /* [修訂] 由 JS 控制寬度來顯示進度 */
-    background: linear-gradient(90deg, #1D976C, #93F9B9); /* [修訂] 漸變方向改為 90 度 */
-    transition: width 0.2s ease-out, box-shadow 0.3s ease; /* [修訂] 動畫屬性改為 width */
-    box-shadow: 0 0 10px rgba(147, 249, 185, 0);
-}
-
-/* 當進度超過門檻時的發光效果 */
-.unlock-progress-bar.glowing {
-    box-shadow: 0 0 15px 5px rgba(147, 249, 185, 0.8);
-}
-
-.unlock-progress-marker {
-    position: absolute;
-    /* [刪除] left: 35%;  <-- 我們將完全由 JS 控制位置，可刪除此行 */
-    top: -5px;
-    bottom: -5px;
-    width: 2px;
-    height: auto;
-    /* [刪除] 以下兩行關於顏色的定義將移至新的 class 中 */
-    /* background: #FFD700; */
-    /* box-shadow: 0 0 8px #FFD700; */
-    z-index: 2;
-}
-
-/* ▼▼▼ 【新增】為不同類型的合格線設定專屬顏色 ▼▼▼ */
-.unlock-progress-marker.song-marker {
-    background: #FFD700; /* 金黃色，代表解鎖歌曲 */
-    box-shadow: 0 0 8px #FFD700;
-}
-
-.unlock-progress-marker.difficulty-marker {
-    background: #F96666; /* 亮紅色，代表挑戰更高難度 */
-    box-shadow: 0 0 8px #F96666;
-}
-/* ▲▲▲ 新增結束 ▲▲▲ */
-
-.unlock-progress-label {
-    position: absolute;
-    bottom: -30px;
-    left: 50%;
-    transform: translateX(-50%);
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 0.8rem;
-    white-space: nowrap;
-}
-
-/* [新增] 遊戲內歌詞容器：左右兩側，直向顯示 */
-.game-lyrics-left, .game-lyrics-right {
-    position: absolute;
-    top: 10%;
-    width: 50px; /* 窄寬度，留給直向文字 */
-    height: 80%; /* 佔軌道高度大部分 */
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    opacity: 0.7; /* 半透明，避免干擾 */
-    z-index: 15; /* 高於進度條，低於粒子 */
-    transition: opacity 0.5s ease;
-    display: none; /* 預設隱藏，由JS控制 */
-    writing-mode: vertical-rl; /* 直向文字，從右到左 */
-    text-orientation: mixed; /* 確保中文直向顯示 */
-    font-family: 'Noto Serif TC', serif; /* 適合中文的字體 */
-}
-
-.game-lyrics-left {
-    left: -60px; /* 左側，距離軌道邊緣 */
-    text-align: right; /* 直向對齊 */
-}
-
-.game-lyrics-right {
-    right: -60px; /* 右側，距離軌道邊緣 */
-    text-align: left; /* 直向對齊 */
-}
-
-/* 歌詞行樣式 */
-.game-lyric-line {
-    font-size: 1.2rem;
-    color: #fff;
-    margin: 10px 0; /* 直向間距 */
-    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-    transition: transform 0.3s ease, color 0.3s ease, font-size 0.3s ease;
-    white-space: nowrap; /* 防止換行 */
-}
-
-.game-lyric-line.active {
-    font-size: 1.5rem; /* 活躍行放大 */
-    color: #ffcc00; /* 亮黃強調 */
-    transform: scale(1.1);
-}
-
-/* 遊戲運行中顯示歌詞 */
-.game-running .game-lyrics-left,
-.game-running .game-lyrics-right {
-    display: flex;
-}
-
-/* 響應式調整 */
-@media (max-width: 1024px) {
-    .game-lyrics-left, .game-lyrics-right {
-        width: 40px; /* 平板縮小 */
-        font-size: 1rem; /* 字體縮小 */
-    }
-    .game-lyrics-left {
-        left: -50px;
-    }
-    .game-lyrics-right {
-        right: -50px;
-    }
-    .game-lyric-line.active {
-        font-size: 1.2rem;
-    }
-}
-
-@media (max-width: 768px) {
-    /* 手機：改為水平顯示，置於軌道上方，避免側邊空間不足 */
-    .game-lyrics-left, .game-lyrics-right {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        width: 100%; /* 滿寬 */
-        height: auto; /* 自適應 */
-        flex-direction: row; /* 水平排列 */
-        justify-content: space-around;
-        writing-mode: horizontal-tb; /* 改回水平 */
-        font-size: 0.9rem; /* 更小字體 */
-        padding: 5px;
-        background: rgba(0, 0, 0, 0.3); /* 輕背景提升可讀 */
-    }
-    .game-lyrics-left {
-        top: 0; /* 上方 */
-        bottom: auto;
-    }
-    .game-lyrics-right {
-        display: none; /* 手機只顯示一側，避免重複 */
-    }
-    .game-lyric-line {
-        margin: 0 5px; /* 水平間距 */
-    }
-    .game-lyric-line.active {
-        font-size: 1.1rem;
-    }
-}
-
-/* 其餘原CSS不變... (請將原CSS內容貼在這裡的最後) */
+}        
 
         
     </style>
@@ -2226,9 +2047,6 @@
                 </div>
                 <div class="game-area">
                     <div class="tracks" id="tracksContainer"></div>
-                    <!-- [新增] 遊戲內歌詞容器 -->
-<div class="game-lyrics-left" id="lyricsLeft"></div>
-<div class="game-lyrics-right" id="lyricsRight"></div>
                      <!-- 觸控按鍵 (僅在觸控裝置上顯示) -->
                     <div class="touch-controls" id="touchControls">
                         <div class="touch-key" data-key="65">A</div>
@@ -2710,9 +2528,6 @@ const songCovers = {
             // ▲▲▲ 新增結束 ▲▲▲
 
             // --- Game State Variables ---
-let lyricsUpdateInterval = null; // 歌詞更新間隔
-
-            
             let gameActive = false;
 let maxScoreForCurrentLevel = 0; // ▼▼▼ 新增狀態變數
             let unlockThresholdPercentage = 0; // ▼▼▼ 新增狀態變數
@@ -3134,26 +2949,6 @@ closeNotification.addEventListener('click', () => {
             }
 
             // --- Game Logic ---
-
-// [新增] 更新遊戲內歌詞顯示
-function updateGameLyrics(currentTime, gameLyrics) {
-    if (gameLyrics.length === 0) return;
-    let activeIndex = -1;
-    for (let i = 0; i < gameLyrics.length; i++) {
-        if (gameLyrics[i].time <= currentTime) {
-            activeIndex = i;
-        } else {
-            break;
-        }
-    }
-    // 更新左右容器的歌詞行
-    document.querySelectorAll('.game-lyric-line').forEach((line, i) => {
-        line.classList.toggle('active', i === activeIndex);
-    });
-}
-
-
-            
             function generateNote(noteData) {
                 if (!gameActive) return;
                 const trackIndex = noteData.track;
@@ -3361,59 +3156,59 @@ function updateUnlockMeter() {
                 return difficultySettings[difficultySelect.value] || difficultySettings.normal;
             }
 
-          async function startGame() {
-    const selectedSong = musicSelect.value;
-    const selectedDifficulty = difficultySelect.value;
+           async function startGame() {
+                const selectedSong = musicSelect.value;
+                const selectedDifficulty = difficultySelect.value;
 
-    if (!isSongUnlocked(selectedSong)) {
-        showUnlockModal(`在普通模式下達到 ${SONG_UNLOCK_SCORE} 分以解鎖下一首歌曲。`);
-        return;
-    }
-    if (!isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
-        let reqScore = 0;
-        let reqDiff = '';
-        if (selectedDifficulty === 'hard') {
-            reqScore = DIFFICULTY_UNLOCK_SCORE_NORMAL_TO_HARD;
-            reqDiff = '普通';
-        } else if (selectedDifficulty === 'hell') {
-            reqScore = DIFFICULTY_UNLOCK_SCORE_HARD_TO_HELL;
-            reqDiff = '困難';
-        }
-        showUnlockModal(`在 ${reqDiff} 模式下達到 ${reqScore} 分以解鎖此難度。`);
-        return;
-    }
+                if (!isSongUnlocked(selectedSong)) {
+                    showUnlockModal(`在普通模式下達到 ${SONG_UNLOCK_SCORE} 分以解鎖下一首歌曲。`);
+                    return;
+                }
+                if (!isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
+                    let reqScore = 0;
+                    let reqDiff = '';
+                    if (selectedDifficulty === 'hard') {
+                        reqScore = DIFFICULTY_UNLOCK_SCORE_NORMAL_TO_HARD;
+                        reqDiff = '普通';
+                    } else if (selectedDifficulty === 'hell') {
+                        reqScore = DIFFICULTY_UNLOCK_SCORE_HARD_TO_HELL;
+                        reqDiff = '困難';
+                    }
+                    showUnlockModal(`在 ${reqDiff} 模式下達到 ${reqScore} 分以解鎖此難度。`);
+                    return;
+                }
 
-    if (gameActive) return;
-    gameActive = true;
-    startBtn.disabled = true;
-    musicSelect.disabled = true;
-    difficultySelect.disabled = true;
+                if (gameActive) return;
+                gameActive = true;
+                startBtn.disabled = true;
+                musicSelect.disabled = true;
+                difficultySelect.disabled = true;
 
-    // ▼▼▼ 【核心修訂】無條件設定兩條合格線的位置 ▼▼▼
-    mainGameContainer.classList.add('game-running'); 
-    
-    // 根據預設的百分比常數，設定兩條線的 left 屬性
-    songUnlockMarker.style.left = `${SONG_UNLOCK_PERCENTAGE * 100}%`;
-    difficultyUnlockMarker.style.left = `${DIFFICULTY_UNLOCK_PERCENTAGE * 100}%`;
-    // ▲▲▲ 修訂結束 ▲▲▲
-    
-    startBtn.innerHTML = `<svg class="start-button-svg" viewBox="0 0 40 40" style="width:40px;height:40px;">
-        <circle cx="20" cy="20" r="18" stroke="#ff8a00" stroke-width="3" fill="none" stroke-dasharray="89" stroke-dashoffset="20">
-            <animateTransform attributeName="transform" type="rotate" from="0 20 20" to="360 20 20" dur="1s" repeatCount="indefinite" />
-        </circle>
-    </svg>`;
-    
-    const difficulty = getCurrentDifficulty();
-    const beatTimestamps = await analyzeAudioForBeats(selectedSong);
-    startBtn.innerHTML = originalStartButtonSVG;
- 
-    progressContainerDiv.style.display = 'block';
-    trackCooldownUntil.fill(0); 
-    audio.src = selectedSong;
-    audio.volume = volumeControlModal.value;
-    currentSongDuration = await getAudioDuration(selectedSong);
-    noteSpeed = Math.floor(4000 / difficulty.speedMultiplier);
-    // ▼▼▼ [修訂] 生成基於歌曲和難度的固定種子 ▼▼▼
+              // ▼▼▼ 【核心修訂】無條件設定兩條合格線的位置 ▼▼▼
+                mainGameContainer.classList.add('game-running'); 
+                
+                // 根據預設的百分比常數，設定兩條線的 left 屬性
+                songUnlockMarker.style.left = `${SONG_UNLOCK_PERCENTAGE * 100}%`;
+                difficultyUnlockMarker.style.left = `${DIFFICULTY_UNLOCK_PERCENTAGE * 100}%`;
+                // ▲▲▲ 修訂結束 ▲▲▲
+                
+                startBtn.innerHTML = `<svg class="start-button-svg" viewBox="0 0 40 40" style="width:40px;height:40px;">
+                    <circle cx="20" cy="20" r="18" stroke="#ff8a00" stroke-width="3" fill="none" stroke-dasharray="89" stroke-dashoffset="20">
+                        <animateTransform attributeName="transform" type="rotate" from="0 20 20" to="360 20 20" dur="1s" repeatCount="indefinite" />
+                    </circle>
+                </svg>`;
+                
+                const difficulty = getCurrentDifficulty();
+                const beatTimestamps = await analyzeAudioForBeats(selectedSong);
+                startBtn.innerHTML = originalStartButtonSVG;
+             
+                progressContainerDiv.style.display = 'block';
+                trackCooldownUntil.fill(0); 
+                audio.src = selectedSong;
+                audio.volume = volumeControlModal.value;
+                currentSongDuration = await getAudioDuration(selectedSong);
+                noteSpeed = Math.floor(4000 / difficulty.speedMultiplier);
+                // ▼▼▼ [修訂] 生成基於歌曲和難度的固定種子 ▼▼▼
 const songAndDifficultyString = selectedSong + selectedDifficulty;
 let seed = 0;
 for (let i = 0; i < songAndDifficultyString.length; i++) {
@@ -3430,47 +3225,24 @@ console.log(`Generating notes for ${selectedSong} (${selectedDifficulty}) with s
 noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed); // 傳入 noteSpeed
 // ▲▲▲ [修訂結束] ▲▲▲
 
-    // ▼▼▼ 【修訂後的核心邏輯】 ▼▼▼
-    // 在生成音符後，動態計算不含連擊獎勵的理論最高分
-    const maxBaseScorePerNote = 100; // "Perfect" 的基礎分數是 100
-    maxScoreForCurrentLevel = noteQueue.length * maxBaseScorePerNote;
+                // ▼▼▼ 【修訂後的核心邏輯】 ▼▼▼
+                // 在生成音符後，動態計算不含連擊獎勵的理論最高分
+                const maxBaseScorePerNote = 100; // "Perfect" 的基礎分數是 100
+                maxScoreForCurrentLevel = noteQueue.length * maxBaseScorePerNote;
 
-    // 如果計算結果為 0 (例如歌曲沒有音符)，則提供一個預設值以避免錯誤
-    if (maxScoreForCurrentLevel === 0) {
-        maxScoreForCurrentLevel = 300000; // 設置一個後備值
-    }
-    // ▲▲▲ 【修訂結束】 ▲▲▲
+                // 如果計算結果為 0 (例如歌曲沒有音符)，則提供一個預設值以避免錯誤
+                if (maxScoreForCurrentLevel === 0) {
+                    maxScoreForCurrentLevel = 300000; // 設置一個後備值
+                }
+                // ▲▲▲ 【修訂結束】 ▲▲▲
 
-    await audio.play().catch(e => console.log("音訊播放失敗:", e));
-    gameStartTime = Date.now();
-    generateNotesContinuously();
-    gameLoop();
-    progressInterval = setInterval(updateProgress, 100);
-    setTimeout(() => { if (gameActive) endGame(); }, currentSongDuration * 1000 + 2000);
-
-    // [新增] 載入並顯示遊戲內歌詞
-    const gameLyrics = songLyrics[selectedSong] || []; // 載入當前歌曲歌詞
-    const lyricsLeft = document.getElementById('lyricsLeft');
-    const lyricsRight = document.getElementById('lyricsRight');
-    lyricsLeft.innerHTML = ''; // 清空
-    lyricsRight.innerHTML = ''; // 清空
-
-    // 分左右顯示（假設偶數行左，奇數行右；或根據行數調整）
-    gameLyrics.forEach((line, i) => {
-        const p = document.createElement('p');
-        p.className = 'game-lyric-line';
-        p.textContent = line.text;
-        p.dataset.time = line.time;
-        if (i % 2 === 0) {
-            lyricsLeft.appendChild(p);
-        } else {
-            lyricsRight.appendChild(p);
-        }
-    });
-
-    // [新增] 啟動歌詞更新間隔（每200ms檢查音樂時間）
-    lyricsUpdateInterval = setInterval(() => updateGameLyrics(audio.currentTime, gameLyrics), 200);
-}
+                await audio.play().catch(e => console.log("音訊播放失敗:", e));
+                gameStartTime = Date.now();
+                generateNotesContinuously();
+                gameLoop();
+                progressInterval = setInterval(updateProgress, 100);
+                setTimeout(() => { if (gameActive) endGame(); }, currentSongDuration * 1000 + 2000);
+            }
 
 
 // 新增輔助函數：分析節拍間隔，估算基本時間單位（如十六分音符長度）
@@ -3651,7 +3423,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                 }
             }
 
-        function endGame() {
+         function endGame() {
     gameActive = false;
     audio.pause();
     audio.currentTime = 0;
@@ -3698,14 +3470,6 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
 
     // 步驟 3: 顯示結束畫面
     showGameOver();
-
-    // [新增] 清理歌詞更新間隔和容器
-    if (lyricsUpdateInterval) {
-        clearInterval(lyricsUpdateInterval);
-        lyricsUpdateInterval = null;
-    }
-    document.getElementById('lyricsLeft').innerHTML = '';
-    document.getElementById('lyricsRight').innerHTML = '';
 }
 
             function showGameOver() {
