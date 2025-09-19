@@ -3205,21 +3205,18 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     const seededRandom = mulberry32(seed);
     const tracks = 4;
 
-    // --- 空間衛兵設定 ---
+    // - 空間衛兵設定 -
     const totalFallDistance = tracksContainer.clientHeight + 50;
     const pixelsPerSecond = totalFallDistance / (noteSpeed / 1000);
     const SHORT_NOTE_SAFE_HEIGHT = 40;
     const MIN_LONG_NOTE_SAFE_HEIGHT = 50;
-    const VISUAL_COMFORT_GAP = difficulty.visualGap || 50;
-    
+    const VISUAL_COMFORT_GAP = difficulty.visualGap || 50; // 【修訂】使用 difficulty 設置
+
     const data = [];
     // 空間衛兵：追蹤每個軌道在物理像素上的可用位置
     const trackFreeAtPixel = new Array(tracks).fill(0);
-    
-    // ▼▼▼ 【核心修訂 #1：引入時間衛兵】 ▼▼▼
     // 時間衛兵：追蹤每個軌道在音樂時間上的可用時間點
     const trackFreeAtTime = new Array(tracks).fill(0);
-    // ▲▲▲ 修訂結束 ▲▲▲
 
     const baseIntervalAnalysis = analyzeBeatIntervals(beatTimestamps);
     const baseInterval = baseIntervalAnalysis.baseInterval;
@@ -3228,6 +3225,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
         { name: "十六分音符", duration: baseInterval, weight: 0.70 },
         { name: "三十二分音符", duration: baseInterval / 2, weight: 0.30 }
     ];
+
     const noteGenerationTypes = [
         { type: 'short', weight: 0.75 },
         { type: 'long', weight: 0.25 }
@@ -3237,7 +3235,6 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     const totalTypeWeight = noteGenerationTypes.reduce((sum, t) => sum + t.weight, 0);
 
     let currentTime = 1.0;
-
     while (currentTime < duration - (2.0 + (noteSpeed / 1000))) {
         let randomRhythm = seededRandom() * totalRhythmWeight;
         let selectedRhythm = rhythmPatterns[0];
@@ -3248,6 +3245,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                 break;
             }
         }
+
         const stepDuration = selectedRhythm.duration;
 
         if (seededRandom() < difficulty.noteDensity) {
@@ -3259,12 +3257,12 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
             if (availableTracks.length > 0) {
                 const trackIndex = availableTracks[Math.floor(seededRandom() * availableTracks.length)];
 
-                // ▼▼▼ 【核心修訂 #2：時間與空間雙重檢查】 ▼▼▼
+                // 【核心修訂 #2：時間與空間雙重檢查】
                 const newNoteStartPixel = currentTime * pixelsPerSecond;
                 // 檢查一 (時間衛兵)：當前時間點是否大於軌道被佔用的結束時間？
                 // 檢查二 (空間衛兵)：新音符的物理位置是否在前一個音符的安全區域之外？
                 if (currentTime >= trackFreeAtTime[trackIndex] && newNoteStartPixel >= trackFreeAtPixel[trackIndex]) {
-                // ▲▲▲ 修訂結束 ▲▲▲
+                    // ▲▲▲ 修訂結束 ▲▲▲
 
                     let randomType = seededRandom() * totalTypeWeight;
                     let selectedType = noteGenerationTypes[0];
@@ -3277,44 +3275,146 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                     }
 
                     let finalNoteDuration = 0;
-                    if (selectedType.type === 'long') {
-                        const minMultiplier = difficulty.longNoteMinMultiplier || 2;
-                        const maxMultiplier = difficulty.longNoteMaxMultiplier || 6;
-                        const randomMultiplier = minMultiplier + seededRandom() * (maxMultiplier - minMultiplier);
-                        finalNoteDuration = Math.min(baseInterval * randomMultiplier, 2.0);
+                    if (selectedType.type === 'long' && seededRandom() < difficulty.longNoteChance) {
+                        const minDuration = baseInterval * difficulty.longNoteMinMultiplier;
+                        const maxDuration = baseInterval * difficulty.longNoteMaxMultiplier;
+                        finalNoteDuration = minDuration + seededRandom() * (maxDuration - minDuration);
                     }
-                    
+
+                    // 計算新音符的結束時間和像素
+                    const newNoteEndTime = currentTime + finalNoteDuration;
+                    const newNoteEndPixel = newNoteEndTime * pixelsPerSecond;
+
+                    // 更新衛兵
+                    trackFreeAtTime[trackIndex] = newNoteEndTime + (difficulty.cooldown / 1000);
+                    const visualHeight = newNoteEndPixel - newNoteStartPixel;
+                    let requiredSafeHeight = SHORT_NOTE_SAFE_HEIGHT;
+                    if (finalNoteDuration > 0) {
+                        requiredSafeHeight = Math.max(MIN_LONG_NOTE_SAFE_HEIGHT, visualHeight * 0.1);
+                    }
+                    trackFreeAtPixel[trackIndex] = newNoteEndPixel + requiredSafeHeight + VISUAL_COMFORT_GAP;
+
                     data.push({
                         time: currentTime,
                         track: trackIndex,
                         type: finalNoteDuration > 0 ? 'long' : 'short',
                         duration: finalNoteDuration
                     });
-
-                    // --- 更新兩個衛兵的狀態 ---
-                    
-                    // 1. 更新空間衛兵
-                    let currentNoteSafeHeight = (finalNoteDuration > 0)
-                        ? Math.max(MIN_LONG_NOTE_SAFE_HEIGHT, finalNoteDuration * pixelsPerSecond)
-                        : SHORT_NOTE_SAFE_HEIGHT;
-                    trackFreeAtPixel[trackIndex] = newNoteStartPixel + currentNoteSafeHeight + VISUAL_COMFORT_GAP;
-
-                    // ▼▼▼ 【核心修訂 #3：更新時間衛兵】 ▼▼▼
-                    if (finalNoteDuration > 0) {
-                        // 如果是長音符，軌道將被鎖定直到長音符結束
-                        trackFreeAtTime[trackIndex] = currentTime + finalNoteDuration;
-                    } else {
-                        // 【修訂】如果是短音符，鎖定時間應為「當前的節奏步長」，而非一個固定的值。
-                        // 這能確保下一個時間點 (currentTime + stepDuration) 必定小於新的 trackFreeAtTime，
-                        // 從而完美地防止了在臨界點生成重疊音符的 BUG。
-                        trackFreeAtTime[trackIndex] = currentTime + stepDuration;
-                    }
-                    // ▲▲▲ 修訂結束 ▲▲▲
                 }
             }
         }
         currentTime += stepDuration;
     }
+
+    // ▼▼▼ 【新增】後驗音符合併保護機制 ▼▼▼
+    console.log("開始執行音符合併保護機制...");
+    const originalNoteCount = data.length;
+    const notesByTrack = {};
+
+    // 1. 按軌道分組並計算像素位置
+    for (let i = 0; i < tracks; i++) {
+        notesByTrack[i] = [];
+    }
+    data.forEach(note => {
+        // 計算音符的像素位置 (相對於軌道頂部)
+        const startPixel = note.time * pixelsPerSecond;
+        const duration = note.duration || 0;
+        const endPixel = startPixel + (duration * pixelsPerSecond);
+        // 為每個音符添加計算好的像素位置，方便比較
+        note._startPixel = startPixel;
+        note._endPixel = endPixel;
+        notesByTrack[note.track].push(note);
+    });
+
+    // 2. 對每個軌道的音符按時間排序
+    Object.keys(notesByTrack).forEach(trackIndex => {
+        notesByTrack[trackIndex].sort((a, b) => a.time - b.time);
+    });
+
+    // 3. 遍歷每條軌道，檢查並合併重疊音符
+    let notesToRemove = new Set(); // 使用 Set 避免重複標記
+    for (let trackIndex = 0; trackIndex < tracks; trackIndex++) {
+        const notesOnTrack = notesByTrack[trackIndex];
+        for (let i = 0; i < notesOnTrack.length; i++) {
+            const currentNote = notesOnTrack[i];
+            if (notesToRemove.has(currentNote)) continue; // 如果已被標記移除，跳過
+
+            // 檢查與後續音符的重疊
+            for (let j = i + 1; j < notesOnTrack.length; j++) {
+                const nextNote = notesOnTrack[j];
+                if (notesToRemove.has(nextNote)) continue; // 如果已被標記移除，跳過
+
+                // 定義重疊條件： max(start1, start2) < min(end1, end2)
+                // 考慮視覺間隙，我們檢查是否在時間或空間上有任何形式的重疊
+                const overlapStartPixel = Math.max(currentNote._startPixel, nextNote._startPixel);
+                const overlapEndPixel = Math.min(currentNote._endPixel, nextNote._endPixel); // 不加間隙，檢查實際像素重疊
+
+                if (overlapStartPixel < overlapEndPixel) {
+                    console.log(`發現重疊音符於軌道 ${trackIndex}: Note1 (Time: ${currentNote.time}, Type: ${currentNote.type}, Dur: ${currentNote.duration}) 與 Note2 (Time: ${nextNote.time}, Type: ${nextNote.type}, Dur: ${nextNote.duration})`);
+
+                    // 判斷合併類型
+                    const isCurrentLong = currentNote.type === 'long';
+                    const isNextLong = nextNote.type === 'long';
+
+                    if (!isCurrentLong && !isNextLong) {
+                        // 情況 1: 短 + 短 -> 合併為短音符 (保留 current, 移除 next)
+                        console.log("  -> 合併為短音符 (保留第一個)");
+                        notesToRemove.add(nextNote);
+
+                    } else if (isCurrentLong && isNextLong) {
+                        // 情況 3: 長 + 長 -> 合併為長音符 (擴展 current, 移除 next)
+                        const mergedStart = Math.min(currentNote.time, nextNote.time);
+                        const mergedEnd = Math.max(currentNote.time + currentNote.duration, nextNote.time + nextNote.duration);
+                        const mergedDuration = mergedEnd - mergedStart;
+                        currentNote.time = mergedStart; // 更新開始時間
+                        currentNote.duration = mergedDuration; // 更新持續時間
+                        currentNote._startPixel = mergedStart * pixelsPerSecond;
+                        currentNote._endPixel = (mergedStart + mergedDuration) * pixelsPerSecond;
+                        console.log(`  -> 合併為長音符 (擴展至 ${mergedDuration.toFixed(3)}s)`);
+                        notesToRemove.add(nextNote);
+
+                    } else {
+                        // 情況 2: 長 + 短 或 短 + 長 -> 合併為長音符
+                        const longNote = isCurrentLong ? currentNote : nextNote;
+                        const shortNote = isCurrentLong ? nextNote : currentNote;
+
+                        // 確保長音符覆蓋短音符的整個時間範圍
+                        const mergedStart = Math.min(longNote.time, shortNote.time);
+                        const mergedEnd = Math.max(longNote.time + longNote.duration, shortNote.time + (shortNote.duration || 0));
+                        const mergedDuration = mergedEnd - mergedStart;
+
+                        // 更新長音符的屬性
+                        longNote.time = mergedStart;
+                        longNote.duration = mergedDuration;
+                        longNote.type = 'long'; // 確保類型是長音符
+                        longNote._startPixel = mergedStart * pixelsPerSecond;
+                        longNote._endPixel = (mergedStart + mergedDuration) * pixelsPerSecond;
+
+                        console.log(`  -> 合併為長音符 (覆蓋 ${mergedDuration.toFixed(3)}s)`);
+                        // 移除短音符
+                        notesToRemove.add(shortNote);
+                        // 如果 shortNote 是 currentNote，則需要調整 i，因為下一個音符變了
+                        if (shortNote === currentNote) {
+                            notesToRemove.add(nextNote); // 也移除 next，因為它現在是孤立的
+                        }
+                    }
+                    // 一旦找到並處理了與 currentNote 的重疊，就跳出內層循環
+                    break;
+                }
+            }
+        }
+    }
+
+    // 4. 從 data 中過濾掉被標記移除的音符
+    if (notesToRemove.size > 0) {
+        const filteredData = data.filter(note => !notesToRemove.has(note));
+        console.log(`音符合併完成。原始數量: ${originalNoteCount}, 合併後數量: ${filteredData.length}, 移除了 ${notesToRemove.size} 個重疊音符。`);
+        // ▲▲▲ 【新增結束】 ▲▲▲
+        return filteredData.sort((a, b) => a.time - b.time);
+    } else {
+        console.log("音符合併完成。未發現需要合併的重疊音符。");
+    }
+
     return data.sort((a, b) => a.time - b.time);
 }
 
