@@ -3683,10 +3683,21 @@ function updateGameLyrics(currentTime) {
         lyricsBackground.innerHTML = ''; // 清空舊內容
         const currentLyric = (currentIndex >= 0 && lyrics[currentIndex]) ? lyrics[currentIndex].text : '';
         if (currentLyric) {
-            // 根據螢幕大小動態調整基礎數量（與 CSS 匹配）
-            const baseCount = window.innerWidth <= 480 ? 6 : (window.innerWidth <= 768 ? 9 : (window.innerWidth <= 1024 ? 16 : 25));
-            const densityMultiplier = 5; // 修訂：減少為 5 倍（原 10），讓文字密集但不重疊（可調成 3-6 以測試）
-            const totalSpans = baseCount * densityMultiplier; // 總生成數量，例如原 25 變 125
+            // 動態計算需要的 span 數量，以填滿整個畫面
+            const fontSize = parseFloat(getComputedStyle(lyricsBackground).fontSize); // 獲取當前 font-size (單位 px)
+            const approxCharWidth = fontSize * 0.6; // 估計每個字元的寬度（約 0.6 * font-size）
+            const lineHeight = fontSize * 1.2; // 估計行高（基於 line-height: 1.2）
+            
+            const lyricWidth = currentLyric.length * approxCharWidth; // 估計單個 span 的寬度
+            const spanWidth = Math.max(lyricWidth, window.innerWidth * 0.1); // 最小 10% 寬，防止太窄
+            const spanHeight = lineHeight; // 單個 span 的高度
+            
+            const horizontalCount = Math.ceil(window.innerWidth / spanWidth); // 水平能放多少個
+            const verticalCount = Math.ceil(window.innerHeight / spanHeight); // 垂直能放多少個
+            
+            const densityFactor = 1.2; // 略多 20% 以確保完全覆蓋（可調整 1.0-1.5）
+            const totalSpans = Math.ceil(horizontalCount * verticalCount * densityFactor); // 總數
+            
             for (let i = 0; i < totalSpans; i++) {
                 const span = document.createElement('span');
                 span.textContent = currentLyric;
