@@ -2020,12 +2020,12 @@
     height: 100%;
     z-index: -1; /* 在背景圖上方，但低於遊戲內容 */
     display: grid;
-    grid-template-columns: repeat(5, 1fr); /* 5 列，調整以密鋪 */
-    grid-template-rows: repeat(5, 1fr); /* 5 行，總 25 個格子 */
-    grid-gap: 20px; /* 間距，避免壓迫 */
-    opacity: 0.2; /* 低透明度，不壓迫 */
-    color: #fff; /* 白字，柔和 */
-    font-size: 5rem; /* 盡量大 */
+    grid-template-columns: repeat(6, 1fr); /* 增加為 6 列，更密鋪（可調整） */
+    grid-template-rows: repeat(6, 1fr); /* 增加為 6 行，更密鋪（可調整） */
+    grid-gap: 0; /* 移除間距，實現密鋪 */
+    opacity: 0.2; /* 保留半透明 */
+    color: #fff; /* 保留白色文字 */
+    font-size: 6rem; /* 稍增大字體，更填滿（可調整） */
     pointer-events: none; /* 不擋互動 */
     align-items: center;
     justify-items: center;
