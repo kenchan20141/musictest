@@ -208,9 +208,10 @@
             color: #ffcc00;
         }
         .stat-label {
-            font-size: 0.8rem; /* Adjusted */
-            opacity: 0.7;
-        }
+    font-size: 1rem;
+    color: #fff;
+    opacity: 1;
+}
         .controls {
             display: flex;
             gap: 8px; /* Reduced gap */
@@ -721,10 +722,11 @@
             color: #ff8a00;
             margin: 8px 0;
         }
-        .stat-label {
-            font-size: 1rem;
-            opacity: 0.8;
-        }
+       .stat-label {
+    font-size: 1rem;  /* 略微增大字體，讓文字更明顯（可選，如果你不想要變化，可以保持原 0.8rem） */
+    color: #fff;      /* 將顏色改為白色（#fff），這樣在深色背景上清晰可見 */
+    opacity: 1;       /* 將透明度設為 1（完全不透明），避免文字半透明而模糊 */
+}
         .restart-btn {
             background: linear-gradient(45deg, #00c9ff, #92fe9d);
             padding: 12px 30px;
@@ -2025,7 +2027,7 @@
     gap: 2px; /* 統一小間距（2px），所有設備一致 */
     margin: 0; /* 確保容器無邊距 */
     padding: 0; /* 確保容器無內距 */
-    opacity: 0.3; /* 保留半透明 */
+    opacity: 0.25; /* 保留半透明 */
     color: #fff; /* 保留白色文字 */
     font-size: 5rem; /* 預設大小，media query 會調整 */
     pointer-events: none; /* 不擋互動 */
