@@ -1928,23 +1928,26 @@
     }
 }        
 
-        /* 遊戲中歌詞顯示：軌道兩側半透明垂直區域 */
+ /* 遊戲中歌詞顯示：軌道兩側全透明垂直區域 */
 .lyrics-side {
     position: absolute;
     top: 0;
     bottom: 0;
     width: 150px; /* 預設電腦寬度 */
     opacity: 0.5;
-    background: rgba(0, 0, 0, 0.4);
+    background: transparent; /* 全透明 */
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     padding: 10px;
-    overflow-y: auto;
+    overflow-y: auto; /* 若直排溢出，自動滾動 */
     color: #fff;
-    font-size: 1.2rem;
+    font-size: clamp(1rem, 10vw, 1.5rem); /* 利用寬度調整字體：最小1rem，依視窗寬10%，最大1.5rem */
     text-align: center;
+    writing-mode: vertical-rl; /* 直排顯示：垂直從右到左 */
+    text-orientation: mixed; /* 確保中文直排正常 */
+    line-height: 1.2; /* 調整字間距 */
     z-index: 10; /* 高於背景，低於音符 */
     transition: opacity 0.3s ease;
 }
@@ -1969,7 +1972,7 @@
 @media (max-width: 1024px) {
     .lyrics-side {
         width: 120px;
-        font-size: 1rem;
+        font-size: clamp(0.9rem, 8vw, 1.2rem); /* 平板：調整clamp範圍 */
         padding: 8px;
     }
     .lyrics-left {
@@ -1983,7 +1986,7 @@
 @media (max-width: 768px) {
     .lyrics-side {
         width: 80px;
-        font-size: 0.8rem;
+        font-size: clamp(0.7rem, 6vw, 1rem); /* 手機：更小調整 */
         padding: 5px;
         opacity: 0.3; /* 手機上更透明，避免干擾觸控 */
     }
@@ -1998,7 +2001,7 @@
 @media (max-width: 480px) {
     .lyrics-side {
         width: 60px;
-        font-size: 0.7rem;
+        font-size: clamp(0.6rem, 5vw, 0.8rem); /* 小手機：最小調整 */
     }
     .lyrics-left {
         left: calc(50% - 172px - 60px);
@@ -3578,7 +3581,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
 
 
 
-            // 新增函數：更新遊戲中歌詞顯示
+           // 新增函數：更新遊戲中歌詞顯示
 function updateGameLyrics(currentTime) {
     const selectedSong = musicSelect.value;
     const lyrics = songLyrics[selectedSong] || [];
@@ -3596,8 +3599,9 @@ function updateGameLyrics(currentTime) {
     const lyricsLeft = document.querySelector('.lyrics-left');
     const lyricsRight = document.querySelector('.lyrics-right');
     if (lyricsLeft && lyricsRight) {
-        lyricsLeft.textContent = (currentIndex >= 0 && lyrics[currentIndex]) ? lyrics[currentIndex].text : '';
-        lyricsRight.textContent = (currentIndex + 1 < lyrics.length && lyrics[currentIndex + 1]) ? lyrics[currentIndex + 1].text : '';
+        const currentLyric = (currentIndex >= 0 && lyrics[currentIndex]) ? lyrics[currentIndex].text : '';
+        lyricsLeft.textContent = currentLyric; // 左右顯示同一句
+        lyricsRight.textContent = currentLyric;
     }
 }
 
