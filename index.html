@@ -2105,14 +2105,14 @@ const difficultySettings = {
     },
     // Normal 難度：標準設定
     normal: { 
-        speedMultiplier: 1.1, longNoteChance: 0.35, noteDensity: 3.5, maxSimultaneous: 8, cooldown: 150,
+        speedMultiplier: 1.1, longNoteChance: 0.25, noteDensity: 3.5, maxSimultaneous: 8, cooldown: 150,
         longNoteMinMultiplier: 2,
         longNoteMaxMultiplier: 6,
         visualGap: 50
     },
     // 【修訂】Hard 難度：進一步縮短長音符最大長度
     hard: { 
-        speedMultiplier: 1.6, longNoteChance: 0.35, noteDensity: 4.5, maxSimultaneous: 4, cooldown: 100,
+        speedMultiplier: 1.6, longNoteChance: 0.30, noteDensity: 4.5, maxSimultaneous: 4, cooldown: 100,
         longNoteMinMultiplier: 2,
         longNoteMaxMultiplier: 3.5,   // 從 4 縮短至 3.5
         visualGap: 25               
@@ -3227,8 +3227,8 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     ];
 
     const noteGenerationTypes = [
-        { type: 'short', weight: 0.65 },
-        { type: 'long', weight: 0.35 }
+        { type: 'short', weight: 0.75 },
+        { type: 'long', weight: 0.25 }
     ];
 
     const totalRhythmWeight = rhythmPatterns.reduce((sum, p) => sum + p.weight, 0);
