@@ -2037,12 +2037,12 @@
 .lyrics-background span {
     margin: 0; /* 移除邊距 */
     padding: 0; /* 移除內距 */
-    line-height: 0.8; /* 減小行高，讓垂直更緊密（<1 以壓縮） */
-    word-spacing: -0.1em; /* 負字距，讓水平文字更擠（可調成 -0.2em） */
-    letter-spacing: -0.05em; /* 負字母間距，讓更密（可調成 -0.1em） */
+    line-height: 1; /* 正常行高，避免垂直重疊 */
+    word-spacing: 0; /* 正常字距 */
+    letter-spacing: 0; /* 正常字母間距 */
     white-space: nowrap; /* 防止換行，讓文字連續 */
-    flex: 0 0 auto; /* 自動調整大小，填滿 */
-    min-width: 0; /* 允許壓縮到最小，增加密集度 */
+    flex: 0 0 auto; /* 自動調整大小 */
+    min-width: 10%; /* 修訂：每行約 10 個（100%/10），讓密集但有空間不重疊（可調成 8%-12%） */
     display: inline-flex; /* 內聯 flex，讓文字緊貼 */
     align-items: center;
     justify-content: center;
@@ -3669,8 +3669,8 @@ function updateGameLyrics(currentTime) {
         if (currentLyric) {
             // 根據螢幕大小動態調整基礎數量（與 CSS 匹配）
             const baseCount = window.innerWidth <= 480 ? 6 : (window.innerWidth <= 768 ? 9 : (window.innerWidth <= 1024 ? 16 : 25));
-            const densityMultiplier = 10; // 新增：密集度倍數（10 倍，讓文字更多；可調成 20 或更高以更滿）
-            const totalSpans = baseCount * densityMultiplier; // 總生成數量，例如原 25 變 250
+            const densityMultiplier = 5; // 修訂：減少為 5 倍（原 10），讓文字密集但不重疊（可調成 3-6 以測試）
+            const totalSpans = baseCount * densityMultiplier; // 總生成數量，例如原 25 變 125
             for (let i = 0; i < totalSpans; i++) {
                 const span = document.createElement('span');
                 span.textContent = currentLyric;
