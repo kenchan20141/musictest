@@ -3429,66 +3429,115 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                 animationFrame = requestAnimationFrame(gameLoop);
             }
 
-         function handleKeyDown(e) {
-                if (!gameActive) return;
-                const keyCode = e.keyCode;
-                if (keyStates[keyCode]) return;
-                keyStates[keyCode] = true;
-                const trackIndex = keyCodes.indexOf(keyCode);
-                if (trackIndex !== -1) {
-                    const trackEl = document.querySelector(`.track[data-track="${trackIndex}"]`);
-                    if (trackEl) {
-                        trackEl.classList.remove('hit-effect');
-                        void trackEl.offsetWidth;
-                        trackEl.classList.add('hit-effect');
-                    }
-                    const trackRect = tracksContainer.getBoundingClientRect();
-                    const hitLineY = trackRect.top + trackRect.height - 100;
-                    let hitNote = null;
-                    let minDistance = Infinity;
-                    let hitIndex = -1;
-                    notes.forEach((note, index) => {
-                        if (note.track === trackIndex && note.active && !note.hitStarted) {
-                            const rect = note.element.getBoundingClientRect();
-                            const distance = Math.abs(rect.bottom - hitLineY);
-                            if (distance < minDistance) {
-                                minDistance = distance;
-                                hitNote = note;
-                                hitIndex = index;
-                            }
-                        }
-                    });
-                    if (hitNote && minDistance < 50) {
-                        let judgment;
-                        if (minDistance < 15) judgment = 'perfect';
-                        else if (minDistance < 30) judgment = 'great';
-                        else judgment = 'good';
-                        if (hitNote.type === 'long') {
-                            hitNote.hitStarted = true;
-                            hitNote.element.classList.add('held');
-                            judgeHit(trackIndex, judgment);
-                        } else {
-                            hitNote.active = false;
-                            hitNote.element.remove();
-                            notes.splice(hitIndex, 1);
-                            judgeHit(trackIndex, judgment);
-                        }
-                    } else {
-                        // 如果按下時，沒有任何音符在可擊中範圍內，則判定為 MISS
-                        judgeHit(trackIndex, 'miss');
+       function handleKeyDown(e) {
+    if (!gameActive) return;
 
-                        // ▼▼▼ 修訂的關鍵之處 ▼▼▼
-                        // 並且，如果軌道上確實有一個最近的音符（只是太遠了），
-                        // 則將該音符移除，以懲罰提早按鍵的行為。
-                        if (hitNote) {
-                            hitNote.active = false;
-                            hitNote.element.remove();
-                            notes.splice(hitIndex, 1);
-                        }
-                        // ▲▲▲ 修訂結束 ▲▲▲
-                    }
+    const keyCode = e.keyCode;
+
+    // 防止按鍵重複觸發（例如長按不放）
+    if (keyStates[keyCode]) return;
+    keyStates[keyCode] = true;
+
+    const trackIndex = keyCodes.indexOf(keyCode);
+
+    if (trackIndex !== -1) {
+        // --- 視覺反饋：軌道點擊效果 ---
+        const trackEl = document.querySelector(`.track[data-track="${trackIndex}"]`);
+        if (trackEl) {
+            // 移除並重新添加 'hit-effect' 類別以觸發動畫
+            trackEl.classList.remove('hit-effect');
+            void trackEl.offsetWidth; // 強制重排以重置動畫
+            trackEl.classList.add('hit-effect');
+        }
+
+        // --- 尋找可擊中的音符 ---
+        const tracksContainer = document.getElementById('tracksContainer');
+        const trackRect = tracksContainer.getBoundingClientRect();
+        const hitLineY = trackRect.top + trackRect.height - 100; // 擊打線的 Y 座標
+
+        let hitNote = null;
+        let minDistance = Infinity;
+        // 注意：這裡不再需要 hitIndex 變數，因為我們會用 indexOf 在找到 hitNote 後即時查找
+
+        // 遍歷所有音符，找出指定軌道上最接近擊打線且尚未被擊中的音符
+        notes.forEach((note) => {
+            if (note.track === trackIndex && note.active && !note.hitStarted) {
+                const rect = note.element.getBoundingClientRect();
+                const distance = Math.abs(rect.bottom - hitLineY); // 計算音符底部與擊打線的距離
+
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    hitNote = note;
+                    // hitIndex = index; // 這個變數在舊邏輯中容易出錯，所以我們不使用它
                 }
             }
+        });
+
+        // --- 判定與處理 ---
+        if (hitNote && minDistance < 50) { // 如果找到可擊中的音符且距離在容許範圍內
+            // 根據距離判定精準度
+            let judgment;
+            if (minDistance < 15) judgment = 'perfect';
+            else if (minDistance < 30) judgment = 'great';
+            else judgment = 'good';
+
+            if (hitNote.type === 'long') {
+                // --- 處理長音符按下 ---
+                hitNote.hitStarted = true; // 標記長音符開始被按住
+                hitNote.element.classList.add('held'); // 添加視覺效果
+                judgeHit(trackIndex, judgment); // 執行判定邏輯
+                // --- 長音符處理結束 ---
+            } else {
+                // --- 處理短音符按下 (修訂重點) ---
+                // 1. 先從畫面上移除音符元素
+                hitNote.active = false; // 標記為非活躍
+                hitNote.element.remove(); // 從 DOM 中移除
+
+                // 2. **關鍵修訂：使用 hitNote 物件本身來找到它在 notes 陣列中的當前索引**
+                //    這確保即使陣列在其他地方被修改過，也能找到正確的元素。
+                const hitNoteIndexInArray = notes.indexOf(hitNote);
+
+                // 3. **檢查索引是否有效 (例如，音符確實存在於陣列中且尚未被移除)**
+                if (hitNoteIndexInArray !== -1) {
+                    // 4. **使用正確的索引從陣列中移除音符物件**
+                    notes.splice(hitNoteIndexInArray, 1);
+                } else {
+                    // (可選) 如果索引無效，可能表示音符已被其他方式移除 (例如 Miss)，
+                    // 或 hitNote 不是來自 notes 陣列。可以加個 log 來追蹤異常情況。
+                    // console.warn("Warning: Attempted to remove a short note that was not found in the notes array:", hitNote);
+                }
+
+                // 5. 執行判定邏輯
+                judgeHit(trackIndex, judgment);
+                // --- 短音符處理結束 ---
+            }
+        } else {
+            // 如果按下時，沒有任何音符在可擊中範圍內，則判定為 MISS
+            judgeHit(trackIndex, 'miss');
+
+            // ▼▼▼ 修訂的關鍵之處 ▼▼▼
+            // 並且，如果軌道上確實有一個最近的音符（只是太遠了），
+            // 則將該音符移除，以懲罰提早按鍵的行為。
+            // **這裡也套用同樣的修訂邏輯**
+            if (hitNote) {
+                 // 1. 先從畫面上移除音符元素
+                hitNote.active = false; // 標記為非活躍
+                hitNote.element.remove(); // 從 DOM 中移除
+
+                // 2. 使用 hitNote 物件本身來找到它在 notes 陣列中的當前索引
+                const hitNoteIndexInArray = notes.indexOf(hitNote);
+
+                // 3. 檢查索引是否有效
+                if (hitNoteIndexInArray !== -1) {
+                    // 4. 使用正確的索引從陣列中移除音符物件
+                    notes.splice(hitNoteIndexInArray, 1);
+                }
+                // ▲▲▲ 修訂結束 ▲▲▲
+            }
+            // ▲▲▲ 原先在此處的 hitIndex 相關程式碼已移除 ▲▲▲
+        }
+    }
+}
 
             function handleKeyUp(e) {
                 if (!gameActive) return;
