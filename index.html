@@ -1776,12 +1776,12 @@
 .cd-cover-wrapper {
     position: relative;
     width: 100%;
-    max-width: 300px; /* 最大寬度，避免在大屏幕上過大 */
-    aspect-ratio: 1 / 1; /* 關鍵：強制 1:1 比例 */
-    border-radius: 15px; /* 圓角，與整體設計風格一致 */
-    overflow: hidden; /* 隱藏溢出的陰影和偽元素 */
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); /* 深色、有質感的陰影 */
-    background: rgba(255, 255, 255, 0.1); /* 半透明背景，作為加載時的佔位 */
+    max-width: 300px;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;  /* 改成 50% 變成圓形 */
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1790,8 +1790,10 @@
 .cd-cover-img {
     width: 100%;
     height: 100%;
-    object-fit: cover; /* 關鍵：確保圖片填滿容器且不變形 */
-    transition: transform 0.5s ease; /* 為旋轉動畫添加過渡效果 */
+    object-fit: cover;
+    transition: transform 0.5s ease;
+    border-radius: 50%;  /* 新增：確保圖片本身圓形，防止溢出 */
+    transform-origin: center;  /* 新增：確保旋轉以中心為軸 */
 }
 
 /* CD 覆蓋層效果 - 模擬 CD 的反光 */
@@ -2318,7 +2320,7 @@
 <!-- CD Cover Container -->
 <div class="cd-cover-container">
     <div class="cd-cover-wrapper">
-        <img id="cdCoverImage" src="https://i.ibb.co/0X0X0X0/placeholder.png" alt="CD Cover" class="cd-cover-img">
+        <img id="cdCoverImage" src="https://i.ibb.co/G4Rmgzjt/image.png" alt="CD Cover" class="cd-cover-img">
         <div class="cd-cover-overlay"></div>
     </div>
 </div>
@@ -2643,7 +2645,7 @@ const songCovers = {
    
     // 為其他歌曲添加封面，格式為 "歌曲文件名.mp3": "圖片URL"
     // 如果沒有特定封面，可以使用一個通用的默認封面
-    "default": "https://i.ibb.co/xK1QfwsW/image.png" // 默認封面
+    "default": "https://i.ibb.co/G4Rmgzjt/image.png" // 默認封面
 };
 
 
