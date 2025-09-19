@@ -1,6 +1,5 @@
 
 
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -3319,20 +3318,144 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     return data.sort((a, b) => a.time - b.time);
 }
 
-            function generateNotesContinuously() {
-                if (!gameActive) return;
-                const currentTime = (Date.now() - gameStartTime) / 1000;
-                while (noteQueue.length > 0 && noteQueue[0].time < currentTime + (noteSpeed / 1000)) {
-                    const noteData = noteQueue.shift();
-                    if (trackCooldownUntil[noteData.track] > Date.now()) {
-                        continue;
-                    }
-                    generateNote(noteData);
-                }
-                if (gameActive) {
-                    generateNotesTimer = setTimeout(generateNotesContinuously, 50);
-                }
+           // ▼▼▼ 【核心修訂後的 generateNotesContinuously 函數】 ▼▼▼
+function generateNotesContinuously() {
+    if (!gameActive) return;
+
+    const selectedDifficulty = difficultySelect.value;
+    const settings = difficultySettings[selectedDifficulty];
+    const tracks = tracksContainer.children.length;
+    const trackWidth = tracksContainer.children[0].offsetWidth;
+    const pixelsPerSecond = BASE_PIXELS_PER_SECOND * settings.speedMultiplier;
+    const VISUAL_COMFORT_GAP = 15; // 像素，音符間的最小視覺間距
+    const MIN_LONG_NOTE_SAFE_HEIGHT = 40; // 像素，長音符的最小可視安全高度
+    const SHORT_NOTE_SAFE_HEIGHT = 30; // 像素，短音符的可視安全高度 (用於空間檢查)
+
+    // ▼▼▼ 【修訂 #1: 動態計算最小間隔】 ▼▼▼
+    // 使用分析得出的 baseInterval 作為節奏基準
+    const stepDuration = baseInterval / settings.noteDensity;
+    // ▲▲▲ 修訂 #1 結束 ▲▲▲
+
+    // ▼▼▼ 【修訂 #2: 初始化或重置衛兵】 ▼▼▼
+    // 空間衛兵：追蹤每個軌道在畫面上的安全起始像素點 (包含舒適間距)
+    let trackFreeAtPixel = new Array(tracks).fill(0);
+    // 時間衛兵：追蹤每個軌道在音樂時間上的可用時間點
+    let trackFreeAtTime = new Array(tracks).fill(0);
+    // ▲▲▲ 修訂 #2 結束 ▲▲▲
+
+    // 定義節奏模式和音符類型及其權重
+    const rhythmPatterns = [
+        { name: "十六分音符", duration: baseInterval, weight: 0.70 },
+        { name: "三十二分音符", duration: baseInterval / 2, weight: 0.30 }
+    ];
+    const noteGenerationTypes = [
+        { type: 'short', weight: 1.0 - settings.longNoteChance },
+        { type: 'long', weight: settings.longNoteChance }
+    ];
+    const totalRhythmWeight = rhythmPatterns.reduce((sum, p) => sum + p.weight, 0);
+    const totalTypeWeight = noteGenerationTypes.reduce((sum, t) => sum + t.weight, 0);
+
+    let currentTime = 0; // 遊戲內的當前時間 (秒)
+
+    while (gameActive && currentTime < currentSongDuration) {
+        // --- 節奏選擇 ---
+        let randomRhythm = seededRandom() * totalRhythmWeight;
+        let selectedRhythm = rhythmPatterns[0]; // Default fallback
+        for (const rhythm of rhythmPatterns) {
+            randomRhythm -= rhythm.weight;
+            if (randomRhythm <= 0) {
+                selectedRhythm = rhythm;
+                break;
             }
+        }
+        const stepDuration = selectedRhythm.duration; // 使用選定的節奏步長
+
+        // --- 音符類型選擇 ---
+        let randomType = seededRandom() * totalTypeWeight;
+        let selectedType = noteGenerationTypes[0]; // Default fallback
+        for (const type of noteGenerationTypes) {
+            randomType -= type.weight;
+            if (randomType <= 0) {
+                selectedType = type;
+                break;
+            }
+        }
+
+        // --- 軌道選擇與檢查 ---
+        const availableTracks = [];
+        for (let i = 0; i < tracks; i++) {
+            // 【修訂 #3: 強化檢查條件】
+            const newNoteStartPixel = currentTime * pixelsPerSecond;
+            // 檢查一 (時間衛兵)：當前時間點是否大於軌道被佔用的結束時間？
+            // 檢查二 (空間衛兵)：新音符的物理起始位置是否大於等於軌道的安全像素點？
+            if (currentTime >= trackFreeAtTime[i] && newNoteStartPixel >= trackFreeAtPixel[i]) {
+                availableTracks.push(i);
+            }
+        }
+
+        // 如果沒有可用軌道，跳過這個時間點
+        if (availableTracks.length === 0) {
+            currentTime += stepDuration;
+            continue;
+        }
+
+        // 隨機選擇一個可用軌道
+        const trackIndex = availableTracks[Math.floor(seededRandom() * availableTracks.length)];
+
+        // --- 音符持續時間計算 (僅對長音符) ---
+        let finalNoteDuration = 0;
+        if (selectedType.type === 'long') {
+            const minLongDuration = baseInterval * settings.longNoteMinMultiplier;
+            const maxLongDuration = baseInterval * settings.longNoteMaxMultiplier;
+            finalNoteDuration = minLongDuration + seededRandom() * (maxLongDuration - minLongDuration);
+        }
+
+        // --- 創建音符 ---
+        const noteElement = document.createElement('div');
+        noteElement.classList.add('note', selectedType.type);
+        noteElement.style.left = `${trackIndex * trackWidth}px`;
+        // 起始位置在畫面底部之外
+        noteElement.style.top = `${tracksContainer.offsetHeight}px`;
+
+        // 計算音符的「安全高度」用於空間檢查
+        // 【修訂 #4: 明確且保守的安全高度計算】
+        const currentNoteSafeHeight = finalNoteDuration > 0 ?
+            Math.max(MIN_LONG_NOTE_SAFE_HEIGHT, finalNoteDuration * pixelsPerSecond) :
+            SHORT_NOTE_SAFE_HEIGHT;
+
+        // --- 【核心修訂 #5: 更新雙重衛兵】 ---
+        // 更新空間衛兵：確保下一個音符不會與當前音符的可視區域重疊
+        trackFreeAtPixel[trackIndex] = (currentTime * pixelsPerSecond) + currentNoteSafeHeight + VISUAL_COMFORT_GAP;
+
+        // 更新時間衛兵
+        if (finalNoteDuration > 0) {
+            // 如果是長音符，軌道將被鎖定直到長音符結束
+            trackFreeAtTime[trackIndex] = currentTime + finalNoteDuration;
+        } else {
+            // 如果是短音符，鎖定時間應為下一個節奏點，防止瞬間重疊
+            trackFreeAtTime[trackIndex] = currentTime + stepDuration;
+        }
+
+        // --- 將音符加入隊列 ---
+        const noteSpeed = pixelsPerSecond; // 像素/秒
+        noteQueue.push({
+            element: noteElement,
+            track: trackIndex,
+            type: selectedType.type,
+            hitStarted: false, // 專門用於追踪長音符是否已開始被按下
+            startTime: currentTime,
+            duration: finalNoteDuration, // 0 for short notes
+            speed: noteSpeed,
+            active: true
+        });
+
+        tracksContainer.appendChild(noteElement);
+
+        // --- 準備下一個時間點 ---
+        currentTime += stepDuration;
+    }
+}
+// ▲▲▲ 【核心修訂結束】 ▲▲▲
 
          function endGame() {
     gameActive = false;
@@ -3403,29 +3526,32 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                     if (!note.active) continue;
                     const rect = note.element.getBoundingClientRect();
                     
-                    // 當音符的頂部完全超過判定線加一個緩衝區時
-                    if (rect.top > hitLineY + 20) {
-                         // ▼▼▼ 修訂核心邏輯開始 ▼▼▼
-                        
-                        // 檢查該軌道上是否有正在被按下的長音符 (進入無敵狀態)
-                        const isTrackInvincible = notes.some(n =>
-                            n.track === note.track && // 條件1: 是同一個軌道
-                            n.type === 'long' &&      // 條件2: 該軌道上有一個長音符
-                            n.hitStarted              // 條件3: 並且那個長音符已經開始被按住
-                        );
+                    // ▼▼▼ 【修訂後 gameLoop 中的 miss 判定部分】 ▼▼▼
+// 當音符的頂部完全超過判定線加一個緩衝區時
+if (rect.top > hitLineY + 20) {
+    // 檢查該軌道上是否有正在被按下的長音符 (進入無敵狀態)
+    const isTrackInvincible = notes.some(n =>
+        n.track === note.track && // 條件1: 是同一個軌道
+        n.type === 'long' && // 條件2: 該軌道上有一個長音符
+        n.hitStarted // 條件3: 並且那個長音符已經開始被按住
+    );
 
-                        // 只有在軌道不是無敵狀態時，才判定為 MISS
-                        if (!isTrackInvincible) {
-                            judgeHit(note.track, 'miss');
-                        }
-                        
-                        // 無論軌道是否無敵，這個已經錯過的音符都必須被移除
-                        note.active = false;
-                        note.element.remove();
-                        notes.splice(i, 1);
-                        
-                        // ▲▲▲ 修訂核心邏輯結束 ▲▲▲
-                    }
+    // 【關鍵修訂】: 只有在軌道不是無敵狀態時，才判定為 MISS
+    // 【關鍵修訂】: 無論如何，這個音符都必須被移除!
+    if (!isTrackInvincible) {
+        judgeHit(note.track, 'miss');
+    }
+
+    // 【關鍵修訂】: 無論軌道是否無敵，這個已經錯過的音符都必須被移除
+    // 確保 DOM 元素被移除
+    if (note.element && note.element.parentNode) {
+        note.element.remove();
+    }
+    // 確保遊戲邏輯陣列中移除此音符
+    note.active = false;
+    notes.splice(i, 1);
+}
+// ▲▲▲ 修訂結束 ▲▲▲
                 }
                 animationFrame = requestAnimationFrame(gameLoop);
             }
@@ -3491,37 +3617,43 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                 }
             }
 
-            function handleKeyUp(e) {
-                if (!gameActive) return;
-                const keyCode = e.keyCode;
-                keyStates[keyCode] = false;
-                const trackIndex = keyCodes.indexOf(keyCode);
-                if (trackIndex !== -1) {
-                    const heldNoteIndex = notes.findIndex(note =>
-                        note.track === trackIndex && note.type === 'long' && note.hitStarted
-                    );
-                    if (heldNoteIndex !== -1) {
-                        const note = notes[heldNoteIndex];
-                        const trackRect = tracksContainer.getBoundingClientRect();
-                        const hitLineY = trackRect.top + trackRect.height - 100;
-                        const rect = note.element.getBoundingClientRect();
-                        const noteTailY = rect.top;
-                        const distance = Math.abs(noteTailY - hitLineY);
-                        if (distance < 50) {
-                            let judgment;
-                            if (distance < 15) judgment = 'perfect';
-                            else if (distance < 30) judgment = 'great';
-                            else judgment = 'good';
-                            judgeHit(trackIndex, judgment);
-                        } else {
-                            judgeHit(trackIndex, 'miss');
-                        }
-                        note.active = false;
-                        note.element.remove();
-                        notes.splice(heldNoteIndex, 1);
-                    }
-                }
+          // ▼▼▼ 【修訂後 handleKeyUp 部分】 ▼▼▼
+function handleKeyUp(e) {
+    if (!gameActive) return;
+    const keyCode = e.keyCode;
+    keyStates[keyCode] = false;
+    const trackIndex = keyCodes.indexOf(keyCode);
+    if (trackIndex !== -1) {
+        // 【修訂】: 當釋放按鍵時，重置該軌道上所有長音符的 hitStarted 狀態
+        // 這能確保一旦鬆開，軌道就不再處於長音符的“無敵”保護下
+        notes.forEach(note => {
+            if (note.track === trackIndex && note.type === 'long' && note.hitStarted) {
+                 // 注意：這裡不調用 judgeHit，僅重置狀態。
+                 // judgeHit('release') 應該只在音符確實存在且被按下時調用。
+                 // 如果音符已經結束或被判定，它應該已經從 notes 陣列中移除。
+                 // 此處僅作為額外保險，確保狀態正確。
+                 // 實際的判定應在 gameLoop 中進行。
+                 // 如果這裡的邏輯導致問題，可以簡化為只移除視覺效果：
+                 // note.element?.classList.remove('hit');
+                 // 但通常重置 hitStarted 是正確的。
+                 // --- 簡化處理 ---
+                 // 實際上，當音符被 hit 或 miss 後，它就應該從 notes 陣列移除。
+                 // 因此，理論上在 handleKeyUp 時，該軌道上不應該有 active 的長音符。
+                 // 如果有，可能是之前的移除邏輯有問題。
+                 // 為了保險，我們可以添加一個檢查：
+                 if(note.active) {
+                     // 如果音符仍然 active，這可能是一個問題的跡象，但我們仍重置狀態
+                     note.hitStarted = false;
+                     note.element?.classList.remove('hit');
+                 }
             }
+        });
+        // 移除軌道的 hit 效果
+        const trackEl = document.querySelector(`.track[data-track="${trackIndex}"]`);
+        trackEl?.classList.remove('active');
+    }
+}
+// ▲▲▲ 修訂結束 ▲▲▲
 
             function onTouchStart(e) {
                 e.preventDefault();
@@ -4020,4 +4152,3 @@ disclaimerModal.addEventListener('click', (e) => {
 
 </body>
 </html>
-
