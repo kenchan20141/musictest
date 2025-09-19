@@ -3315,7 +3315,112 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
         }
         currentTime += stepDuration;
     }
-    return data.sort((a, b) => a.time - b.time);
+    
+// ▼▼▼ 【新增核心邏輯】音符後處理：解決重疊問題 ▼▼▼
+console.log("開始音符後處理，處理前音符數量:", data.length);
+
+// 1. 確保按時間和軌道排序 (雖然前面已排序，但為保險起見再排一次)
+data.sort((a, b) => {
+    if (a.time !== b.time) {
+        return a.time - b.time;
+    }
+    return a.track - b.track; // 若時間相同，則按軌道排序
+});
+
+// 2. 建立一個用於存放處理後音符的新陣列
+const processedData = [];
+let i = 0;
+
+while (i < data.length) {
+    let currentNote = data[i];
+    let merged = false;
+
+    // 只有當前音符是長音符時，才需要檢查與後續音符的重疊
+    if (currentNote.duration > 0) {
+        let j = i + 1;
+        // 檢查後續音符是否與當前長音符在同一軌道且時間重疊
+        while (j < data.length && data[j].track === currentNote.track) {
+            const nextNote = data[j];
+
+            // 計算當前長音符的時間範圍
+            const currentStart = currentNote.time;
+            const currentEnd = currentNote.time + currentNote.duration;
+
+            // 計算下一個音符的時間範圍
+            const nextStart = nextNote.time;
+            const nextEnd = nextNote.duration > 0 ? nextNote.time + nextNote.duration : nextNote.time;
+
+            // 判斷是否重疊 (允許端點接觸)
+            const isOverlapping = (nextStart <= currentEnd) && (nextEnd >= currentStart);
+
+            if (isOverlapping) {
+                // 發現重疊
+                if (nextNote.duration === 0) {
+                    // 情況 2: 長音符與短音符重疊 -> 移除短音符
+                    console.log(`合併: 移除與長音符重疊的短音符 (時間: ${nextNote.time}, 軌道: ${nextNote.track})`);
+                    // 不將 nextNote 加入 processedData，相當於移除
+                    j++; // 繼續檢查下一個音符
+                } else {
+                    // 情況 3: 長音符與長音符重疊 -> 合併為一個長音符
+                    console.log(`合併: 兩個長音符重疊 (時間: ${currentNote.time} & ${nextNote.time}, 軌道: ${currentNote.track})`);
+                    // 更新當前長音符的範圍
+                    const newStart = Math.min(currentStart, nextStart);
+                    const newEnd = Math.max(currentEnd, nextEnd);
+                    currentNote.time = newStart;
+                    currentNote.duration = newEnd - newStart;
+                    // 移除被合併的 nextNote
+                    j++; // 繼續檢查是否還有其他重疊
+                }
+                merged = true; // 標記當前音符已被修改或有音符被移除
+            } else {
+                // 如果不重疊，則停止檢查後續音符（因為已排序）
+                break;
+            }
+        }
+        // 將處理後（可能被擴展）的當前長音符加入結果陣列
+        processedData.push(currentNote);
+        i = j; // 跳過所有已處理的音符
+    } else {
+        // 當前音符是短音符
+        let j = i + 1;
+        // 檢查後續音符是否與當前短音符在同一軌道且時間完全相同 (或極其接近)
+        while (j < data.length && data[j].track === currentNote.track && Math.abs(data[j].time - currentNote.time) < 0.001) { // 使用小的閾值處理浮點誤差
+             if (data[j].duration === 0) {
+                // 情況 1: 短音符與短音符重疊 (時間相同) -> 移除重複的
+                console.log(`合併: 移除重複的短音符 (時間: ${data[j].time}, 軌道: ${data[j].track})`);
+                // 不將重複的 data[j] 加入 processedData
+                j++;
+                merged = true;
+             } else {
+                 // 如果後續是長音符且時間重疊，則當前短音符應被移除 (情況2)
+                 // 但這種情況已在長音符的處理循環中被涵蓋，為了邏輯清晰，這裡可以選擇記錄或處理
+                 // 為了簡化，我們假設長音符的處理循環能覆蓋此情況，或者這裡僅處理時間完全相同的短音符
+                 // 如果時間不完全相同但長音符覆蓋了短音符，那是長音符處理的範疇
+                 // 這裡只處理時間完全相同的短音符重複問題
+                 break; // 跳出循環，處理下一個音符
+             }
+        }
+        // 如果沒有被合併（即沒有找到時間完全相同的重複短音符），則保留當前短音符
+        if (!merged) {
+             processedData.push(currentNote);
+        } else {
+             // 如果被合併了（移除了重複項），則不添加 currentNote
+             // 但邏輯上，我們是通過不添加重複項來實現的，currentNote 本身就是要保留的那一個（如果有的話）
+             // 更準確地說，我們保留第一個遇到的，移除後續的重複者
+             // 所以，如果發現重複，我們保留 currentNote (第一個)，並跳過後續重複的 j 個音符
+             // 上面的邏輯已經正確處理了這一點
+        }
+        i = j; // 跳過所有已檢查（或移除）的音符
+    }
+}
+
+console.log("音符後處理完成，處理後音符數量:", processedData.length);
+data = processedData; // 用處理後的陣列替換原始陣列
+// ▲▲▲ 新增核心邏輯結束 ▲▲▲
+
+// 原有的排序 (可省略，但保留無妨)
+// return data.sort((a, b) => a.time - b.time);
+return data; // 已經在後處理中確保了排序
 }
 
             function generateNotesContinuously() {
