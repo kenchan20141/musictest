@@ -2011,7 +2011,48 @@
     }
 }
 
+.lyrics-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1; /* 在背景圖上方，但低於遊戲內容 */
+    display: flex; /* 保留 flex 以自動排列 */
+    flex-wrap: wrap; /* 自動換行，填滿畫面 */
+    align-content: flex-start; /* 從頂部開始，無垂直間距 */
+    justify-content: space-around; /* 均勻分散，填滿左右 */
+    gap: 2px; /* 修訂：設很小的間距（2px），讓密鋪但有微小分隔，避免黏在一起 */
+    margin: 0; /* 確保容器無邊距 */
+    padding: 0; /* 確保容器無內距 */
+    opacity: 0.2; /* 保留半透明 */
+    color: #fff; /* 保留白色文字 */
+    font-size: 5rem; /* 電腦預設大小，讓密集但不重疊 */
+    pointer-events: none; /* 不擋互動 */
+    text-align: center;
+    overflow: hidden; /* 防止溢出產生空白或重疊 */
+    display: none; /* 預設隱藏，由 JS 控制 */
+}
 
+.lyrics-background span {
+    margin: 0; /* 移除邊距 */
+    padding: 0; /* 移除內距 */
+    line-height: 1.0; /* 修訂：減小為 1.0，讓上下間距更小但不重疊（可調成 0.9 以更緊密） */
+    word-spacing: 0; /* 正常字距 */
+    letter-spacing: 0; /* 正常字母間距 */
+    white-space: nowrap; /* 防止換行，讓文字連續 */
+    flex: 0 0 auto; /* 自動調整大小 */
+    min-width: 10%; /* 每行約 10 個，密集但有空間不重疊（電腦預設） */
+    min-height: 10vh; /* 最小高度，防止垂直壓縮重疊（10% 視窗高） */
+    display: inline-flex; /* 內聯 flex，讓文字緊貼 */
+    align-items: center;
+    justify-content: center;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5); /* 保留陰影，提升可讀性 */
+    word-break: break-word; /* 正常斷詞，避免過長重疊 */
+    overflow: hidden; /* 隱藏溢出文字，強制防止重疊 */
+}
+
+        
 @media (max-width: 1024px) { /* 平板：中等密集，每行約 8 個 */
     .lyrics-background {
         font-size: 4rem; /* 稍減小字體，避免重疊 */
