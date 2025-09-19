@@ -3200,6 +3200,150 @@ function mulberry32(a) {
 // ▲▲▲ [新增結束] ▲▲▲
 
 
+/**
+ * 後處理音符列表，合併任何在畫面上重疊的音符。
+ * 這是最高原則的保護機制，確保遊戲邏輯暢通。
+ * @param {Array} notes - 由 generateSongData 生成的原始音符數組。
+ * @returns {Array} - 合併後的音符數組。
+ */
+function mergeOverlappingNotes(notes, noteSpeed) {
+    if (!Array.isArray(notes) || notes.length === 0) {
+        console.log("合併機制：音符列表為空，無需處理。");
+        return notes;
+    }
+
+    console.log(">>> 啟動音符合併保護機制 <<<");
+    const startTime = performance.now();
+
+    // 1. 按軌道分組
+    const notesByTrack = {};
+    notes.forEach(note => {
+        if (!notesByTrack[note.track]) {
+            notesByTrack[note.track] = [];
+        }
+        notesByTrack[note.track].push(note);
+    });
+
+    let totalMerged = 0;
+    let mergedNotes = [];
+
+    // 2. 遍歷每個軌道
+    for (const trackIndex in notesByTrack) {
+        const trackNotes = notesByTrack[trackIndex];
+        // 3. 按音樂時間排序 (time)
+        trackNotes.sort((a, b) => a.time - b.time);
+
+        const resolvedTrackNotes = [];
+        let i = 0;
+        while (i < trackNotes.length) {
+            let currentNote = trackNotes[i];
+            let hasMerged = false;
+
+            // 計算當前音符的畫面範圍 (基於生成邏輯)
+            // 這些計算需要與 generateSongData 中的邏輯一致
+            // 假設 totalFallDistance, noteSpeed, SHORT_NOTE_SAFE_HEIGHT, MIN_LONG_NOTE_SAFE_HEIGHT 已知
+            // 但我們無法直接訪問這些變量，因此需要從 note 對象推斷或重新計算
+            // 最精確的方式是根據 note.time, note.duration, noteSpeed, trackContainer.clientHeight 來計算
+            // 但為了簡化且不失一般性，我們可以使用 note.duration 和 noteSpeed 來估算像素高度
+            // 注意：這依賴於 note 對象包含正確的 duration 和 type 信息
+            const tracksContainerHeight = document.querySelector('.tracks')?.clientHeight || 600; // Fallback
+            const totalFallDistance = tracksContainerHeight + 50;
+            const pixelsPerSecond = totalFallDistance / (noteSpeed / 1000);
+
+            // 計算當前音符的畫面屬性
+            const currentNotePixelHeight = currentNote.duration > 0 ?
+                Math.max(MIN_LONG_NOTE_SAFE_HEIGHT, currentNote.duration * pixelsPerSecond) :
+                SHORT_NOTE_SAFE_HEIGHT;
+            // 音符開始下落的時間點到現在經過的時間
+            const timeElapsedSinceStart = currentNote.time;
+            // 音符已經下落的距離
+            const pixelsFallen = timeElapsedSinceStart * pixelsPerSecond;
+            // 音符當前頂部的像素位置 (相對於軌道容器頂部)
+            const currentNoteTopPixel = -pixelsFallen;
+            // 音符當前底部的像素位置
+            const currentNoteBottomPixel = currentNoteTopPixel + currentNotePixelHeight;
+
+            // 查找後續可以與之合併的音符
+            let j = i + 1;
+            while (j < trackNotes.length) {
+                let nextNote = trackNotes[j];
+
+                // 計算下一個音符的畫面屬性
+                const nextNotePixelHeight = nextNote.duration > 0 ?
+                    Math.max(MIN_LONG_NOTE_SAFE_HEIGHT, nextNote.duration * pixelsPerSecond) :
+                    SHORT_NOTE_SAFE_HEIGHT;
+                const nextNoteTimeElapsed = nextNote.time;
+                const nextNotePixelsFallen = nextNoteTimeElapsed * pixelsPerSecond;
+                const nextNoteTopPixel = -nextNotePixelsFallen;
+                // const nextNoteBottomPixel = nextNoteTopPixel + nextNotePixelHeight; // 可能用於更複雜檢查
+
+                // --- 重疊判斷邏輯 ---
+                // 判斷條件：下一個音符的頂部小於當前音符的底部，即為重疊
+                // 這確保了畫面上沒有任何像素重疊
+                if (nextNoteTopPixel < currentNoteBottomPixel) {
+                    // 發現重疊，執行合併邏輯
+                    console.log(`[軌道 ${trackIndex}] 發現重疊: 音符(time=${currentNote.time.toFixed(3)},type=${currentNote.type},dur=${currentNote.duration.toFixed(3)}) 與 音符(time=${nextNote.time.toFixed(3)},type=${nextNote.type},dur=${nextNote.duration.toFixed(3)})`);
+                    
+                    // --- 合併規則 ---
+                    if (currentNote.type === 'short' && nextNote.type === 'short') {
+                        // 規則 1: 短+短 = 短 (保留 currentNote, 移除 nextNote)
+                        console.log("  -> 合併類型: 短+短=短 (移除後者)");
+                        // currentNote 保持不變，nextNote 被跳過（即被移除）
+                    } else if ((currentNote.type === 'short' && nextNote.type === 'long') ||
+                               (currentNote.type === 'long' && nextNote.type === 'short')) {
+                        // 規則 2: 短+長=長 或 長+短=長
+                        // 保留長音符，移除短音符
+                        if (currentNote.type === 'long') {
+                            console.log("  -> 合併類型: 長+短=長 (移除後者)");
+                            // currentNote (長) 保持不變，nextNote (短) 被移除
+                        } else {
+                            console.log("  -> 合併類型: 短+長=長 (替換前者)");
+                            // currentNote (短) 被 nextNote (長) 替換
+                            currentNote = nextNote;
+                        }
+                    } else if (currentNote.type === 'long' && nextNote.type === 'long') {
+                        // 規則 3: 長+長=長 (保留 currentNote, 移除 nextNote)
+                        console.log("  -> 合併類型: 長+長=長 (移除後者)");
+                        // currentNote (長) 保持不變，nextNote (長) 被移除
+                        // 可能需要調整 currentNote 的 duration 以覆蓋 nextNote
+                        // 但為了簡單和保持原有音符結構，這裡只移除 nextNote
+                        // 如果需要精確合併長度，可以添加: currentNote.duration = Math.max(currentNote.duration, nextNote.time + nextNote.duration - currentNote.time);
+                    }
+                    totalMerged++;
+                    hasMerged = true;
+                    j++; // 繼續檢查是否還能與更後面的音符合併
+                } else {
+                    // 沒有重疊，停止內層循環
+                    break;
+                }
+            }
+
+            // 將最終確定的 currentNote 添加到結果中
+            resolvedTrackNotes.push(currentNote);
+            // 更新主循環索引 i
+            if (hasMerged) {
+                i = j; // 跳過所有被合併的音符
+            } else {
+                i++; // 沒有合併，檢查下一個音符
+            }
+        }
+        // 將處理完的軌道音符加入最終列表
+        mergedNotes = mergedNotes.concat(resolvedTrackNotes);
+    }
+
+    const endTime = performance.now();
+    console.log(`<<< 音符合併保護機制完成，共合併 ${totalMerged} 對音符，耗時 ${(endTime - startTime).toFixed(2)} 毫秒 <<<`);
+    
+    // 為了確保順序與原始數據一致（如果重要），可以按原始索引或時間再排一次序
+    // 但按軌道和時間排序通常就足夠且合理
+    // mergedNotes.sort((a, b) => a.originalIndex - b.originalIndex); // 如果 note 對象有 originalIndex
+    mergedNotes.sort((a, b) => a.time - b.time || a.track - b.track); // 先按時間，再按軌道
+
+    return mergedNotes;
+}
+
+            
+
 function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, noteSpeed) {
     console.log(`Generating notes with seed: ${seed}`);
     const seededRandom = mulberry32(seed);
@@ -3313,7 +3457,11 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                 }
             }
         }
-        currentTime += stepDuration;
+        // 【新增】在返回前啟動音符合併保護機制
+    console.log("generateSongData: 音符生成完畢，準備進行後處理合併...");
+    const finalNotes = mergeOverlappingNotes(data, noteSpeed); // 傳遞 noteSpeed
+    console.log("generateSongData: 後處理完成，返回最終音符列表。");
+    return finalNotes; // 返回合併後的列表
     }
     return data.sort((a, b) => a.time - b.time);
 }
@@ -3429,115 +3577,66 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                 animationFrame = requestAnimationFrame(gameLoop);
             }
 
-       function handleKeyDown(e) {
-    if (!gameActive) return;
+         function handleKeyDown(e) {
+                if (!gameActive) return;
+                const keyCode = e.keyCode;
+                if (keyStates[keyCode]) return;
+                keyStates[keyCode] = true;
+                const trackIndex = keyCodes.indexOf(keyCode);
+                if (trackIndex !== -1) {
+                    const trackEl = document.querySelector(`.track[data-track="${trackIndex}"]`);
+                    if (trackEl) {
+                        trackEl.classList.remove('hit-effect');
+                        void trackEl.offsetWidth;
+                        trackEl.classList.add('hit-effect');
+                    }
+                    const trackRect = tracksContainer.getBoundingClientRect();
+                    const hitLineY = trackRect.top + trackRect.height - 100;
+                    let hitNote = null;
+                    let minDistance = Infinity;
+                    let hitIndex = -1;
+                    notes.forEach((note, index) => {
+                        if (note.track === trackIndex && note.active && !note.hitStarted) {
+                            const rect = note.element.getBoundingClientRect();
+                            const distance = Math.abs(rect.bottom - hitLineY);
+                            if (distance < minDistance) {
+                                minDistance = distance;
+                                hitNote = note;
+                                hitIndex = index;
+                            }
+                        }
+                    });
+                    if (hitNote && minDistance < 50) {
+                        let judgment;
+                        if (minDistance < 15) judgment = 'perfect';
+                        else if (minDistance < 30) judgment = 'great';
+                        else judgment = 'good';
+                        if (hitNote.type === 'long') {
+                            hitNote.hitStarted = true;
+                            hitNote.element.classList.add('held');
+                            judgeHit(trackIndex, judgment);
+                        } else {
+                            hitNote.active = false;
+                            hitNote.element.remove();
+                            notes.splice(hitIndex, 1);
+                            judgeHit(trackIndex, judgment);
+                        }
+                    } else {
+                        // 如果按下時，沒有任何音符在可擊中範圍內，則判定為 MISS
+                        judgeHit(trackIndex, 'miss');
 
-    const keyCode = e.keyCode;
-
-    // 防止按鍵重複觸發（例如長按不放）
-    if (keyStates[keyCode]) return;
-    keyStates[keyCode] = true;
-
-    const trackIndex = keyCodes.indexOf(keyCode);
-
-    if (trackIndex !== -1) {
-        // --- 視覺反饋：軌道點擊效果 ---
-        const trackEl = document.querySelector(`.track[data-track="${trackIndex}"]`);
-        if (trackEl) {
-            // 移除並重新添加 'hit-effect' 類別以觸發動畫
-            trackEl.classList.remove('hit-effect');
-            void trackEl.offsetWidth; // 強制重排以重置動畫
-            trackEl.classList.add('hit-effect');
-        }
-
-        // --- 尋找可擊中的音符 ---
-        const tracksContainer = document.getElementById('tracksContainer');
-        const trackRect = tracksContainer.getBoundingClientRect();
-        const hitLineY = trackRect.top + trackRect.height - 100; // 擊打線的 Y 座標
-
-        let hitNote = null;
-        let minDistance = Infinity;
-        // 注意：這裡不再需要 hitIndex 變數，因為我們會用 indexOf 在找到 hitNote 後即時查找
-
-        // 遍歷所有音符，找出指定軌道上最接近擊打線且尚未被擊中的音符
-        notes.forEach((note) => {
-            if (note.track === trackIndex && note.active && !note.hitStarted) {
-                const rect = note.element.getBoundingClientRect();
-                const distance = Math.abs(rect.bottom - hitLineY); // 計算音符底部與擊打線的距離
-
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    hitNote = note;
-                    // hitIndex = index; // 這個變數在舊邏輯中容易出錯，所以我們不使用它
+                        // ▼▼▼ 修訂的關鍵之處 ▼▼▼
+                        // 並且，如果軌道上確實有一個最近的音符（只是太遠了），
+                        // 則將該音符移除，以懲罰提早按鍵的行為。
+                        if (hitNote) {
+                            hitNote.active = false;
+                            hitNote.element.remove();
+                            notes.splice(hitIndex, 1);
+                        }
+                        // ▲▲▲ 修訂結束 ▲▲▲
+                    }
                 }
             }
-        });
-
-        // --- 判定與處理 ---
-        if (hitNote && minDistance < 50) { // 如果找到可擊中的音符且距離在容許範圍內
-            // 根據距離判定精準度
-            let judgment;
-            if (minDistance < 15) judgment = 'perfect';
-            else if (minDistance < 30) judgment = 'great';
-            else judgment = 'good';
-
-            if (hitNote.type === 'long') {
-                // --- 處理長音符按下 ---
-                hitNote.hitStarted = true; // 標記長音符開始被按住
-                hitNote.element.classList.add('held'); // 添加視覺效果
-                judgeHit(trackIndex, judgment); // 執行判定邏輯
-                // --- 長音符處理結束 ---
-            } else {
-                // --- 處理短音符按下 (修訂重點) ---
-                // 1. 先從畫面上移除音符元素
-                hitNote.active = false; // 標記為非活躍
-                hitNote.element.remove(); // 從 DOM 中移除
-
-                // 2. **關鍵修訂：使用 hitNote 物件本身來找到它在 notes 陣列中的當前索引**
-                //    這確保即使陣列在其他地方被修改過，也能找到正確的元素。
-                const hitNoteIndexInArray = notes.indexOf(hitNote);
-
-                // 3. **檢查索引是否有效 (例如，音符確實存在於陣列中且尚未被移除)**
-                if (hitNoteIndexInArray !== -1) {
-                    // 4. **使用正確的索引從陣列中移除音符物件**
-                    notes.splice(hitNoteIndexInArray, 1);
-                } else {
-                    // (可選) 如果索引無效，可能表示音符已被其他方式移除 (例如 Miss)，
-                    // 或 hitNote 不是來自 notes 陣列。可以加個 log 來追蹤異常情況。
-                    // console.warn("Warning: Attempted to remove a short note that was not found in the notes array:", hitNote);
-                }
-
-                // 5. 執行判定邏輯
-                judgeHit(trackIndex, judgment);
-                // --- 短音符處理結束 ---
-            }
-        } else {
-            // 如果按下時，沒有任何音符在可擊中範圍內，則判定為 MISS
-            judgeHit(trackIndex, 'miss');
-
-            // ▼▼▼ 修訂的關鍵之處 ▼▼▼
-            // 並且，如果軌道上確實有一個最近的音符（只是太遠了），
-            // 則將該音符移除，以懲罰提早按鍵的行為。
-            // **這裡也套用同樣的修訂邏輯**
-            if (hitNote) {
-                 // 1. 先從畫面上移除音符元素
-                hitNote.active = false; // 標記為非活躍
-                hitNote.element.remove(); // 從 DOM 中移除
-
-                // 2. 使用 hitNote 物件本身來找到它在 notes 陣列中的當前索引
-                const hitNoteIndexInArray = notes.indexOf(hitNote);
-
-                // 3. 檢查索引是否有效
-                if (hitNoteIndexInArray !== -1) {
-                    // 4. 使用正確的索引從陣列中移除音符物件
-                    notes.splice(hitNoteIndexInArray, 1);
-                }
-                // ▲▲▲ 修訂結束 ▲▲▲
-            }
-            // ▲▲▲ 原先在此處的 hitIndex 相關程式碼已移除 ▲▲▲
-        }
-    }
-}
 
             function handleKeyUp(e) {
                 if (!gameActive) return;
