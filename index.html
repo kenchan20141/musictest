@@ -3200,6 +3200,78 @@ function mulberry32(a) {
 // ▲▲▲ [新增結束] ▲▲▲
 
 
+// ▼▼▼ [新增] 合併重疊音符的保護函數 (作為 generateSongData 的後處理) ▼▼▼
+function mergeOverlappingNotes(notesData, pps) {
+    // 先按時間排序整個數據 (雖然已經大致有序，但確保)
+    notesData.sort((a, b) => a.time - b.time);
+
+    // 按軌道分組
+    const trackGroups = {};
+    for (let note of notesData) {
+        if (!trackGroups[note.track]) trackGroups[note.track] = [];
+        trackGroups[note.track].push(note);
+    }
+
+    const merged = [];
+    for (let track in trackGroups) {
+        let trackNotes = trackGroups[track];
+        let i = 0;
+        while (i < trackNotes.length - 1) {
+            let A = trackNotes[i];
+            let B = trackNotes[i + 1];
+
+            // 計算 A 的起始像素和結束像素
+            let startA = A.time * pps;
+            let heightA = (A.type === 'long') ? (A.duration * pps) : 25; // 短音符固定高度 25px
+            let endA = startA + heightA;
+
+            // 計算 B 的起始像素
+            let startB = B.time * pps;
+
+            // 如果不重疊，繼續下一個
+            if (startB >= endA) {
+                i++;
+                continue;
+            }
+
+            // 重疊：根據規則合併
+            let isALong = (A.type === 'long');
+            let isBLong = (B.type === 'long');
+
+            if (!isALong && !isBLong) {
+                // 短 + 短 → 短：保留 A，移除 B
+                trackNotes.splice(i + 1, 1);
+            } else if (!isALong && isBLong) {
+                // 短 + 長 → 長：從 A.time 開始，持續到 B 的結束
+                A.type = 'long';
+                A.duration = (B.time - A.time) + B.duration;
+                trackNotes.splice(i + 1, 1);
+            } else if (isALong && !isBLong) {
+                // 長 + 短 → 長：延伸 A 的持續時間到涵蓋 B
+                const shortEffDuration = 25 / pps; // 短音符的有效持續時間 (基於高度)
+                const requiredDur = (B.time - A.time) + shortEffDuration;
+                if (requiredDur > A.duration) {
+                    A.duration = requiredDur;
+                }
+                trackNotes.splice(i + 1, 1);
+            } else {
+                // 長 + 長 → 長：從 A.time 開始，到 B 的結束
+                const requiredDur = (B.time - A.time) + B.duration;
+                if (requiredDur > A.duration) {
+                    A.duration = requiredDur;
+                }
+                trackNotes.splice(i + 1, 1);
+            }
+            // 由於合併，繼續檢查同一個 i (可能連續多個重疊)
+        }
+        merged.push(...trackNotes);
+    }
+
+    // 返回合併後的數據，按時間排序
+    return merged.sort((a, b) => a.time - b.time);
+}
+// ▲▲▲ [新增結束] ▲▲▲
+
 function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, noteSpeed) {
     console.log(`Generating notes with seed: ${seed}`);
     const seededRandom = mulberry32(seed);
@@ -3225,7 +3297,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     const baseInterval = baseIntervalAnalysis.baseInterval;
 
     const rhythmPatterns = [
-        { name: "十六分音符", duration: baseInterval, weight: 0.70 },
+        { name: "十六分分音符", duration: baseInterval, weight: 0.70 },
         { name: "三十二分音符", duration: baseInterval / 2, weight: 0.30 }
     ];
     const noteGenerationTypes = [
@@ -3315,7 +3387,10 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
         }
         currentTime += stepDuration;
     }
-    return data.sort((a, b) => a.time - b.time);
+
+    // ▼▼▼ [新增] 在返回前，調用保護機制來檢查並合併任何剩餘的重疊 ▼▼▼
+    return mergeOverlappingNotes(data, pixelsPerSecond);
+    // ▲▲▲ [新增結束] ▲▲▲
 }
 
             function generateNotesContinuously() {
