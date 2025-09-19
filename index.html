@@ -3063,7 +3063,7 @@ function updateUnlockMeter() {
                 return difficultySettings[difficultySelect.value] || difficultySettings.normal;
             }
 
-          async function startGame() {
+         async function startGame() {
     const selectedSong = musicSelect.value;
     const selectedDifficulty = difficultySelect.value;
 
@@ -3104,13 +3104,21 @@ function updateUnlockMeter() {
     const difficulty = getCurrentDifficulty();
     const beatTimestamps = await analyzeAudioForBeats(selectedSong);
 
-    // ▼▼▼ [修訂] 獲取音頻時長並傳入種子與 noteSpeed ▼▼▼
+    // ▼▼▼ [修訂] 獲取音頻時長並傳入 noteSpeed ▼▼▼
     currentSongDuration = await getAudioDuration(selectedSong);
     console.log("分析出的節拍時間戳:", beatTimestamps);
-    
-    // 確保使用與音符生成相同的種子
-    const seed = generateSeedFromSongAndDifficulty(selectedSong, selectedDifficulty, currentSongDuration);
+
+    // ▼▼▼ [修訂] 生成基於歌曲和難度的固定種子 (修復未定義函數錯誤) ▼▼▼
+    const songAndDifficultyString = selectedSong + selectedDifficulty;
+    let seed = 0;
+    for (let i = 0; i < songAndDifficultyString.length; i++) {
+        const char = songAndDifficultyString.charCodeAt(i);
+        seed = ((seed << 5) - seed) + char;
+        seed |= 0; // Convert to 32bit integer
+    }
+    seed = Math.abs(seed) || 1; // 避免種子為 0
     console.log(`使用種子: ${seed} 生成音符`);
+    // ▲▲▲ [修訂結束] ▲▲▲
 
     // 生成原始音符隊列
     let rawNoteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed);
