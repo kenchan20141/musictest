@@ -1,5 +1,6 @@
 
 
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -2855,121 +2856,33 @@ closeNotification.addEventListener('click', () => {
                 }
             }
 
-            // --- 音符合并保护机制 ---
-function checkAndMergeNotes(noteData) {
-    if (notes.length === 0) return noteData;
-    
-    const newNote = {
-        time: noteData.time,
-        track: noteData.track,
-        type: noteData.type,
-        duration: noteData.duration || 0,
-        // 计算音符的结束时间
-        endTime: noteData.time + (noteData.duration || 0)
-    };
-    
-    // 检查与现有音符的重叠情况
-    for (let i = notes.length - 1; i >= 0; i--) {
-        const existingNote = notes[i];
-        const existingNoteEndTime = existingNote.creationTime / 1000 + existingNote.duration;
-        
-        // 检查是否在同一轨道且有时间重叠
-        if (existingNote.track === newNote.track && 
-            newNote.time <= existingNoteEndTime && 
-            newNote.endTime >= existingNote.creationTime / 1000) {
-            
-            // 规则1: 短音符与短音符重叠 → 合并为一个短音符
-            if (existingNote.type === 'short' && newNote.type === 'short') {
-                console.log('合并重叠的短音符');
-                existingNote.element.remove();
-                notes.splice(i, 1);
-                return noteData; // 保留新音符
-            }
-            
-            // 规则2: 长音符与短音符重叠 → 合并为长音符
-            if ((existingNote.type === 'long' && newNote.type === 'short') || 
-                (existingNote.type === 'short' && newNote.type === 'long')) {
-                console.log('长短音符重叠，合并为长音符');
-                
-                // 确定哪个音符开始更早
-                const earlierTime = Math.min(existingNote.creationTime / 1000, newNote.time);
-                const laterEndTime = Math.max(existingNoteEndTime, newNote.endTime);
-                
-                // 移除现有音符
-                existingNote.element.remove();
-                notes.splice(i, 1);
-                
-                // 返回合并后的长音符
-                return {
-                    time: earlierTime,
-                    track: newNote.track,
-                    type: 'long',
-                    duration: laterEndTime - earlierTime
-                };
-            }
-            
-            // 规则3: 长音符与长音符重叠 → 合并为一个长音符
-            if (existingNote.type === 'long' && newNote.type === 'long') {
-                console.log('长音符重叠，合并为一个长音符');
-                
-                // 确定哪个音符开始更早
-                const earlierTime = Math.min(existingNote.creationTime / 1000, newNote.time);
-                const laterEndTime = Math.max(existingNoteEndTime, newNote.endTime);
-                
-                // 移除现有音符
-                existingNote.element.remove();
-                notes.splice(i, 1);
-                
-                // 返回合并后的长音符
-                return {
-                    time: earlierTime,
-                    track: newNote.track,
-                    type: 'long',
-                    duration: laterEndTime - earlierTime
-                };
-            }
-        }
-    }
-    
-    return noteData; // 没有重叠，返回原始音符
-}
-
             // --- Game Logic ---
-          function generateNote(noteData) {
-    if (!gameActive) return;
-    
-    // 【新增】在生成前检查并合并重叠音符
-    const mergedNoteData = checkAndMergeNotes(noteData);
-    
-    const trackIndex = mergedNoteData.track;
-    const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
-    if (!track) return;
-    
-    const note = document.createElement('div');
-    note.className = mergedNoteData.type === 'long' ? 'long-note' : 'note';
-    note.dataset.track = trackIndex;
-    note.style.animationDuration = `${noteSpeed}ms`;
-    
-    if (mergedNoteData.type === 'long') {
-        const noteHeight = (mergedNoteData.duration / (noteSpeed / 1000)) * (tracksContainer.clientHeight + 50);
-        note.style.height = `${Math.max(30, noteHeight)}px`;
-    }
-    
-    track.appendChild(note);
-    
-    const noteObj = {
-        element: note,
-        track: trackIndex,
-        type: mergedNoteData.type,
-        duration: mergedNoteData.duration || 0,
-        active: true,
-        hitStarted: false,
-        creationTime: Date.now(),
-    };
-    
-    notes.push(noteObj);
-}
-            
+            function generateNote(noteData) {
+                if (!gameActive) return;
+                const trackIndex = noteData.track;
+                const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
+                if (!track) return;
+                const note = document.createElement('div');
+                note.className = noteData.type === 'long' ? 'long-note' : 'note';
+                note.dataset.track = trackIndex;
+                note.style.animationDuration = `${noteSpeed}ms`;
+                if (noteData.type === 'long') {
+                    const noteHeight = (noteData.duration / (noteSpeed / 1000)) * (tracksContainer.clientHeight + 50);
+                    note.style.height = `${Math.max(30, noteHeight)}px`;
+                }
+                track.appendChild(note);
+                const noteObj = {
+                    element: note,
+                    track: trackIndex,
+                    type: noteData.type,
+                    duration: noteData.duration || 0,
+                    active: true,
+                    hitStarted: false,
+                    creationTime: Date.now(), // 【新增】記錄音符的創建時間戳
+                };
+                notes.push(noteObj);
+            }
+
             function createHitParticles(trackIndex, judgment) {
                 const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
                 if (!track) return;
@@ -4107,3 +4020,4 @@ disclaimerModal.addEventListener('click', (e) => {
 
 </body>
 </html>
+
