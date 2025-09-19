@@ -3340,7 +3340,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                     if (selectedType.type === 'short') {
                         // [新增邏輯] 定義最小短音符間隔 (例如，至少等於 baseInterval)
                         // 這可以防止在極短時間內需要連擊兩次短音符
-                        const MIN_SHORT_NOTE_INTERVAL = baseInterval; // 或者一個固定的最小值，如 0.1
+                         const MIN_SHORT_NOTE_INTERVAL = Math.max(0.15, baseInterval * 2); // 例如，至少是 16 分音符長度的 2 倍，且不小於 0.15 秒
 
                         // 檢查當前時間與該軌道上次生成短音符的時間差
                         if (lastShortNoteTime[trackIndex] !== -1 && (currentTime - lastShortNoteTime[trackIndex]) < MIN_SHORT_NOTE_INTERVAL) {
