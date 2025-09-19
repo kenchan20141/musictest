@@ -3200,6 +3200,7 @@ function mulberry32(a) {
 // ▲▲▲ [新增結束] ▲▲▲
 
 
+
 function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, noteSpeed) {
     console.log(`Generating notes with seed: ${seed}`);
     const seededRandom = mulberry32(seed);
@@ -3315,8 +3316,124 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
         }
         currentTime += stepDuration;
     }
-    return data.sort((a, b) => a.time - b.time);
+  // ▼▼▼ 【核心修訂 #5：應用音符重疊保護機制】 ▼▼▼
+        console.log("[音符生成] 音符生成完畢，開始執行重疊保護檢查...");
+        data = mergeOverlappingNotes(data, pixelsPerSecond);
+        console.log("[音符生成] 重疊保護檢查完成，最終音符數量:", data.length);
+        // ▲▲▲ 修訂結束 ▲▲▲
+
+        return data; // [修訂] 返回經過合併保護處理的音符資料
 }
+
+
+// ▼▼▼ [新增] 音符重疊保護與合併機制 ▼▼▼
+/**
+ * 檢查並合併所有在同一軌道上時間或畫面位置重疊的音符。
+ * @param {Array} notes - 未經處理的音符陣列，每個音符物件應包含 { track, time, duration }。
+ * @param {number} pixelsPerSecond - 音符下落速度 (像素/秒)，用於計算畫面位置。
+ * @returns {Array} - 處理後，已合併重疊音符的陣列。
+ */
+function mergeOverlappingNotes(notes, pixelsPerSecond) {
+    if (!Array.isArray(notes) || notes.length <= 1) {
+        return notes; // 沒有音符或只有一個，無需處理
+    }
+
+    // 1. 按軌道和時間排序，方便檢查相鄰音符
+    const sortedNotes = [...notes].sort((a, b) => {
+        if (a.track !== b.track) return a.track - b.track;
+        return a.time - b.time;
+    });
+
+    const notesToDelete = new Set(); // 使用 Set 存儲需要刪除的音符索引或引用
+
+    // 2. 遍歷排序後的音符，檢查重疊
+    for (let i = 0; i < sortedNotes.length - 1; i++) {
+        const currentNote = sortedNotes[i];
+        if (notesToDelete.has(currentNote)) continue; // 如果當前音符已被標記刪除，跳過
+
+        for (let j = i + 1; j < sortedNotes.length; j++) {
+            const nextNote = sortedNotes[j];
+            if (notesToDelete.has(nextNote)) continue; // 如果下一個音符已被標記刪除，跳過
+
+            // 如果跑到不同軌道，則停止檢查與當前音符的重疊
+            if (nextNote.track !== currentNote.track) break;
+
+            // 計算畫面位置
+            const currentNoteStartPixel = currentNote.time * pixelsPerSecond;
+            const currentNoteEndPixel = (currentNote.time + (currentNote.duration || 0)) * pixelsPerSecond;
+            const nextNoteStartPixel = nextNote.time * pixelsPerSecond;
+            const nextNoteEndPixel = (nextNote.time + (nextNote.duration || 0)) * pixelsPerSecond;
+
+            // 檢查畫面是否重疊 (包括完全重疊和部分重疊)
+            // 重疊條件：當前音符的結束像素 > 下一個音符的開始像素
+            // 並且當前音符的開始像素 < 下一個音符的結束像素
+            const isVisuallyOverlapping = currentNoteEndPixel > nextNoteStartPixel && currentNoteStartPixel < nextNoteEndPixel;
+
+            // 檢查時間是否完全重疊 (主要針對短音符)
+            // 由於短音符 duration 為 0，畫面重疊檢查可能不夠精確處理完全重疊
+            // 因此也檢查時間戳是否相同 (考慮浮點數精度，使用小的容差)
+            const timeTolerance = 0.001; // 1毫秒的容差
+            const isTimeOverlapping = Math.abs(currentNote.time - nextNote.time) < timeTolerance && currentNote.duration === 0 && nextNote.duration === 0;
+
+            if (isVisuallyOverlapping || isTimeOverlapping) {
+                console.log(`[音符合併保護] 發現重疊音符於軌道 ${currentNote.track}:`, currentNote, nextNote);
+
+                const isCurrentLong = currentNote.duration > 0;
+                const isNextLong = nextNote.duration > 0;
+
+                // 合併規則
+                if (!isCurrentLong && !isNextLong) {
+                    // 情況 1: 短 + 短 -> 保留一個短音符 (保留 current，刪除 next)
+                    console.log("  -> 合併: 短音符 + 短音符 = 短音符");
+                    notesToDelete.add(nextNote);
+                } else if (isCurrentLong && !isNextLong) {
+                    // 情況 2: 長 + 短 -> 擴展長音符以覆蓋短音符 (保留 current，刪除 next)
+                    console.log("  -> 合併: 長音符 + 短音符 = 長音符 (擴展長音符)");
+                    // 計算新的結束時間
+                    const newEndTime = Math.max(currentNote.time + currentNote.duration, nextNote.time + (nextNote.duration || 0));
+                    currentNote.duration = newEndTime - currentNote.time;
+                    notesToDelete.add(nextNote);
+                } else if (!isCurrentLong && isNextLong) {
+                    // 情況 3: 短 + 長 -> 擴展長音符以覆蓋短音符 (將 current 變成 next，刪除 current)
+                    console.log("  -> 合併: 短音符 + 長音符 = 長音符 (擴展長音符)");
+                    // 計算新的開始時間和結束時間
+                    const newStartTime = Math.min(currentNote.time, nextNote.time);
+                    const newEndTime = Math.max(currentNote.time + (currentNote.duration || 0), nextNote.time + nextNote.duration);
+                    // 將 nextNote 的屬性更新為合併後的結果
+                    nextNote.time = newStartTime;
+                    nextNote.duration = newEndTime - newStartTime;
+                    notesToDelete.add(currentNote);
+                } else if (isCurrentLong && isNextLong) {
+                    // 情況 4: 長 + 長 -> 擴展第一個長音符以覆蓋第二個 (保留 current，刪除 next)
+                    console.log("  -> 合併: 長音符 + 長音符 = 長音符 (擴展長音符)");
+                    // 計算新的結束時間
+                    const newEndTime = Math.max(currentNote.time + currentNote.duration, nextNote.time + nextNote.duration);
+                    currentNote.duration = newEndTime - currentNote.time;
+                    notesToDelete.add(nextNote);
+                }
+            } else {
+                // 如果當前音符和下一個音符不重疊，且它們在同一軌道，
+                // 則後續的音符也不會與當前音符重疊 (因為已排序)，可以提前跳出內層循環
+                // (這是一個小的性能優化，可選)
+                // break;
+            }
+        }
+    }
+
+    // 3. 過濾掉被標記刪除的音符
+    if (notesToDelete.size > 0) {
+        console.log(`[音符合併保護] 共合併/刪除了 ${notesToDelete.size} 個重疊音符。`);
+        return sortedNotes.filter(note => !notesToDelete.has(note));
+    } else {
+        console.log("[音符合併保護] 未發現需要合併的重疊音符。");
+        return sortedNotes; // 或者 return notes; 如果你確定原始順序不重要
+    }
+}
+// ▲▲▲ [新增結束] ▲▲▲
+
+
+
+            
 
             function generateNotesContinuously() {
                 if (!gameActive) return;
