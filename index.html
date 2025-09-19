@@ -1833,7 +1833,100 @@
     }
 }
 
-        
+/* 調整 .game-ui 以預留更多底部空間，避免重疊 */
+.game-ui {
+    position: relative; 
+    display: flex;
+    flex-wrap: wrap; 
+    justify-content: space-between;
+    align-items: center; 
+    gap: 8px; 
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px; 
+    padding: 10px; 
+    padding-bottom: 60px; /* [修訂] 增加底部內邊距，為兩個進度條和歌詞騰出空間（原 35px） */
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); 
+}
+
+/* 調整音樂進度條位置，避免與選擇器重疊 */
+.progress-container {
+    position: absolute;   
+    bottom: 5px;         /* [修訂] 降低位置（原 10px） */
+    left: 10px;           
+    right: 10px;          
+    width: auto;          
+    height: 12px;         
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;   
+    overflow: hidden;
+    z-index: 10;         /* [修訂] 降低 z-index，確保在最底層 */
+}
+
+/* 調整解鎖進度條位置，避免與選擇器重疊 */
+.unlock-progress-container {
+    position: absolute;
+    bottom: 22px;        /* [修訂] 重新計算位置：音樂進度條 bottom 5px + 高度 12px + 間距 5px = 22px */
+    left: 10px;
+    right: 10px;
+    width: auto;
+    height: 12px;         
+    transform: translateY(100%); 
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 6px;   
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+    z-index: 10;         /* [修訂] 降低 z-index，確保在最底層 */
+    opacity: 0;
+    transition: opacity 0.5s ease, transform 0.5s ease;
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+}
+
+/* [新增] 遊戲中歌詞顯示容器 */
+.game-lyrics-container {
+    position: absolute;
+    top: 10%;            /* [新增] 置於軌道上方，避免擋音符 */
+    left: 0;
+    right: 0;
+    text-align: center;
+    z-index: 15;         /* [新增] 高於進度條但低於粒子/判定 */
+    opacity: 0.8;        /* [新增] 半透明，避免干擾遊戲 */
+    transition: opacity 0.5s ease;
+    display: none;       /* [新增] 預設隱藏，由 JS 控制 */
+}
+
+.game-lyric-line {
+    font-size: 1.2rem;   /* [新增] 小字體，避免佔空間 */
+    color: #fff;
+    margin: 5px 0;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5); /* [新增] 陰影提升可讀性 */
+    transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.game-lyric-line.active {
+    font-size: 1.5rem;   /* [新增] 活躍歌詞放大強調 */
+    color: #ffcc00;      /* [新增] 亮色強調教育重點 */
+    transform: scale(1.1);
+}
+
+/* 遊戲運行中隱藏選擇器，避免重疊 */
+.game-running .music-selector,
+.game-running .difficulty-selector {
+    display: none;       /* [修訂] 遊戲中隱藏選擇器，只顯示統計和進度 */
+}
+
+/* 響應式調整：小螢幕減少間距 */
+@media (max-width: 768px) {
+    .game-ui {
+        padding-bottom: 50px; /* [修訂] 小螢幕減少空間 */
+    }
+    .game-lyrics-container {
+        top: 5%;         /* [修訂] 小螢幕上移，避免擋軌道 */
+        font-size: 1rem; /* [修訂] 縮小字體 */
+    }
+}        
 
         
     </style>
