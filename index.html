@@ -1926,89 +1926,7 @@
         top: 5%;         /* [修訂] 小螢幕上移，避免擋軌道 */
         font-size: 1rem; /* [修訂] 縮小字體 */
     }
-} 
-
-        /* 遊戲中歌詞顯示容器 */
-.game-lyrics {
-    position: absolute;
-    top: 20%; /* 垂直居中於軌道 */
-    width: 200px;
-    padding: 10px;
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 10px;
-    opacity: 0.8;
-    display: none; /* 預設隱藏，由JS控制 */
-    transition: opacity 0.3s ease;
-    overflow-y: auto; /* 如果歌詞多，允許滾動 */
-    max-height: 60%; /* 限制高度，避免擋住整個畫面 */
-    z-index: 10; /* 高於背景，低於音符 */
-    color: #fff;
-    font-size: 1rem;
-    line-height: 1.4;
-    text-align: center;
-}
-
-.game-lyrics-left {
-    right: calc(100% + 10px); /* 左側，距離軌道10px */
-    text-align: right; /* 歷史歌詞靠右對齊 */
-}
-
-.game-lyrics-right {
-    left: calc(100% + 10px); /* 右側，距離軌道10px */
-    text-align: left; /* 預覽歌詞靠左對齊 */
-}
-
-.game-lyric-line {
-    margin: 5px 0;
-    transition: all 0.3s ease;
-    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5); /* 提升可讀性 */
-}
-
-.game-lyric-line.active {
-    font-size: 1.2rem;
-    color: #ffcc00; /* 金黃強調 */
-    font-weight: bold;
-}
-
-.game-running .game-lyrics {
-    display: block; /* 遊戲運行時顯示 */
-}
-
-/* 響應式設計 */
-@media (max-width: 1024px) and (min-width: 769px) {
-    .game-lyrics {
-        width: 150px; /* 平板縮小寬度 */
-        top: 15%;
-        font-size: 0.95rem;
-    }
-    .game-lyric-line.active {
-        font-size: 1.1rem;
-    }
-}
-
-@media (max-width: 768px) {
-    .game-lyrics {
-        position: absolute;
-        top: 10%; /* 上移，避免擋觸控按鍵 */
-        left: 0;
-        right: 0;
-        width: 100%; /* 單欄全寬 */
-        max-width: none;
-        padding: 5px;
-        opacity: 0.7; /* 更透明 */
-        font-size: 0.9rem;
-        text-align: center;
-    }
-    .game-lyrics-left, .game-lyrics-right {
-        position: static; /* 合併為單欄 */
-        left: auto;
-        right: auto;
-        text-align: center;
-    }
-    .game-lyrics-left {
-        margin-bottom: 10px; /* 左右合併時加間距 */
-    }
-}
+}        
 
         
     </style>
@@ -2128,8 +2046,7 @@
                     </div>
                 </div>
                 <div class="game-area">
-                    <div class="game-lyrics game-lyrics-left" id="gameLyricsLeft"></div>
-<div class="game-lyrics game-lyrics-right" id="gameLyricsRight"></div>
+                    <div class="tracks" id="tracksContainer"></div>
                      <!-- 觸控按鍵 (僅在觸控裝置上顯示) -->
                     <div class="touch-controls" id="touchControls">
                         <div class="touch-key" data-key="65">A</div>
@@ -2989,228 +2906,35 @@ closeNotification.addEventListener('click', () => {
                 });
             }
 
-           // 新增變數（添加到遊戲狀態變數區）
-let gameLyrics = []; // 當前歌曲歌詞
-let gameLyricsTimer = null; // 歌詞更新計時器
-let gameLyricsLeft = null; // 左側容器
-let gameLyricsRight = null; // 右側容器
-
-// 修訂後的initGame()函數
-function initGame() {
-    tracksContainer.innerHTML = '';
-    for (let i = 0; i < tracks; i++) {
-        const track = document.createElement('div');
-        track.className = 'track';
-        track.dataset.track = i;
-        const hitLine = document.createElement('div');
-        hitLine.className = 'hit-line';
-        track.appendChild(hitLine);
-        const keyHint = document.createElement('div');
-        keyHint.className = 'key-hint';
-        keyHint.textContent = keys[i];
-        track.appendChild(keyHint);
-        tracksContainer.appendChild(track);
-    }
-    // 新增：初始化歌詞容器
-    gameLyricsLeft = document.getElementById('gameLyricsLeft');
-    gameLyricsRight = document.getElementById('gameLyricsRight');
-    score = 0;
-    combo = 0;
-    maxCombo = 0;
-    notes = [];
-    noteQueue = [];
-    progressBar.style.width = '0%';
-    updateUI();
-    tracksContainer.className = 'tracks';
-    const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-    if (isMobile) {
-        document.getElementById('touchControls').style.display = 'flex';
-        document.querySelectorAll('.key-hint').forEach(hint => hint.style.display = 'none');
-    }
-}
-
-// 修訂後的startGame()函數
-async function startGame() {
-    const selectedSong = musicSelect.value;
-    const selectedDifficulty = difficultySelect.value;
-
-    if (!isSongUnlocked(selectedSong)) {
-        showUnlockModal(`在普通模式下達到 ${SONG_UNLOCK_SCORE} 分以解鎖下一首歌曲。`);
-        return;
-    }
-    if (!isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
-        let reqScore = 0;
-        let reqDiff = '';
-        if (selectedDifficulty === 'hard') {
-            reqScore = DIFFICULTY_UNLOCK_SCORE_NORMAL_TO_HARD;
-            reqDiff = '普通';
-        } else if (selectedDifficulty === 'hell') {
-            reqScore = DIFFICULTY_UNLOCK_SCORE_HARD_TO_HELL;
-            reqDiff = '困難';
-        }
-        showUnlockModal(`在 ${reqDiff} 模式下達到 ${reqScore} 分以解鎖此難度。`);
-        return;
-    }
-
-    if (gameActive) return;
-    gameActive = true;
-    startBtn.disabled = true;
-    musicSelect.disabled = true;
-    difficultySelect.disabled = true;
-
-    // 新增：載入歌詞
-    gameLyrics = songLyrics[selectedSong] || [];
-    updateGameLyricsContainers(); // 初始化歌詞顯示
-
-    mainGameContainer.classList.add('game-running'); 
-    
-    // 根據預設的百分比常數，設定兩條線的 left 屬性
-    songUnlockMarker.style.left = `${SONG_UNLOCK_PERCENTAGE * 100}%`;
-    difficultyUnlockMarker.style.left = `${DIFFICULTY_UNLOCK_PERCENTAGE * 100}%`;
-    
-    startBtn.innerHTML = `<svg class="start-button-svg" viewBox="0 0 40 40" style="width:40px;height:40px;">
-        <circle cx="20" cy="20" r="18" stroke="#ff8a00" stroke-width="3" fill="none" stroke-dasharray="89" stroke-dashoffset="20">
-            <animateTransform attributeName="transform" type="rotate" from="0 20 20" to="360 20 20" dur="1s" repeatCount="indefinite" />
-        </circle>
-    </svg>`;
-    
-    const difficulty = getCurrentDifficulty();
-    const beatTimestamps = await analyzeAudioForBeats(selectedSong);
-    startBtn.innerHTML = originalStartButtonSVG;
- 
-    progressContainerDiv.style.display = 'block';
-    trackCooldownUntil.fill(0); 
-    audio.src = selectedSong;
-    audio.volume = volumeControlModal.value;
-    currentSongDuration = await getAudioDuration(selectedSong);
-    noteSpeed = Math.floor(4000 / difficulty.speedMultiplier);
-    const songAndDifficultyString = selectedSong + selectedDifficulty;
-    let seed = 0;
-    for (let i = 0; i < songAndDifficultyString.length; i++) {
-        const char = songAndDifficultyString.charCodeAt(i);
-        seed = ((seed << 5) - seed) + char;
-        seed |= 0; // Convert to 32bit integer
-    }
-    seed = Math.abs(seed) || 1; // 避免種子為 0
-    console.log(`Generating notes for ${selectedSong} (${selectedDifficulty}) with seed: ${seed}`);
-    noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed);
-
-    const maxBaseScorePerNote = 100;
-    maxScoreForCurrentLevel = noteQueue.length * maxBaseScorePerNote;
-    if (maxScoreForCurrentLevel === 0) {
-        maxScoreForCurrentLevel = 300000;
-    }
-
-    await audio.play().catch(e => console.log("音訊播放失敗:", e));
-    gameStartTime = Date.now();
-    generateNotesContinuously();
-    gameLoop();
-    progressInterval = setInterval(updateProgress, 100);
-    setTimeout(() => { if (gameActive) endGame(); }, currentSongDuration * 1000 + 2000);
-
-    // 新增：啟動遊戲歌詞更新計時器
-    gameLyricsTimer = setInterval(() => updateGameLyrics(audio.currentTime), 200);
-}
-
-// 修訂後的endGame()函數
-function endGame() {
-    gameActive = false;
-    audio.pause();
-    audio.currentTime = 0;
-    clearTimeout(generateNotesTimer);
-    clearInterval(progressInterval);
-    cancelAnimationFrame(animationFrame);
-    startBtn.disabled = false;
-    musicSelect.disabled = false;
-    difficultySelect.disabled = false;
-
-    // 新增：清除歌詞容器和計時器
-    if (gameLyricsTimer) clearInterval(gameLyricsTimer);
-    gameLyricsLeft.innerHTML = '';
-    gameLyricsRight.innerHTML = '';
-
-    mainGameContainer.classList.remove('game-running'); 
-    unlockProgressBar.style.height = '0%';
-    unlockProgressBar.style.width = '0%';
-    unlockProgressBar.classList.remove('glowing');
-
-    musicSelectorDiv.style.display = '';
-    progressContainerDiv.style.display = 'none';
-    progressBar.style.width = '0%';
-    notes.forEach(note => note.element.remove());
-    notes = [];
-
-    const selectedSong = musicSelect.value;
-    const selectedDifficulty = difficultySelect.value;
-    updatePersonalHighScore(selectedSong, selectedDifficulty, score);
-
-    if (selectedDifficulty === 'normal') {
-        const requiredScoreToUnlock = maxScoreForCurrentLevel * SONG_UNLOCK_PERCENTAGE;
-        if (pureHitScore >= requiredScoreToUnlock) {
-            unlockNextSong(selectedSong);
-        } else {
-            const remainingScore = Math.ceil(requiredScoreToUnlock - pureHitScore);
-            const allSongs = Array.from(musicSelect.options).map(opt => opt.value);
-            const isLastSong = saveData.unlockedSongs.length === allSongs.length;
-            if (!isLastSong) {
-                showNotification('info', '目標差一點！', `您在「普通」難度下還差 <strong>${remainingScore.toLocaleString()}</strong> 分就能解鎖下一首歌曲了。再加把勁！`, 6000);
+            function initGame() {
+                tracksContainer.innerHTML = '';
+                for (let i = 0; i < tracks; i++) {
+                    const track = document.createElement('div');
+                    track.className = 'track';
+                    track.dataset.track = i;
+                    const hitLine = document.createElement('div');
+                    hitLine.className = 'hit-line';
+                    track.appendChild(hitLine);
+                    const keyHint = document.createElement('div');
+                    keyHint.className = 'key-hint';
+                    keyHint.textContent = keys[i];
+                    track.appendChild(keyHint);
+                    tracksContainer.appendChild(track);
+                }
+                score = 0;
+                combo = 0;
+                maxCombo = 0;
+                notes = [];
+                noteQueue = [];
+                progressBar.style.width = '0%';
+                updateUI();
+                tracksContainer.className = 'tracks';
+                const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+                if (isMobile) {
+                    document.getElementById('touchControls').style.display = 'flex';
+                    document.querySelectorAll('.key-hint').forEach(hint => hint.style.display = 'none');
+                }
             }
-        }
-    }
-
-    checkAndUnlockDifficulties(selectedSong, selectedDifficulty, pureHitScore);
-
-    showGameOver();
-}
-
-// 新增：初始化遊戲歌詞容器
-function updateGameLyricsContainers() {
-    gameLyricsLeft.innerHTML = '';
-    gameLyricsRight.innerHTML = '';
-    if (gameLyrics.length === 0) {
-        gameLyricsLeft.innerHTML = '<p class="no-lyrics">無歌詞可用</p>';
-        return;
-    }
-    // 預先創建所有歌詞行，但不顯示所有，只在更新時切換
-}
-
-// 新增：更新遊戲歌詞顯示
-function updateGameLyrics(currentTime) {
-    if (gameLyrics.length === 0) return;
-    let activeIndex = -1;
-    for (let i = 0; i < gameLyrics.length; i++) {
-        if (gameLyrics[i].time <= currentTime) {
-            activeIndex = i;
-        } else {
-            break;
-        }
-    }
-    // 清空容器
-    gameLyricsLeft.innerHTML = '';
-    gameLyricsRight.innerHTML = '';
-
-    // 顯示前1行（左側）
-    if (activeIndex > 0) {
-        const prevLine = document.createElement('p');
-        prevLine.className = 'game-lyric-line';
-        prevLine.textContent = gameLyrics[activeIndex - 1].text;
-        gameLyricsLeft.appendChild(prevLine);
-    }
-
-    // 顯示活躍行及後1-3行（右側）
-    if (activeIndex >= 0) {
-        const activeLine = document.createElement('p');
-        activeLine.className = 'game-lyric-line active';
-        activeLine.textContent = gameLyrics[activeIndex].text;
-        gameLyricsRight.appendChild(activeLine);
-    }
-    for (let i = 1; i <= 3 && activeIndex + i < gameLyrics.length; i++) {
-        const nextLine = document.createElement('p');
-        nextLine.className = 'game-lyric-line';
-        nextLine.textContent = gameLyrics[activeIndex + i].text;
-        gameLyricsRight.appendChild(nextLine);
-    }
-}
 
             function updateUI() {
                 scoreDisplay.textContent = score;
