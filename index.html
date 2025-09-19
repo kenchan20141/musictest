@@ -1928,86 +1928,76 @@
     }
 }        
 
- /* 遊戲中歌詞顯示：軌道兩側全透明垂直區域 */
-.lyrics-side {
-    position: absolute;
+/* 遊戲中歌詞背景：全屏重複顯示，密鋪但低壓迫 */
+.lyrics-background {
+    position: fixed;
     top: 0;
-    bottom: 0;
-    width: 150px; /* 預設電腦寬度 */
-    opacity: 0.5;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: transparent; /* 全透明 */
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 10px;
-    overflow-y: auto; /* 若直排溢出，自動滾動 */
-    color: #fff;
-    font-size: clamp(1rem, 10vw, 1.5rem); /* 利用寬度調整字體：最小1rem，依視窗寬10%，最大1.5rem */
+    display: grid;
+    grid-template-columns: repeat(10, 1fr); /* 預設10列，密集重複 */
+    grid-template-rows: repeat(10, 1fr); /* 10行 */
+    gap: 20px; /* 間距，避免壓迫 */
+    overflow: hidden;
+    z-index: -1; /* 置於背景圖之上、遊戲之下 */
+    pointer-events: none; /* 不擋互動 */
+    opacity: 0; /* 初始隱藏，遊戲中淡入 */
+    transition: opacity 0.5s ease;
+}
+
+.lyrics-background.active {
+    opacity: 1;
+}
+
+.lyrics-background span {
+    color: #ccc; /* 灰色調，低壓迫 */
+    font-size: clamp(3rem, 10vw, 6rem); /* 大字體，依寬度調整 */
+    opacity: 0.15; /* 低不透明，水印效果 */
     text-align: center;
-    writing-mode: vertical-rl; /* 直排顯示：垂直從右到左 */
-    text-orientation: mixed; /* 確保中文直排正常 */
-    line-height: 1.2; /* 調整字間距 */
-    z-index: 10; /* 高於背景，低於音符 */
-    transition: opacity 0.3s ease;
+    white-space: nowrap; /* 防止換行 */
+    transform: rotate(calc(5deg * (var(--rand) - 0.5))); /* 隨機輕微旋轉 */
+    animation: fadeInOut 2s infinite alternate; /* 輕微呼吸效果，增加動感 */
 }
 
-.lyrics-left {
-    left: calc(50% - 200px - 150px); /* 軌道約344px寬，居中調整左側位置 */
-    text-align: right;
-    padding-right: 20px;
-}
-
-.lyrics-right {
-    right: calc(50% - 200px - 150px); /* 對稱右側 */
-    text-align: left;
-    padding-left: 20px;
-}
-
-.lyrics-side.hidden {
-    display: none;
+@keyframes fadeInOut {
+    0% { opacity: 0.1; }
+    100% { opacity: 0.2; }
 }
 
 /* 響應式設計 */
 @media (max-width: 1024px) {
-    .lyrics-side {
-        width: 120px;
-        font-size: clamp(0.9rem, 8vw, 1.2rem); /* 平板：調整clamp範圍 */
-        padding: 8px;
+    .lyrics-background {
+        grid-template-columns: repeat(8, 1fr); /* 平板減列 */
+        grid-template-rows: repeat(8, 1fr);
+        gap: 15px;
     }
-    .lyrics-left {
-        left: calc(50% - 172px - 120px); /* 調整軌道寬度估計 */
-    }
-    .lyrics-right {
-        right: calc(50% - 172px - 120px);
+    .lyrics-background span {
+        font-size: clamp(2.5rem, 8vw, 5rem); /* 調整字體 */
     }
 }
 
 @media (max-width: 768px) {
-    .lyrics-side {
-        width: 80px;
-        font-size: clamp(0.7rem, 6vw, 1rem); /* 手機：更小調整 */
-        padding: 5px;
-        opacity: 0.3; /* 手機上更透明，避免干擾觸控 */
+    .lyrics-background {
+        grid-template-columns: repeat(6, 1fr); /* 手機減列 */
+        grid-template-rows: repeat(6, 1fr);
+        gap: 10px;
     }
-    .lyrics-left {
-        left: calc(50% - 172px - 80px);
-    }
-    .lyrics-right {
-        right: calc(50% - 172px - 80px);
+    .lyrics-background span {
+        font-size: clamp(2rem, 6vw, 4rem);
+        opacity: 0.12; /* 更低不透明，避免壓迫 */
     }
 }
 
 @media (max-width: 480px) {
-    .lyrics-side {
-        width: 60px;
-        font-size: clamp(0.6rem, 5vw, 0.8rem); /* 小手機：最小調整 */
+    .lyrics-background {
+        grid-template-columns: repeat(4, 1fr); /* 小手機進一步減 */
+        grid-template-rows: repeat(4, 1fr);
+        gap: 5px;
     }
-    .lyrics-left {
-        left: calc(50% - 172px - 60px);
-    }
-    .lyrics-right {
-        right: calc(50% - 172px - 60px);
+    .lyrics-background span {
+        font-size: clamp(1.5rem, 5vw, 3rem);
     }
 }
         
@@ -2129,8 +2119,7 @@
                 </div>
                 <div class="game-area">
                <div class="tracks" id="tracksContainer"></div>
-    <div class="lyrics-left lyrics-side"></div>
-    <div class="lyrics-right lyrics-side"></div>
+   <div class="lyrics-background"></div>
 
                     
                      <!-- 觸控按鍵 (僅在觸控裝置上顯示) -->
@@ -3026,7 +3015,7 @@ closeNotification.addEventListener('click', () => {
                 scoreDisplay.textContent = score;
             }
 
-           function updateProgress() {
+          function updateProgress() {
     if (gameActive && currentSongDuration > 0) {
         const elapsed = (Date.now() - gameStartTime) / 1000;
         const progress = Math.min(100, (elapsed / currentSongDuration) * 100);
@@ -3245,7 +3234,7 @@ function updateUnlockMeter() {
                 return difficultySettings[difficultySelect.value] || difficultySettings.normal;
             }
 
-           async function startGame() {
+        async function startGame() {
     const selectedSong = musicSelect.value;
     const selectedDifficulty = difficultySelect.value;
 
@@ -3332,12 +3321,10 @@ noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, se
     progressInterval = setInterval(updateProgress, 100);
     setTimeout(() => { if (gameActive) endGame(); }, currentSongDuration * 1000 + 2000);
 
-    // 新增：載入並初始化遊戲歌詞顯示
-    const lyricsLeft = document.querySelector('.lyrics-left');
-    const lyricsRight = document.querySelector('.lyrics-right');
-    if (lyricsLeft && lyricsRight) {
-        lyricsLeft.classList.remove('hidden');
-        lyricsRight.classList.remove('hidden');
+    // 新增：初始化歌詞背景容器
+    const lyricsBg = document.querySelector('.lyrics-background');
+    if (lyricsBg) {
+        lyricsBg.classList.add('active');
     }
 }
 
@@ -3520,7 +3507,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                 }
             }
 
-        function endGame() {
+  function endGame() {
     gameActive = false;
     audio.pause();
     audio.currentTime = 0;
@@ -3568,20 +3555,17 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     // 步驟 3: 顯示結束畫面
     showGameOver();
 
-    // 新增：清空遊戲歌詞顯示
-    const lyricsLeft = document.querySelector('.lyrics-left');
-    const lyricsRight = document.querySelector('.lyrics-right');
-    if (lyricsLeft && lyricsRight) {
-        lyricsLeft.textContent = '';
-        lyricsRight.textContent = '';
-        lyricsLeft.classList.add('hidden');
-        lyricsRight.classList.add('hidden');
+    // 新增：清空並隱藏歌詞背景
+    const lyricsBg = document.querySelector('.lyrics-background');
+    if (lyricsBg) {
+        lyricsBg.innerHTML = '';
+        lyricsBg.classList.remove('active');
     }
 }
 
 
 
-           // 新增函數：更新遊戲中歌詞顯示
+// 新增函數：更新遊戲中歌詞顯示
 function updateGameLyrics(currentTime) {
     const selectedSong = musicSelect.value;
     const lyrics = songLyrics[selectedSong] || [];
@@ -3596,12 +3580,19 @@ function updateGameLyrics(currentTime) {
         }
     }
 
-    const lyricsLeft = document.querySelector('.lyrics-left');
-    const lyricsRight = document.querySelector('.lyrics-right');
-    if (lyricsLeft && lyricsRight) {
+    const lyricsBg = document.querySelector('.lyrics-background');
+    if (lyricsBg) {
         const currentLyric = (currentIndex >= 0 && lyrics[currentIndex]) ? lyrics[currentIndex].text : '';
-        lyricsLeft.textContent = currentLyric; // 左右顯示同一句
-        lyricsRight.textContent = currentLyric;
+        if (currentLyric && lyricsBg.textContent !== currentLyric) { // 只在歌詞變更時更新，避免性能浪費
+            lyricsBg.innerHTML = ''; // 清空舊內容
+            const repeatCount = 100; // 密集重複數（依grid調整，預設100確保密鋪）
+            for (let i = 0; i < repeatCount; i++) {
+                const span = document.createElement('span');
+                span.textContent = currentLyric;
+                span.style.setProperty('--rand', Math.random()); // 隨機變數用於CSS旋轉
+                lyricsBg.appendChild(span);
+            }
+        }
     }
 }
 
