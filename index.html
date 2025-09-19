@@ -2021,61 +2021,77 @@
     display: flex; /* 保留 flex 以自動排列 */
     flex-wrap: wrap; /* 自動換行，填滿畫面 */
     align-content: flex-start; /* 從頂部開始，無垂直間距 */
-    justify-content: flex-start; /* 從左側開始，無水平間距 */
+    justify-content: space-around; /* 修訂：均勻分散，填滿左右（解決只有左半有文字） */
     gap: 0; /* 移除所有間距 */
     margin: 0; /* 確保容器無邊距 */
     padding: 0; /* 確保容器無內距 */
     opacity: 0.2; /* 保留半透明 */
     color: #fff; /* 保留白色文字 */
-    font-size: 5rem; /* 增大為 5rem，讓文字更填滿（可調成 6rem） */
+    font-size: 5rem; /* 電腦預設大小，讓密集但不重疊 */
     pointer-events: none; /* 不擋互動 */
     text-align: center;
-    overflow: hidden; /* 防止溢出產生空白 */
+    overflow: hidden; /* 防止溢出產生空白或重疊 */
     display: none; /* 預設隱藏，由 JS 控制 */
 }
 
 .lyrics-background span {
     margin: 0; /* 移除邊距 */
     padding: 0; /* 移除內距 */
-    line-height: 1; /* 正常行高，避免垂直重疊 */
+    line-height: 1.2; /* 修訂：稍大行高，提供緩衝防止垂直重疊 */
     word-spacing: 0; /* 正常字距 */
     letter-spacing: 0; /* 正常字母間距 */
     white-space: nowrap; /* 防止換行，讓文字連續 */
     flex: 0 0 auto; /* 自動調整大小 */
-    min-width: 10%; /* 修訂：每行約 10 個（100%/10），讓密集但有空間不重疊（可調成 8%-12%） */
+    min-width: 10%; /* 修訂：每行約 10 個，密集但有空間不重疊（電腦預設） */
+    min-height: 10vh; /* 修訂：最小高度，防止垂直壓縮重疊（10% 視窗高） */
     display: inline-flex; /* 內聯 flex，讓文字緊貼 */
     align-items: center;
     justify-content: center;
     text-shadow: 0 0 5px rgba(0, 0, 0, 0.5); /* 保留陰影，提升可讀性 */
-    word-break: break-all; /* 強制斷詞，填滿空間 */
+    word-break: break-word; /* 正常斷詞，避免過長重疊 */
+    overflow: hidden; /* 修訂：隱藏溢出文字，強制防止重疊 */
 }
-
 /* 響應式調整：平板/手機減小字體和格子數，避免太密 */
-@media (max-width: 1024px) {
+@media (max-width: 1024px) { /* 平板：中等密集，每行約 8 個 */
     .lyrics-background {
-        grid-template-columns: repeat(4, 1fr);
-        grid-template-rows: repeat(4, 1fr);
-        font-size: 4rem;
-        grid-gap: 15px;
+        font-size: 4rem; /* 稍減小字體，避免重疊 */
+        justify-content: space-around; /* 均勻填滿左右 */
+    }
+    .lyrics-background span {
+        min-width: 12.5%; /* 每行約 8 個，密集但有空間 */
+        min-height: 12vh; /* 增加垂直緩衝 */
     }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 768px) { /* 手機：稍鬆，每行約 6 個 */
     .lyrics-background {
-        grid-template-columns: repeat(3, 1fr);
-        grid-template-rows: repeat(3, 1fr);
-        font-size: 3rem;
-        grid-gap: 10px;
-        opacity: 0.25; /* 小螢幕稍提高透明度，確保看到 */
+        font-size: 3rem; /* 減小字體，防止重疊 */
+        justify-content: space-around; /* 均勻填滿左右 */
+    }
+    .lyrics-background span {
+        min-width: 16.66%; /* 每行約 6 個，確保不擠 */
+        min-height: 15vh; /* 增加垂直緩衝 */
     }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 480px) { /* 小手機：更鬆，每行約 4 個 */
     .lyrics-background {
-        grid-template-columns: repeat(2, 1fr);
-        grid-template-rows: repeat(3, 1fr);
-        font-size: 2.5rem;
-        grid-gap: 8px;
+        font-size: 2.5rem; /* 最小字體，清晰不重疊 */
+        justify-content: space-around; /* 均勻填滿左右 */
+    }
+    .lyrics-background span {
+        min-width: 25%; /* 每行約 4 個，足夠空間 */
+        min-height: 20vh; /* 最大垂直緩衝 */
+    }
+}
+
+@media (min-width: 1025px) { /* 電腦大屏：更密，每行約 12 個 */
+    .lyrics-background {
+        font-size: 5rem; /* 增大字體，讓更滿 */
+    }
+    .lyrics-background span {
+        min-width: 8.33%; /* 每行約 12 個，密集但不重疊 */
+        min-height: 8vh; /* 減小垂直，增加密度 */
     }
 }
         
