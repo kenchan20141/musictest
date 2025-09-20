@@ -3380,11 +3380,11 @@ function explodeNote(noteElement, judgment) {
                     if (navigator.vibrate) {
                         let vibrationPattern;
                         if (type === 'perfect') {
-                            vibrationPattern = [70]; // 短促有力的震動
+                            vibrationPattern = [55]; // 短促有力的震動
                         } else if (type === 'great') {
                             vibrationPattern = [50]; // 中等震動
                         } else if (type === 'good') {
-                            vibrationPattern = [30]; // 輕微震動
+                            vibrationPattern = [45]; // 輕微震動
                         }
                         if (vibrationPattern) {
                             navigator.vibrate(vibrationPattern);
