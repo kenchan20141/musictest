@@ -4019,37 +4019,34 @@ function generateQuizQuestions(songUrl) {
             randomIndex = Math.floor(Math.random() * songLyricsForQuiz.length);
         } while (usedLines.has(randomIndex));
         
-        const line = songLyricsForQuiz[randomIndex].text;
+        const line = songLyricsForQuiz[randomIndex].text.trim(); // 去除首尾空白
         usedLines.add(randomIndex);
 
-        // 使用正則表達式找出歌詞中 2 到 4 個字的中文詞語作為答案選項
-        const words = line.match(/[\u4e00-\u9fa5]{2,4}/g) || [];
+        // 如果歌詞長度不足 3 個字符，無法生成問題，跳過
+        if (line.length < 3) continue;
 
-        if (words.length > 0) {
-            // 從找到的詞語中隨機選一個作為答案
-            const answer = words[Math.floor(Math.random() * words.length)];
-            const questionText = line.replace(answer, '____');
-            
-            // 確保問題已成功生成（替換前後文本不同）
-            if (questionText !== line) {
-                 generatedQuestions.push({
-                    question: questionText,
-                    answer: answer
-                });
-            }
+        // 隨機選擇答案長度（2-4 個字符）
+        const answerLength = Math.floor(Math.random() * 3) + 2; // 2,3,4
+
+        // 隨機選擇起始位置（確保不會超出邊界）
+        const startPos = Math.floor(Math.random() * (line.length - answerLength + 1));
+
+        // 提取答案
+        const answer = line.substring(startPos, startPos + answerLength);
+
+        // 生成問題文字：將答案替換為 ____（使用正則替換所有出現的答案，以防重複詞）
+        const questionText = line.replace(new RegExp(answer, 'g'), '____');
+
+        // 確保問題已成功生成（替換前後文本不同，且有 ____）
+        if (questionText !== line && questionText.includes('____')) {
+            generatedQuestions.push({
+                question: questionText,
+                answer: answer
+            });
         }
     }
     
-    // 如果無法生成任何問題（例如歌詞太短或格式特殊），則創建一個備用問題
-    if (generatedQuestions.length === 0 && songLyricsForQuiz.length > 0) {
-         const fallbackLine = songLyricsForQuiz[0].text;
-         if (fallbackLine.length > 2) {
-             const answer = fallbackLine.substring(0, 2);
-             const question = '____' + fallbackLine.substring(2);
-             generatedQuestions.push({ question, answer });
-         }
-    }
-    
+    // 如果無法生成任何問題（例如所有歌詞太短），則不添加備用問題，讓上層邏輯處理失敗
     return generatedQuestions;
 }
 
@@ -4062,10 +4059,10 @@ function generateQuizQuestions(songUrl) {
 function startLyricsQuiz(unlockType, unlockValue, songUrlForQuiz) {
     quizQuestions = generateQuizQuestions(songUrlForQuiz);
 
-    // 【修訂】如果歌曲沒有歌詞或無法生成題目，則視為解鎖失敗，不直接解鎖
+    // 如果無法生成問題（即使有歌詞），視為測驗失敗
     if (quizQuestions.length === 0) {
-        console.warn(`歌曲 ${songUrlForQuiz} 沒有歌詞或無法生成題目，解鎖失敗。`);
-        endQuiz(false); // 直接呼叫 endQuiz(false) 結束測驗並顯示失敗通知
+        console.warn(`歌曲 ${songUrlForQuiz} 無法生成有效測驗題目，視為解鎖失敗。`);
+        endQuiz(false); // 直接結束測驗，視為失敗
         return;
     }
 
