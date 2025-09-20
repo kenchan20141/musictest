@@ -3328,7 +3328,7 @@ function explodeNote(noteElement, judgment) {
 
             
 
-     function judgeHit(trackIndex, type) {
+   function judgeHit(trackIndex, type) {
     if (sounds[type]) {
         sounds[type]();
     }
@@ -3349,11 +3349,10 @@ function explodeNote(noteElement, judgment) {
     }, 1000);
 
     if (type !== 'miss') {
-        // 修 BUG：直接觸發效果，而非遞迴呼叫 judgeHit
-        // 加強粒子：根據等級增加數量
-        const particleCount = (type === 'perfect') ? 15 : (type === 'great' ? 10 : 7);
-        createHitParticles(trackIndex, type, particleCount);
+        // 觸發粒子效果
+        createHitParticles(trackIndex, type);
 
+        // 觸發打擊線脈衝動畫
         const hitLine = track.querySelector('.hit-line');
         if (hitLine) {
             hitLine.classList.remove('pulse-effect');
@@ -3361,7 +3360,7 @@ function explodeNote(noteElement, judgment) {
             hitLine.classList.add('pulse-effect');
         }
 
-        // 新增：軌道閃光效果（根據判斷等級添加顏色 class）
+        // 根據判定等級觸發不同顏色的軌道閃爍
         if (track) {
             track.classList.remove('flash-perfect', 'flash-great', 'flash-good'); // 先移除舊 class
             void track.offsetWidth; // 強制重繪
@@ -3374,20 +3373,26 @@ function explodeNote(noteElement, judgment) {
             }
         }
 
- 
-
-        // 觸發裝置震動（調整 PERFECT 為更短）
+        // 觸發裝置震動
         if (navigator.vibrate) {
             let vibrationPattern;
             if (type === 'perfect') {
-                vibrationPattern = [70];  // 縮短：總 170ms
+                vibrationPattern = [70];
             } else if (type === 'great') {
-                vibrationPattern = [50];  // 減弱：單一較短震動
+                vibrationPattern = [50];
             } else if (type === 'good') {
-                vibrationPattern = [30];  // 減弱：單一更短震動
+                vibrationPattern = [30];
             }
-            navigator.vibrate(vibrationPattern);
+            if(vibrationPattern) navigator.vibrate(vibrationPattern);
         }
+        
+        // 【關鍵修復】重新加入分數計算與 addScore 呼叫
+        let baseScore = 0;
+        if (type === 'perfect') baseScore = 100;
+        else if (type === 'great') baseScore = 70;
+        else if (type === 'good') baseScore = 40;
+        addScore(baseScore); // 呼叫 addScore 來更新分數和進度條
+
     } else {
         combo = 0;
         const difficulty = getCurrentDifficulty();
@@ -3396,6 +3401,7 @@ function explodeNote(noteElement, judgment) {
     updateUI();
 }
 
+            
             function addScore(baseScore) {
                 combo++;
                 if (combo > maxCombo) maxCombo = combo;
@@ -3433,10 +3439,23 @@ updateUnlockMeter(); // ▼▼▼ 在 addScore 結尾呼叫新函數
  // ▼▼▼ 新增的函數 ▼▼▼
            // ▼▼▼ 修正後的函數 ▼▼▼
 function updateUnlockMeter() {
-if (maxScoreForCurrentLevel <= 0) {
-    console.warn('maxScoreForCurrentLevel 計算異常，使用預設值');
-    maxScoreForCurrentLevel = 300000; // 預防邊緣情況（無音符）
-}
+                if (maxScoreForCurrentLevel <= 0) {
+                     // 增加一個警告以防止 maxScoreForCurrentLevel 未被正確計算的邊緣情況
+                    console.warn('maxScoreForCurrentLevel is 0, unlock progress cannot be calculated.');
+                    return;
+                }
+
+                // 使用 pureHitScore 來計算進度百分比
+                const currentPercent = Math.min(100, (pureHitScore / maxScoreForCurrentLevel) * 100);
+                unlockProgressBar.style.width = `${currentPercent}%`;
+
+                // 【修訂】直接使用歌曲解鎖的百分比作為發光門檻，邏輯更清晰
+                if (currentPercent >= SONG_UNLOCK_PERCENTAGE * 100) {
+                    unlockProgressBar.classList.add('glowing');
+                } else {
+                    unlockProgressBar.classList.remove('glowing');
+                }
+            }
 
     
     if (maxScoreForCurrentLevel === 0) return;
