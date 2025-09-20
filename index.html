@@ -2923,6 +2923,11 @@ let isNotificationActive = false; // 一個旗標，用來判斷是否已有通�
             const keyStates = { 65: false, 83: false, 68: false, 70: false };
             let trackCooldownUntil = new Array(tracks).fill(0);
             let sfxVolume = 0.5;
+            let score = 0;
+let pureHitScore = 0; // 這個變數雖然不再用於解鎖，但為分數系統保留
+let successfulHits = 0; // 【新增】追蹤成功擊打的音符數量
+let totalNotesForLevel = 0; // 【新增】儲存當前關卡的總音符數
+let combo = 0;
             // --- Lyrics Quiz State Variables & Elements ---
 let isQuizActive = false;
 let quizConsecutiveCorrect = 0;
@@ -3291,7 +3296,7 @@ closeNotification.addEventListener('click', () => {
                 });
             }
 
-            function initGame() {
+           function initGame() {
     tracksContainer.innerHTML = '';
     for (let i = 0; i < tracks; i++) {
         const track = document.createElement('div');
@@ -3309,8 +3314,9 @@ closeNotification.addEventListener('click', () => {
     score = 0;
     combo = 0;
     maxCombo = 0;
-    // 新增：重設 pureHitScore 以確保每次遊戲開始時從0開始（避免累積BUG）
     pureHitScore = 0;
+    successfulHits = 0; // 【核心修訂】重置成功擊打數
+    totalNotesForLevel = 0; // 【核心修訂】重置總音符數
     notes = [];
     noteQueue = [];
     progressBar.style.width = '0%';
@@ -3537,46 +3543,57 @@ function explodeNote(noteElement, judgment) {
                 updateUI();
             }
 
-            function addScore(baseScore) {
-                combo++;
-                if (combo > maxCombo) maxCombo = combo;
-                score += baseScore + Math.floor(baseScore * (Math.floor(combo / 10) * 0.1));
+           function addScore(baseScore) {
+    successfulHits++; // 【核心修訂】每次成功擊打，計數器+1
+    combo++;
+    if (combo > maxCombo) maxCombo = combo;
+    
+    // 分數計算邏輯保持不變，用於界面顯示
+    score += baseScore + Math.floor(baseScore * (Math.floor(combo / 10) * 0.1));
+    pureHitScore += baseScore;
 
- // 核心修訂：分開計算
-    pureHitScore += baseScore; // 純擊打分數，用於解鎖
-    score += baseScore + Math.floor(baseScore * (Math.floor(combo / 10) * 0.1)); // 總分，包含連擊獎勵，用於顯示
+    if (combo > 5) {
+        const comboEl = document.createElement('div');
+        comboEl.className = 'combo-display';
+        comboEl.textContent = `${combo} COMBO!`;
+        if (combo >= 1000) comboEl.classList.add('combo-rainbow');
+        else if (combo >= 500) comboEl.classList.add('combo-purple');
+        else if (combo >= 200) comboEl.classList.add('combo-pink');
+        else if (combo >= 100) comboEl.classList.add('combo-orange');
+        else if (combo >= 50) comboEl.classList.add('combo-blue');
+        else comboEl.classList.add('combo-base');
+        tracksContainer.appendChild(comboEl);
+        if (sounds.combo) sounds.combo();
+        setTimeout(() => comboEl.remove(), 500);
+    }
 
-                if (combo > 5) {
-                    const comboEl = document.createElement('div');
-                    comboEl.className = 'combo-display';
-                    comboEl.textContent = `${combo} COMBO!`;
-                    if (combo >= 1000) comboEl.classList.add('combo-rainbow');
-                    else if (combo >= 500) comboEl.classList.add('combo-purple');
-                    else if (combo >= 200) comboEl.classList.add('combo-pink');
-                    else if (combo >= 100) comboEl.classList.add('combo-orange');
-                    else if (combo >= 50) comboEl.classList.add('combo-blue');
-                    else comboEl.classList.add('combo-base');
-                    tracksContainer.appendChild(comboEl);
-                    if (sounds.combo) sounds.combo();
-                    setTimeout(() => comboEl.remove(), 500);
-                }
-                let trackComboClass = '';
-                if (combo >= 1000) trackComboClass = 'combo-rainbow';
-                else if (combo >= 500) trackComboClass = 'combo-purple';
-                else if (combo >= 200) trackComboClass = 'combo-pink';
-                else if (combo >= 100) trackComboClass = 'combo-orange';
-                else if (combo >= 50) trackComboClass = 'combo-blue';
-                tracksContainer.className = 'tracks';
-                if (trackComboClass) tracksContainer.classList.add(trackComboClass);
-updateUnlockMeter(); // ▼▼▼ 在 addScore 結尾呼叫新函數
-            }
+    let trackComboClass = '';
+    if (combo >= 1000) trackComboClass = 'combo-rainbow';
+    else if (combo >= 500) trackComboClass = 'combo-purple';
+    else if (combo >= 200) trackComboClass = 'combo-pink';
+    else if (combo >= 100) trackComboClass = 'combo-orange';
+    else if (combo >= 50) trackComboClass = 'combo-blue';
+    tracksContainer.className = 'tracks';
+    if (trackComboClass) tracksContainer.classList.add(trackComboClass);
+    
+    updateUnlockMeter(); 
+}
 
  // ▼▼▼ 新增的函數 ▼▼▼
            // ▼▼▼ 修正後的函數 ▼▼▼
-function updateUnlockMeter() {
-if (maxScoreForCurrentLevel <= 0) {
-    console.warn('maxScoreForCurrentLevel 計算異常，使用預設值');
-    maxScoreForCurrentLevel = 300000; // 預防邊緣情況（無音符）
+unction updateUnlockMeter() {
+    if (totalNotesForLevel === 0) return; // 避免除以零的錯誤
+
+    // 【核心修訂】計算方式改為: (成功擊打數 / 總音符數) * 100
+    const currentPercent = (successfulHits / totalNotesForLevel) * 100;
+    unlockProgressBar.style.width = `${Math.min(100, currentPercent)}%`;
+
+    // 發光效果的判斷邏輯保持不變，但現在是基於擊打率
+    if (currentPercent >= SONG_UNLOCK_PERCENTAGE * 100 || currentPercent >= DIFFICULTY_UNLOCK_PERCENTAGE * 100) {
+        unlockProgressBar.classList.add('glowing');
+    } else {
+        unlockProgressBar.classList.remove('glowing');
+    }
 }
 
     
@@ -3663,7 +3680,7 @@ if (maxScoreForCurrentLevel <= 0) {
         return;
     }
 
-    if (gameActive) return;
+     if (gameActive) return;
     gameActive = true;
     startBtn.disabled = true;
     musicSelect.disabled = true;
@@ -3704,18 +3721,16 @@ if (maxScoreForCurrentLevel <= 0) {
     seed = Math.abs(seed) || 1; 
     console.log(`Generating notes for ${selectedSong} (${selectedDifficulty}) with seed: ${seed}`);
 
-    noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed);
+    // 【核心修訂】記錄當前關卡的總音符數
+    totalNotesForLevel = noteQueue.length;
+    console.log(`本關卡總音符數: ${totalNotesForLevel}`);
 
-    // ▼▼▼ 【核心修正】將理論最高分的基準從 100 修正為 55 ▼▼▼
-    // 假設玩家所有音符都打出 Perfect，計算理論上的最高「純粹擊打分數」
-    const maxBaseScorePerNote = 55; // Perfect 的基礎分數是 55 分
-    maxScoreForCurrentLevel = noteQueue.length * maxBaseScorePerNote;
-    // ▲▲▲ 修正結束 ▲▲▲
-
-    // 如果計算結果為 0 (例如歌曲沒有音符)，則提供一個預設值以避免錯誤
-    if (maxScoreForCurrentLevel === 0) {
-        maxScoreForCurrentLevel = 300000; // 設置一個後備值
-    }
+    // 【核心修訂】舊的分數計算邏輯可以移除或註解掉
+    // const maxBaseScorePerNote = 55;
+    // maxScoreForCurrentLevel = noteQueue.length * maxBaseScorePerNote;
+    // if (maxScoreForCurrentLevel === 0) {
+    //     maxScoreForCurrentLevel = 300000;
+    // }
 
     await audio.play().catch(e => console.log("音訊播放失敗:", e));
     gameStartTime = Date.now();
@@ -3726,10 +3741,9 @@ if (maxScoreForCurrentLevel <= 0) {
 
     const lyricsBackground = document.getElementById('lyricsBackground');
     if (lyricsBackground) {
-        lyricsBackground.style.display = 'grid'; // 舊代碼是 'grid'，保持一致
+        lyricsBackground.style.display = 'flex'; // 修復：確保 display 樣式正確
     }
 }
-
 
 // 新增輔助函數：分析節拍間隔，估算基本時間單位（如十六分音符長度）
 function analyzeBeatIntervals(beatTimestamps) {
@@ -4037,35 +4051,34 @@ function closeLyricsQuiz() {
     notes.forEach(note => note.element.remove());
     notes = [];
 
-    // --- Post-Game Logic ---
     const selectedSong = musicSelect.value;
     const selectedDifficulty = difficultySelect.value;
     updatePersonalHighScore(selectedSong, selectedDifficulty, score);
 
-    // 首先顯示遊戲結束畫面
     showGameOver();
 
-    // 延遲一小段時間再檢查解鎖，讓玩家先看到分數
     setTimeout(() => {
+        if (totalNotesForLevel === 0) return; // 如果沒有音符，不進行解鎖判斷
+
+        // 【核心修訂】計算最終的擊打成功率
+        const hitRate = successfulHits / totalNotesForLevel;
         let unlockTriggered = false;
 
-        // 檢查 1: 是否達到解鎖下一首歌曲的條件
+        // 檢查 1: 是否達到解鎖新歌曲的條件 (擊打率 > 60%)
         if (selectedDifficulty === 'normal') {
-            const requiredScoreToUnlockSong = maxScoreForCurrentLevel * SONG_UNLOCK_PERCENTAGE;
             const allSongs = Array.from(musicSelect.options).map(opt => opt.value);
             const lastUnlockedSong = saveData.unlockedSongs[saveData.unlockedSongs.length - 1];
             const isLastSongInList = allSongs.indexOf(lastUnlockedSong) === allSongs.length - 1;
 
-            if (pureHitScore >= requiredScoreToUnlockSong && selectedSong === lastUnlockedSong && !isLastSongInList) {
+            if (hitRate >= SONG_UNLOCK_PERCENTAGE && selectedSong === lastUnlockedSong && !isLastSongInList) {
                 unlockTriggered = true;
                 showLyricsQuiz({ type: 'song', song: selectedSong });
-                return; // 觸發了解鎖，結束後續判斷
+                return;
             }
         }
 
-        // 檢查 2: 是否達到解鎖更高難度的條件
-        const requiredScoreToUnlockDifficulty = maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE;
-        if (pureHitScore >= requiredScoreToUnlockDifficulty) {
+        // 檢查 2: 是否達到解鎖新難度的條件 (擊打率 > 75%)
+        if (hitRate >= DIFFICULTY_UNLOCK_PERCENTAGE) {
             if (selectedDifficulty === 'normal' && !isDifficultyUnlocked(selectedSong, 'hard')) {
                 unlockTriggered = true;
                 showLyricsQuiz({ type: 'difficulty', song: selectedSong, difficulty: 'hard' });
@@ -4078,9 +4091,8 @@ function closeLyricsQuiz() {
             }
         }
 
-    }, 1000); // 延遲 1 秒後檢查
+    }, 1000);
 
-    // 清空遊戲中的歌詞顯示
     const lyricsBackground = document.getElementById('lyricsBackground');
     if (lyricsBackground) {
         lyricsBackground.style.display = 'none';
@@ -4091,8 +4103,11 @@ function closeLyricsQuiz() {
 
 function updateGameLyrics(currentTime) {
     const selectedSong = musicSelect.value;
-    const lyrics = songLyrics[selectedSong] || [];
-    if (lyrics.length === 0) return; // 無歌詞，直接返回
+    // 【核心修正】從 songLyrics[selectedSong].lyrics 來獲取歌詞陣列
+    const songData = songLyrics[selectedSong];
+    const lyrics = (songData && songData.lyrics) ? songData.lyrics : [];
+    
+    if (lyrics.length === 0) return;
 
     let currentIndex = -1;
     for (let i = 0; i < lyrics.length; i++) {
@@ -4104,6 +4119,7 @@ function updateGameLyrics(currentTime) {
     }
 
     const lyricsBackground = document.getElementById('lyricsBackground');
+    if (lyricsBackground) {
     if (lyricsBackground) {
         lyricsBackground.innerHTML = ''; // 清空舊內容
         const currentLyric = (currentIndex >= 0 && lyrics[currentIndex]) ? lyrics[currentIndex].text : '';
@@ -4611,36 +4627,57 @@ ocument.getElementById('cdCoverImage').classList.remove('playing'); // 新增：
                 return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
             }
 
-            function playSong(index) {
+           function playSong(index) {
     if (index < 0 || index >= playlistItems.length) return;
     
-    // 檢查歌曲是否被停用
     const playlistItem = playlist.children[index];
     if (playlistItem && playlistItem.dataset.enabled === 'false') {
         console.log('歌曲已被停用，跳過播放');
         return;
     }
     
-    // Check if the song is unlocked before playing
     const songToPlay = playlistItems[index];
     if (!isSongUnlocked(songToPlay.url)) {
         console.warn(`嘗試播放未解鎖的歌曲: ${songToPlay.title}`);
-        return; // Do not play if not unlocked
+        return;
     }
 
-                currentPlaylistIndex = index;
-                const song = playlistItems[index];
-                playerAudio.src = song.url;
-                playerAudio.volume = volumeSliderPlayer.value;
-                nowPlaying.textContent = `正在播放: ${song.title}`;
-updateCdCover(song.url); // 更新 CD 封面
-                lyrics = songLyrics[song.url] || [];
-                updateLyricsContainer();
-                updatePlayerUI();
-document.getElementById('cdCoverImage').classList.add('playing'); // 開始旋轉
-playerAudio.play().catch(e => console.error("播放器播放失敗:", e));
-savePlayerSettings(); // 保存當前播放狀態
-            }
+    currentPlaylistIndex = index;
+    const song = playlistItems[index];
+    playerAudio.src = song.url;
+    playerAudio.volume = volumeSliderPlayer.value;
+    nowPlaying.textContent = `正在播放: ${song.title}`;
+    updateCdCover(song.url);
+    
+    // 【核心修正】從 song.url 對應的 .lyrics 屬性獲取歌詞
+    const songData = songLyrics[song.url];
+    lyrics = (songData && songData.lyrics) ? songData.lyrics : [];
+
+    updateLyricsContainer();
+    updatePlayerUI();
+    document.getElementById('cdCoverImage').classList.add('playing');
+    playerAudio.play().catch(e => console.error("播放器播放失敗:", e));
+    savePlayerSettings();
+}
+
+function updateLyrics(currentTime) {
+    // 【核心修正】這裡的 lyrics 變數已經在 playSong() 中被正確賦值，所以無需修改
+    if (lyrics.length === 0) return;
+    let activeIndex = -1;
+    for (let i = 0; i < lyrics.length; i++) {
+        if (lyrics[i].time <= currentTime) {
+            activeIndex = i;
+        } else {
+            break;
+        }
+    }
+    document.querySelectorAll('.lyric-line').forEach((line, i) => {
+        line.classList.toggle('active', i === activeIndex);
+        if (i === activeIndex) {
+            line.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+}
 
 // 在現有函數之前新增這兩個輔助函數
 function findNextEnabledSong(currentIndex) {
