@@ -4080,7 +4080,6 @@ function startLyricsQuiz(unlockType, unlockValue, songUrlForQuiz) {
     lyricsQuizModal.classList.add('active');
     displayNextQuizQuestion();
 }
-
 /**
  * 顯示下一個測驗問題
  */
@@ -4199,6 +4198,7 @@ function checkAndShowQuizOrInfo(songUrl, difficulty, pureHitScore) {
         if (hasLyrics) {
             startLyricsQuiz(potentialUnlock.type, potentialUnlock.value, songUrl);
         } else {
+            // 如果沒有歌詞，直接解鎖
             unlockNextSong(potentialUnlock.value);
         }
         return; 
@@ -4225,11 +4225,11 @@ function checkAndShowQuizOrInfo(songUrl, difficulty, pureHitScore) {
          if (hasLyrics) {
             startLyricsQuiz(potentialUnlock.type, potentialUnlock.value, songUrl);
          } else {
+            // 如果沒有歌詞，直接解鎖
             unlockDifficulty(potentialUnlock.value.song, potentialUnlock.value.difficulty);
          }
     }
 }
-// ▲▲▲ 新增函數結束 ▲▲▲
 
 
             
