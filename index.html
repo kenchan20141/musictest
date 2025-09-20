@@ -2183,6 +2183,180 @@
         opacity: 0;
     }
 }
+
+        /* ====== 【新增】歌詞填充測驗視窗樣式 ====== */
+.lyrics-quiz-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2500; /* 確保在最頂層 */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+    backdrop-filter: blur(5px);
+}
+
+.lyrics-quiz-modal.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.quiz-content {
+    background: linear-gradient(145deg, #1e1e3f, #10182b);
+    padding: 30px 40px;
+    border-radius: 20px;
+    text-align: center;
+    max-width: 500px;
+    width: 90%;
+    position: relative;
+    border: 1px solid rgba(0, 201, 255, 0.3);
+    box-shadow: 0 0 30px rgba(0, 201, 255, 0.3);
+    transform: scale(0.9);
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.4s ease;
+}
+
+.lyrics-quiz-modal.active .quiz-content {
+    transform: scale(1);
+    opacity: 1;
+}
+
+.quiz-title {
+    font-size: 2rem;
+    color: #ffcc00;
+    margin-bottom: 10px;
+    text-shadow: 0 0 8px rgba(255, 204, 0, 0.7);
+}
+
+.quiz-instructions {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 15px;
+}
+
+.quiz-progress {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 8px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #93F9B9;
+    transition: all 0.3s ease;
+}
+
+.quiz-question-container {
+    margin: 25px 0;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#quizQuestionText {
+    font-size: 1.5rem;
+    color: #e0e0e0;
+    line-height: 1.6;
+    letter-spacing: 2px; /* 增加文字間距以提升可讀性 */
+}
+
+.quiz-answer-input {
+    width: 100%;
+    padding: 12px 15px;
+    font-size: 1.2rem;
+    border-radius: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(0, 0, 0, 0.4);
+    color: #fff;
+    text-align: center;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.quiz-answer-input:focus {
+    outline: none;
+    border-color: #00c9ff;
+    box-shadow: 0 0 15px rgba(0, 201, 255, 0.5);
+}
+
+/* 答題回饋樣式 */
+.quiz-answer-input.correct {
+    border-color: #93F9B9;
+    box-shadow: 0 0 15px rgba(147, 249, 185, 0.6);
+}
+
+.quiz-answer-input.incorrect {
+    border-color: #ff3366;
+    box-shadow: 0 0 15px rgba(255, 51, 102, 0.6);
+    animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-8px); }
+    20%, 40%, 60%, 80% { transform: translateX(8px); }
+}
+
+.quiz-submit-btn {
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #fff;
+    background: linear-gradient(45deg, #00c9ff, #92fe9d);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.quiz-submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 201, 255, 0.4);
+}
+
+.quiz-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 2rem;
+    cursor: pointer;
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.quiz-close-btn:hover {
+    color: #fff;
+    transform: rotate(90deg);
+}
+
+/* 響應式設計 */
+@media (max-width: 480px) {
+    .quiz-content {
+        padding: 20px;
+    }
+    .quiz-title {
+        font-size: 1.6rem;
+    }
+    #quizQuestionText {
+        font-size: 1.2rem;
+    }
+    .quiz-answer-input {
+        font-size: 1rem;
+        padding: 10px;
+    }
+}
         
     </style>
 </head>
@@ -2785,6 +2959,23 @@ const songCovers = {
             // ▲▲▲ 修訂結束 ▲▲▲
             // ▲▲▲ 新增結束 ▲▲▲
 
+
+// --- 【新增】測驗相關的狀態變數 ---
+let isQuizActive = false;
+let quizQuestions = [];
+let currentQuizQuestion = null; // 儲存當前的問題物件
+let consecutiveCorrectAnswers = 0;
+const QUIZ_SUCCESS_THRESHOLD = 3;
+let quizUnlockTarget = null; // 用於儲存測驗成功後要解鎖的目標
+
+// --- 【新增】獲取測驗視窗的 DOM 元素 ---
+const lyricsQuizModal = document.getElementById('lyricsQuizModal');
+const quizProgress = document.getElementById('quizProgress');
+const quizQuestionText = document.getElementById('quizQuestionText');
+const quizAnswerInput = document.getElementById('quizAnswerInput');
+const quizSubmitBtn = document.getElementById('quizSubmitBtn');
+const quizCloseBtn = document.getElementById('quizCloseBtn');
+            
             // --- Game State Variables ---
             let gameActive = false;
 let maxScoreForCurrentLevel = 0; // ▼▼▼ 新增狀態變數
@@ -3803,7 +3994,246 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                 }
             }
 
-       function endGame() {
+
+            // ▼▼▼ 【新增】所有與歌詞測驗相關的新函數 ▼▼▼
+
+/**
+ * 根據歌曲 URL 生成填充題
+ * @param {string} songUrl - 歌曲的檔案名稱
+ * @returns {Array} - 一個包含問題物件的陣列，例如 [{ question: "...", answer: "..." }]
+ */
+function generateQuizQuestions(songUrl) {
+    const songLyricsForQuiz = songLyrics[songUrl];
+    if (!songLyricsForQuiz || songLyricsForQuiz.length === 0) {
+        return []; // 如果這首歌沒有歌詞，返回空陣列
+    }
+
+    const generatedQuestions = [];
+    const usedLines = new Set(); // 確保不會重複使用同一句歌詞
+
+    // 嘗試從歌詞中生成最多 10 個獨特的問題
+    while (generatedQuestions.length < 10 && usedLines.size < songLyricsForQuiz.length) {
+        let randomIndex;
+        do {
+            randomIndex = Math.floor(Math.random() * songLyricsForQuiz.length);
+        } while (usedLines.has(randomIndex));
+        
+        const line = songLyricsForQuiz[randomIndex].text;
+        usedLines.add(randomIndex);
+
+        // 使用正則表達式找出歌詞中 2 到 4 個字的中文詞語作為答案選項
+        const words = line.match(/[\u4e00-\u9fa5]{2,4}/g) || [];
+
+        if (words.length > 0) {
+            // 從找到的詞語中隨機選一個作為答案
+            const answer = words[Math.floor(Math.random() * words.length)];
+            const questionText = line.replace(answer, '____');
+            
+            // 確保問題已成功生成（替換前後文本不同）
+            if (questionText !== line) {
+                 generatedQuestions.push({
+                    question: questionText,
+                    answer: answer
+                });
+            }
+        }
+    }
+    
+    // 如果無法生成任何問題（例如歌詞太短或格式特殊），則創建一個備用問題
+    if (generatedQuestions.length === 0 && songLyricsForQuiz.length > 0) {
+         const fallbackLine = songLyricsForQuiz[0].text;
+         if (fallbackLine.length > 2) {
+             const answer = fallbackLine.substring(0, 2);
+             const question = '____' + fallbackLine.substring(2);
+             generatedQuestions.push({ question, answer });
+         }
+    }
+    
+    return generatedQuestions;
+}
+
+/**
+ * 開始歌詞填充測驗
+ * @param {string} unlockType - 'song' 或 'difficulty'
+ * @param {any} unlockValue - 要解鎖的目標值
+ * @param {string} songUrlForQuiz - 用於生成測驗題目的歌曲 URL
+ */
+function startLyricsQuiz(unlockType, unlockValue, songUrlForQuiz) {
+    quizQuestions = generateQuizQuestions(songUrlForQuiz);
+
+    // 如果歌曲沒有歌詞，無法出題，則直接解鎖
+    if (quizQuestions.length === 0) {
+        console.warn(`歌曲 ${songUrlForQuiz} 沒有歌詞或無法生成題目，自動授予解鎖。`);
+        if (unlockType === 'song') {
+            unlockNextSong(unlockValue);
+        } else if (unlockType === 'difficulty') {
+            unlockDifficulty(unlockValue.song, unlockValue.difficulty);
+        }
+        return;
+    }
+
+    isQuizActive = true;
+    quizUnlockTarget = { type: unlockType, value: unlockValue };
+    consecutiveCorrectAnswers = 0;
+    
+    lyricsQuizModal.classList.add('active');
+    displayNextQuizQuestion();
+}
+
+/**
+ * 顯示下一個測驗問題
+ */
+function displayNextQuizQuestion() {
+    if (quizQuestions.length === 0) {
+        endQuiz(false); // 沒有問題了，結束測驗
+        return;
+    }
+    
+    const questionIndex = Math.floor(Math.random() * quizQuestions.length);
+    currentQuizQuestion = quizQuestions[questionIndex];
+
+    quizQuestionText.textContent = currentQuizQuestion.question;
+    quizProgress.textContent = `連續答對: ${consecutiveCorrectAnswers} / ${QUIZ_SUCCESS_THRESHOLD}`;
+    quizAnswerInput.value = '';
+    quizAnswerInput.classList.remove('correct', 'incorrect');
+    quizAnswerInput.focus();
+}
+
+/**
+ * 檢查玩家提交的答案
+ */
+function checkQuizAnswer() {
+    if (!isQuizActive || !currentQuizQuestion) return;
+
+    const userAnswer = quizAnswerInput.value.trim();
+    const correctAnswer = currentQuizQuestion.answer;
+
+    quizAnswerInput.classList.remove('correct', 'incorrect');
+
+    if (userAnswer === correctAnswer) {
+        consecutiveCorrectAnswers++;
+        quizAnswerInput.classList.add('correct');
+        
+        // 答對後，等待一小段時間讓玩家看到回饋，再進行下一步
+        setTimeout(() => {
+            if (consecutiveCorrectAnswers >= QUIZ_SUCCESS_THRESHOLD) {
+                endQuiz(true); // 達到目標，成功結束測驗
+            } else {
+                displayNextQuizQuestion(); // 繼續下一題
+            }
+        }, 800);
+    } else {
+        consecutiveCorrectAnswers = 0; // 答錯，連續紀錄歸零
+        quizAnswerInput.classList.add('incorrect');
+        
+        // 答錯後，等待較長時間，再顯示新題目
+        setTimeout(() => {
+            displayNextQuizQuestion();
+        }, 1200);
+    }
+    quizProgress.textContent = `連續答對: ${consecutiveCorrectAnswers} / ${QUIZ_SUCCESS_THRESHOLD}`;
+}
+
+/**
+ * 結束測驗
+ * @param {boolean} success - 測驗是否成功
+ */
+function endQuiz(success) {
+    isQuizActive = false;
+    lyricsQuizModal.classList.remove('active');
+
+    if (success) {
+        // 如果成功，則執行真正的解鎖操作
+        const { type, value } = quizUnlockTarget;
+        if (type === 'song') {
+            unlockNextSong(value); 
+        } else if (type === 'difficulty') {
+            unlockDifficulty(value.song, value.difficulty);
+        }
+    } else {
+        // 如果失敗或中途關閉，顯示提示訊息
+        showNotification('info', '解鎖失敗', '歌詞測驗未完成，下次請再接再厲！');
+    }
+
+    // 重置測驗狀態
+    quizQuestions = [];
+    currentQuizQuestion = null;
+    consecutiveCorrectAnswers = 0;
+    quizUnlockTarget = null;
+}
+
+/**
+ * 【核心修訂】檢查是否達到解鎖條件，並觸發測驗或顯示提示
+ * @param {string} songUrl - 當前歌曲 URL
+ * @param {string} difficulty - 當前難度
+ * @param {number} pureHitScore - 純粹的擊打分數
+ */
+function checkAndShowQuizOrInfo(songUrl, difficulty, pureHitScore) {
+    const hasLyrics = songLyrics[songUrl] && songLyrics[songUrl].length > 0;
+    let potentialUnlock = null;
+
+    // 檢查1: 是否滿足解鎖新歌曲的條件 (僅限普通難度)
+    if (difficulty === 'normal') {
+        const allSongs = Array.from(musicSelect.options).map(opt => opt.value);
+        const lastUnlockedSong = saveData.unlockedSongs[saveData.unlockedSongs.length - 1];
+        if (songUrl === lastUnlockedSong) {
+            const currentIndex = allSongs.indexOf(lastUnlockedSong);
+            if (currentIndex >= 0 && currentIndex < allSongs.length - 1) {
+                const nextSong = allSongs[currentIndex + 1];
+                if (!isSongUnlocked(nextSong)) {
+                    const requiredScore = maxScoreForCurrentLevel * SONG_UNLOCK_PERCENTAGE;
+                    if (pureHitScore >= requiredScore) {
+                        potentialUnlock = { type: 'song', value: songUrl };
+                    } else {
+                        const remainingScore = Math.ceil(requiredScore - pureHitScore);
+                        showNotification('info', '目標差一點！', `您在「普通」難度下還差 <strong>${remainingScore.toLocaleString()}</strong> 分就能解鎖下一首歌曲了。再加把勁！`, 6000);
+                    }
+                }
+            }
+        }
+    }
+
+    // 如果已滿足解鎖歌曲條件，優先處理它
+    if (potentialUnlock) {
+        if (hasLyrics) {
+            startLyricsQuiz(potentialUnlock.type, potentialUnlock.value, songUrl);
+        } else {
+            unlockNextSong(potentialUnlock.value);
+        }
+        return; 
+    }
+
+    // 檢查2: 是否滿足解鎖「困難」難度的條件
+    if (difficulty === 'normal' && !isDifficultyUnlocked(songUrl, 'hard')) {
+        const requiredScore = maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE;
+        if (pureHitScore >= requiredScore) {
+            potentialUnlock = { type: 'difficulty', value: { song: songUrl, difficulty: 'hard' } };
+        }
+    }
+
+    // 檢查3: 是否滿足解鎖「地獄」難度的條件
+    if (difficulty === 'hard' && !isDifficultyUnlocked(songUrl, 'hell')) {
+        const requiredScore = maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE;
+        if (pureHitScore >= requiredScore) {
+            potentialUnlock = { type: 'difficulty', value: { song: songUrl, difficulty: 'hell' } };
+        }
+    }
+    
+    // 如果滿足解鎖難度的條件，觸發測驗
+    if (potentialUnlock) {
+         if (hasLyrics) {
+            startLyricsQuiz(potentialUnlock.type, potentialUnlock.value, songUrl);
+         } else {
+            unlockDifficulty(potentialUnlock.value.song, potentialUnlock.value.difficulty);
+         }
+    }
+}
+// ▲▲▲ 新增函數結束 ▲▲▲
+
+
+            
+    // ▼▼▼ 【修訂】請用這段程式碼「完整替換」掉你舊的 endGame 函數 ▼▼▼
+function endGame() {
     gameActive = false;
     audio.pause();
     audio.currentTime = 0;
@@ -3814,8 +4244,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     musicSelect.disabled = false;
     difficultySelect.disabled = false;
 
-    mainGameContainer.classList.remove('game-running'); 
-    // 修訂：移除設置高度為 '0%' 的代碼，只重設寬度（修復下次遊戲無法顯示的BUG）
+    mainGameContainer.classList.remove('game-running');
     unlockProgressBar.style.width = '0%';
     unlockProgressBar.classList.remove('glowing');
 
@@ -3825,40 +4254,22 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     notes.forEach(note => note.element.remove());
     notes = [];
 
-    // --- Post-Game Logic ---
+    // --- 遊戲後續處理 ---
     const selectedSong = musicSelect.value;
     const selectedDifficulty = difficultySelect.value;
     updatePersonalHighScore(selectedSong, selectedDifficulty, score);
 
-    // 步驟 1: 獨立檢查歌曲解鎖 (僅限普通難度)
-    if (selectedDifficulty === 'normal') {
-        const requiredScoreToUnlock = maxScoreForCurrentLevel * SONG_UNLOCK_PERCENTAGE;
-        if (pureHitScore >= requiredScoreToUnlock) {
-            unlockNextSong(selectedSong);
-        } else {
-            const remainingScore = Math.ceil(requiredScoreToUnlock - pureHitScore);
-            const allSongs = Array.from(musicSelect.options).map(opt => opt.value);
-            const isLastSong = saveData.unlockedSongs.length === allSongs.length;
-            if (!isLastSong) {
-                showNotification('info', '目標差一點！', `您在「普通」難度下還差 <strong>${remainingScore.toLocaleString()}</strong> 分就能解鎖下一首歌曲了。再加把勁！`, 6000);
-            }
-        }
-    }
+    // 【核心修訂】呼叫統一的檢查函數，它將負責判斷是否需要啟動測驗
+    checkAndShowQuizOrInfo(selectedSong, selectedDifficulty, pureHitScore);
 
-    // 步驟 2: 獨立檢查難度解鎖 (傳入正確的 pureHitScore)
-    checkAndUnlockDifficulties(selectedSong, selectedDifficulty, pureHitScore);
-
-    // 步驟 3: 顯示結束畫面
+    // 無論是否解鎖，都顯示遊戲結束畫面
     showGameOver();
 
-    // 新增：清空遊戲歌詞顯示
-    const lyricsLeft = document.querySelector('.lyrics-left');
-    const lyricsRight = document.querySelector('.lyrics-right');
-    if (lyricsLeft && lyricsRight) {
-        lyricsLeft.textContent = '';
-        lyricsRight.textContent = '';
-        lyricsLeft.classList.add('hidden');
-        lyricsRight.classList.add('hidden');
+    // 清理遊戲中的歌詞背景
+    const lyricsBackground = document.getElementById('lyricsBackground');
+    if (lyricsBackground) {
+        lyricsBackground.style.display = 'none';
+        lyricsBackground.innerHTML = '';
     }
 }
 
@@ -4657,6 +5068,20 @@ nextBtn.addEventListener('click', () => {
             populatePersonalHighScoreList(musicSelect.value); // Show scores for initially selected song
             initGame();
 
+            // 【新增】綁定測驗視窗的按鈕事件
+quizSubmitBtn.addEventListener('click', checkQuizAnswer);
+quizAnswerInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        e.preventDefault(); // 防止表單提交的預設行為
+        checkQuizAnswer();
+    }
+});
+quizCloseBtn.addEventListener('click', () => {
+    if (isQuizActive) {
+        endQuiz(false); // 玩家手動關閉視窗，視為測驗失敗
+    }
+});
+
 
 // 為版權聲明按鈕添加事件監聽器
 const showDisclaimerBtn = document.getElementById('showDisclaimerBtn');
@@ -4701,6 +5126,23 @@ disclaimerModal.addEventListener('click', (e) => {
     </div>
 </div>
 
+<!-- ▼▼▼ 【新增】歌詞填充測驗視窗 ▼▼▼ -->
+<div class="lyrics-quiz-modal" id="lyricsQuizModal">
+    <div class="quiz-content">
+        <h2 class="quiz-title">歌詞填充測驗</h2>
+        <p class="quiz-instructions">連續答對三題即可解鎖新內容！</p>
+        <div class="quiz-progress" id="quizProgress">連續答對: 0 / 3</div>
+        <div class="quiz-question-container">
+            <p id="quizQuestionText"></p>
+        </div>
+        <input type="text" id="quizAnswerInput" class="quiz-answer-input" placeholder="請在此輸入答案..." autocomplete="off">
+        <button id="quizSubmitBtn" class="quiz-submit-btn">提交答案</button>
+        <button id="quizCloseBtn" class="quiz-close-btn">&times;</button>
+    </div>
+</div>
+<!-- ▲▲▲ 新增結束 ▲▲▲ -->
+
+    
 
 </body>
 </html>
