@@ -3238,46 +3238,47 @@ closeNotification.addEventListener('click', () => {
                 notes.push(noteObj);
             }
 
-            function createHitParticles(trackIndex, judgment) {
-                const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
-                if (!track) return;
-                
-                // 根據判定等級調整粒子數量和顏色
-                const particleCount = (judgment === 'perfect') ? 20 : (judgment === 'great' ? 15 : 10);
-                const maxOffset = (judgment === 'perfect') ? 100 : (judgment === 'great' ? 80 : 60);
-                
-                const colors = {
-                    perfect: '#ffcc00',
-                    great: '#00ccff',
-                    good: '#00ff99'
-                };
-                
-                for (let i = 0; i < particleCount; i++) {
-                    const particle = document.createElement('div');
-                    particle.className = 'hit-particle';
-                    particle.style.background = colors[judgment] || '#fff';
-                    
-                    // 隨機化尺寸
-                    const size = Math.floor(8 + Math.random() * 8);
-                    particle.style.setProperty('--size', `${size}px`);
-                    
-                    // 隨機化噴射路徑
-                    const x = (Math.random() - 0.5) * maxOffset * 2;
-                    const y = (Math.random() * -maxOffset) - 20;
-                    particle.style.setProperty('--x', `${x}px`);
-                    particle.style.setProperty('--y', `${y}px`);
-                    
-                    // 隨機化旋轉角度
-                    const rot = Math.random() * 360;
-                    const rotEnd = rot + (Math.random() * 720 - 360);
-                    particle.style.setProperty('--rot', `${rot}deg`);
-                    particle.style.setProperty('--rot-end', `${rotEnd}deg`);
-                    
-                    particle.style.left = `calc(50% - ${size / 2}px)`;
-                    track.appendChild(particle);
-                    setTimeout(() => particle.remove(), 600); // 匹配動畫時長後移除
-                }
-            }
+           function createHitParticles(trackIndex, judgment) {
+    const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
+    if (!track) return;
+    
+    // 根據等級調整粒子數和範圍
+    const particleCount = (judgment === 'perfect') ? 20 : (judgment === 'great' ? 15 : 10);
+    const maxOffset = (judgment === 'perfect') ? 100 : (judgment === 'great' ? 80 : 60); // 更大範圍
+    
+    const colors = {
+        perfect: '#ffcc00',
+        great: '#00ccff',
+        good: '#00ff99'
+    };
+    
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'hit-particle';
+        particle.style.background = colors[judgment] || '#fff';
+        
+        // 隨機尺寸（8-15px）
+        const size = Math.floor(8 + Math.random() * 8);
+        particle.style.setProperty('--size', `${size}px`);
+        
+        // 隨機位置（更大範圍）
+        const x = (Math.random() - 0.5) * maxOffset * 2;
+        const y = (Math.random() * -maxOffset) - 20;
+        particle.style.setProperty('--x', `${x}px`);
+        particle.style.setProperty('--y', `${y}px`);
+        
+        // 隨機旋轉（開始和結束）
+        const rot = Math.random() * 360;
+        const rotEnd = rot + (Math.random() * 720 - 360); // 隨機轉1-2圈
+        particle.style.setProperty('--rot', `${rot}deg`);
+        particle.style.setProperty('--rot-end', `${rotEnd}deg`);
+        
+        particle.style.left = `calc(50% - ${size / 2}px)`;
+        track.appendChild(particle);
+        setTimeout(() => particle.remove(), 600); // 匹配動畫時間
+    }
+}
+
 function explodeNote(noteElement, judgment) {
     if (!noteElement) return;
     
@@ -3327,85 +3328,74 @@ function explodeNote(noteElement, judgment) {
 
             
 
-   function judgeHit(trackIndex, type) {
-                const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
-                if (sounds[type]) {
-                    sounds[type]();
-                }
+     function judgeHit(trackIndex, type) {
+    if (sounds[type]) {
+        sounds[type]();
+    }
+    const judgment = document.createElement('div');
+    judgment.className = `judgment ${type}`;
+    judgment.textContent = `${type.toUpperCase()}!`;
+    const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
+    if (track) {
+        track.appendChild(judgment);
+        judgment.style.left = '0';
+        judgment.style.width = '100%';
+        judgment.style.textAlign = 'center';
+    }
+    setTimeout(() => {
+        if (judgment && judgment.parentNode) {
+            judgment.remove();
+        }
+    }, 1000);
 
-                // 創建並顯示判定文字 (Perfect, Great, etc.)
-                const judgment = document.createElement('div');
-                judgment.className = `judgment ${type}`;
-                judgment.textContent = `${type.toUpperCase()}!`;
-                if (track) {
-                    track.appendChild(judgment);
-                    judgment.style.left = '0';
-                    judgment.style.width = '100%';
-                    judgment.style.textAlign = 'center';
-                }
-                setTimeout(() => {
-                    if (judgment && judgment.parentNode) {
-                        judgment.remove();
-                    }
-                }, 1000);
+    if (type !== 'miss') {
+        // 修 BUG：直接觸發效果，而非遞迴呼叫 judgeHit
+        // 加強粒子：根據等級增加數量
+        const particleCount = (type === 'perfect') ? 15 : (type === 'great' ? 10 : 7);
+        createHitParticles(trackIndex, type, particleCount);
 
-                // 處理非 'miss' 的成功打擊
-                if (type !== 'miss') {
-                    // 觸發粒子效果
-                    createHitParticles(trackIndex, type);
+        const hitLine = track.querySelector('.hit-line');
+        if (hitLine) {
+            hitLine.classList.remove('pulse-effect');
+            void hitLine.offsetWidth;
+            hitLine.classList.add('pulse-effect');
+        }
 
-                    // 觸發打擊線的脈衝動畫
-                    const hitLine = track.querySelector('.hit-line');
-                    if (hitLine) {
-                        hitLine.classList.remove('pulse-effect');
-                        void hitLine.offsetWidth; // 強制瀏覽器重繪
-                        hitLine.classList.add('pulse-effect');
-                    }
-
-                    // 【新功能】根據判定等級觸發不同的軌道閃光效果
-                    if (track) {
-                        track.classList.remove('flash-perfect', 'flash-great', 'flash-good');
-                        void track.offsetWidth;
-                        if (type === 'perfect') {
-                            track.classList.add('flash-perfect');
-                        } else if (type === 'great') {
-                            track.classList.add('flash-great');
-                        } else if (type === 'good') {
-                            track.classList.add('flash-good');
-                        }
-                    }
-
-                    // 【新功能】觸發裝置震動回饋，不同判定有不同強度
-                    if (navigator.vibrate) {
-                        let vibrationPattern;
-                        if (type === 'perfect') {
-                            vibrationPattern = [70]; // 短促有力的震動
-                        } else if (type === 'great') {
-                            vibrationPattern = [50]; // 中等震動
-                        } else if (type === 'good') {
-                            vibrationPattern = [30]; // 輕微震動
-                        }
-                        if (vibrationPattern) {
-                            navigator.vibrate(vibrationPattern);
-                        }
-                    }
-                    
-                    // 【關鍵修復】計算基礎分數並呼叫 addScore
-                    let baseScore = 0;
-                    if (type === 'perfect') baseScore = 100;
-                    else if (type === 'great') baseScore = 70;
-                    else if (type === 'good') baseScore = 40;
-                    addScore(baseScore);
-
-                } else {
-                    // 處理 'miss' 的情況
-                    combo = 0;
-                    const difficulty = getCurrentDifficulty();
-                    trackCooldownUntil[trackIndex] = Date.now() + difficulty.cooldown;
-                }
-
-                updateUI();
+        // 新增：軌道閃光效果（根據判斷等級添加顏色 class）
+        if (track) {
+            track.classList.remove('flash-perfect', 'flash-great', 'flash-good'); // 先移除舊 class
+            void track.offsetWidth; // 強制重繪
+            if (type === 'perfect') {
+                track.classList.add('flash-perfect');
+            } else if (type === 'great') {
+                track.classList.add('flash-great');
+            } else if (type === 'good') {
+                track.classList.add('flash-good');
             }
+        }
+
+ 
+
+        // 觸發裝置震動（調整 PERFECT 為更短）
+        if (navigator.vibrate) {
+            let vibrationPattern;
+            if (type === 'perfect') {
+                vibrationPattern = [70];  // 縮短：總 170ms
+            } else if (type === 'great') {
+                vibrationPattern = [50];  // 減弱：單一較短震動
+            } else if (type === 'good') {
+                vibrationPattern = [30];  // 減弱：單一更短震動
+            }
+            navigator.vibrate(vibrationPattern);
+            addScore(baseScore);
+        }
+    } else {
+        combo = 0;
+        const difficulty = getCurrentDifficulty();
+        trackCooldownUntil[trackIndex] = Date.now() + difficulty.cooldown;
+    }
+    updateUI();
+}
 
             function addScore(baseScore) {
                 combo++;
@@ -3442,29 +3432,12 @@ updateUnlockMeter(); // ▼▼▼ 在 addScore 結尾呼叫新函數
             }
 
  // ▼▼▼ 新增的函數 ▼▼▼
+           // ▼▼▼ 修正後的函數 ▼▼▼
 function updateUnlockMeter() {
-                if (maxScoreForCurrentLevel <= 0) {
-                    // 增加警告以防止 maxScoreForCurrentLevel 未被正確計算的邊緣情況
-                    console.warn('maxScoreForCurrentLevel is 0 or less, unlock progress cannot be calculated.');
-                    return;
-                }
-
-                // 使用 pureHitScore（純粹打擊分數）來計算進度百分比
-                const currentPercent = Math.min(100, (pureHitScore / maxScoreForCurrentLevel) * 100);
-                unlockProgressBar.style.width = `${currentPercent}%`;
-
-                // 檢查是否同時超過歌曲和難度的解鎖門檻來觸發發光
-                // 這裡我們以較低的歌曲解鎖門檻為主要發光依據，你也可以改為較高的難度門檻
-                const songUnlockThreshold = SONG_UNLOCK_PERCENTAGE * 100;
-                const difficultyUnlockThreshold = DIFFICULTY_UNLOCK_PERCENTAGE * 100;
-
-                // 當進度超過任一門檻時都可以發光，或者你可以選擇只在超過較高門檻時發光
-                if (currentPercent >= songUnlockThreshold || currentPercent >= difficultyUnlockThreshold) {
-                    unlockProgressBar.classList.add('glowing');
-                } else {
-                    unlockProgressBar.classList.remove('glowing');
-                }
-            }
+if (maxScoreForCurrentLevel <= 0) {
+    console.warn('maxScoreForCurrentLevel 計算異常，使用預設值');
+    maxScoreForCurrentLevel = 300000; // 預防邊緣情況（無音符）
+}
 
     
     if (maxScoreForCurrentLevel === 0) return;
