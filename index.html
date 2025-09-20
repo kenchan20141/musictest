@@ -571,6 +571,32 @@
                 opacity: 0;
             }
         }
+
+
+.note-particle {
+    position: absolute;
+    width: var(--size, 8px); /* 隨機尺寸，由 JS 設定 */
+    height: var(--size, 8px);
+    border-radius: 30%; /* 略圓，模擬音符碎片 */
+    pointer-events: none;
+    z-index: 30;
+    opacity: 1;
+    animation: noteDecompose 0.5s ease-out forwards; /* 短暫分解動畫 */
+    transform: rotate(var(--rot, 0deg)); /* 隨機旋轉 */
+}
+
+@keyframes noteDecompose {
+    0% {
+        transform: translate(0, 0) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--x)) translate(var(--y)) scale(0.2) rotate(var(--rot-end, 360deg)); /* 縮小 + 旋轉 + 飛散 */
+        opacity: 0;
+    }
+}
+
+        
         /* Touch Controls - Positioned in flow, not fixed */
         .touch-controls {
             display: none; /* [修訂] 預設隱藏，由 JS 控制顯示 */
@@ -3258,6 +3284,55 @@ closeNotification.addEventListener('click', () => {
     }
 }
 
+function explodeNote(noteElement, judgment) {
+    if (!noteElement) return;
+    
+    // 獲取音符當前位置（rect）
+    const rect = noteElement.getBoundingClientRect();
+    const trackRect = tracksContainer.getBoundingClientRect();
+    const particleCount = (judgment === 'perfect') ? 20 : (judgment === 'great' ? 15 : 10); // 分解粒子數
+    const maxOffset = 80; // 分解範圍
+    
+    const colors = {
+        perfect: '#ffcc00',
+        great: '#00ccff',
+        good: '#00ff99'
+    };
+    
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'note-particle';
+        particle.style.background = colors[judgment] || '#fff';
+        
+        // 隨機尺寸（4-12px，較小以模擬碎片）
+        const size = Math.floor(4 + Math.random() * 9);
+        particle.style.setProperty('--size', `${size}px`);
+        
+        // 隨機飛散位置（從音符中心）
+        const x = (Math.random() - 0.5) * maxOffset * 2;
+        const y = (Math.random() - 0.5) * maxOffset * 2; // 上下左右飛散
+        particle.style.setProperty('--x', `${x}px`);
+        particle.style.setProperty('--y', `${y}px`);
+        
+        // 隨機旋轉
+        const rot = Math.random() * 360;
+        const rotEnd = rot + (Math.random() * 720 - 360);
+        particle.style.setProperty('--rot', `${rot}deg`);
+        particle.style.setProperty('--rot-end', `${rotEnd}deg`);
+        
+        // 定位到音符中心
+        particle.style.left = `${rect.left - trackRect.left + rect.width / 2 - size / 2}px`;
+        particle.style.top = `${rect.top - trackRect.top + rect.height / 2 - size / 2}px`;
+        
+        tracksContainer.appendChild(particle); // 加到 tracksContainer 以全域定位
+        setTimeout(() => particle.remove(), 500); // 匹配動畫時間
+    }
+}
+
+
+
+            
+
      function judgeHit(trackIndex, type) {
     if (sounds[type]) {
         sounds[type]();
@@ -4043,22 +4118,24 @@ function endGame() {
                             }
                         }
                     });
-                    if (hitNote && minDistance < 50) {
-                        let judgment;
-                        if (minDistance < 15) judgment = 'perfect';
-                        else if (minDistance < 30) judgment = 'great';
-                        else judgment = 'good';
-                        if (hitNote.type === 'long') {
-                            hitNote.hitStarted = true;
-                            hitNote.element.classList.add('held');
-                            judgeHit(trackIndex, judgment);
-                        } else {
-                            hitNote.active = false;
-                            hitNote.element.remove();
-                            notes.splice(hitIndex, 1);
-                            judgeHit(trackIndex, judgment);
-                        }
-                    } else {
+                   if (hitNote && minDistance < 50) {
+    let judgment;
+    if (minDistance < 15) judgment = 'perfect';
+    else if (minDistance < 30) judgment = 'great';
+    else judgment = 'good';
+    if (hitNote.type === 'long') {
+        hitNote.hitStarted = true;
+        hitNote.element.classList.add('held');
+        judgeHit(trackIndex, judgment);
+        explodeNote(hitNote.element, judgment); // 新增：長音符按下時分解粒子
+    } else {
+        hitNote.active = false;
+        explodeNote(hitNote.element, judgment); // 新增：短音符擊中時分解粒子
+        hitNote.element.remove();
+        notes.splice(hitIndex, 1);
+        judgeHit(trackIndex, judgment);
+    }
+} else {
                         // 如果按下時，沒有任何音符在可擊中範圍內，則判定為 MISS
                         judgeHit(trackIndex, 'miss');
 
