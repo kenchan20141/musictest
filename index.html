@@ -42,6 +42,7 @@
 
 .unlock-progress-bar {
     height: 100%; /* [修訂] 高度填滿容器 */
+    min-height: 12px; /* 確保即使 height=100% 時也有最小高度，避免容器塌陷 */
     width: 0%;    /* [修訂] 由 JS 控制寬度來顯示進度 */
     background: linear-gradient(90deg, #1D976C, #93F9B9); /* [修訂] 漸變方向改為 90 度 */
     transition: width 0.2s ease-out, box-shadow 0.3s ease; /* [修訂] 動畫屬性改為 width */
@@ -541,15 +542,7 @@
     50% { transform: scaleX(1.1); box-shadow: 0 0 30px 8px rgba(255, 204, 0, 1); } /* 加強陰影與縮放 */
     100% { transform: scaleX(1); box-shadow: 0 0 10px rgba(229, 46, 113, 0.7); }
 }
-        .main-game-container.shake-effect {
-            animation: screenShake 0.1s linear;
-        }
-        @keyframes screenShake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-4px); }
-            50% { transform: translateX(4px); }
-            75% { transform: translateX(-4px); }
-        }
+       
         .hit-particle {
             position: absolute;
             bottom: 100px; /* Start at hit line */
@@ -3379,10 +3372,7 @@ function explodeNote(noteElement, judgment) {
             }
         }
 
-        // 觸發畫面晃動
-        mainGameContainer.classList.remove('shake-effect');
-        void mainGameContainer.offsetWidth;
-        mainGameContainer.classList.add('shake-effect');
+ 
 
         // 觸發裝置震動（調整 PERFECT 為更短）
         if (navigator.vibrate) {
@@ -3441,6 +3431,12 @@ updateUnlockMeter(); // ▼▼▼ 在 addScore 結尾呼叫新函數
  // ▼▼▼ 新增的函數 ▼▼▼
            // ▼▼▼ 修正後的函數 ▼▼▼
 function updateUnlockMeter() {
+if (maxScoreForCurrentLevel <= 0) {
+    console.warn('maxScoreForCurrentLevel 計算異常，使用預設值');
+    maxScoreForCurrentLevel = 300000; // 預防邊緣情況（無音符）
+}
+
+    
     if (maxScoreForCurrentLevel === 0) return;
     // 核心修訂：使用 pureHitScore 來計算百分比
     const currentPercent = Math.min(100, (pureHitScore / maxScoreForCurrentLevel) * 100);
@@ -3798,7 +3794,6 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     difficultySelect.disabled = false;
 
     mainGameContainer.classList.remove('game-running'); 
-    unlockProgressBar.style.height = '0%';
     unlockProgressBar.style.width = '0%';
     unlockProgressBar.classList.remove('glowing');
 
@@ -3921,6 +3916,10 @@ async function startGame() {
 
     // ▼▼▼ 【核心修訂】無條件設定兩條合格線的位置 ▼▼▼
     mainGameContainer.classList.add('game-running'); 
+    // 初始化進度條高度和寬度，確保顯示正常
+unlockProgressBar.style.height = '100%';
+unlockProgressBar.style.width = '0%';
+unlockProgressBar.classList.remove('glowing');
     
     // 根據預設的百分比常數，設定兩條線的 left 屬性
     songUnlockMarker.style.left = `${SONG_UNLOCK_PERCENTAGE * 100}%`;
