@@ -2108,18 +2108,53 @@
     }
 }
 
-        .track.flash-effect {
-    animation: trackFlashStrong 0.3s ease-out; /* 新增強版閃光 */
+       .track.flash-effect {
+    animation: trackFlashStrong 0.3s ease-out;
 }
+/* 基礎閃光 keyframes（保持不變） */
 @keyframes trackFlashStrong {
-    0% { background-color: rgba(255, 255, 255, 0.5); } /* 更亮的閃光，從 0.35 加強到 0.5 */
+    0% { background-color: rgba(255, 255, 255, 0.5); }
     100% { background-color: rgba(255, 255, 255, 0.15); }
+}
+/* 新增顏色變體（與判斷顏色一致） */
+.track.flash-perfect { /* PERFECT: 黃 */
+    animation: trackFlashStrong 0.3s ease-out;
+    background-color: rgba(255, 204, 0, 0.5) !important; /* 起始顏色覆寫 */
+}
+.track.flash-great { /* GREAT: 藍 */
+    animation: trackFlashStrong 0.3s ease-out;
+    background-color: rgba(0, 204, 255, 0.5) !important;
+}
+.track.flash-good { /* GOOD: 綠 */
+    animation: trackFlashStrong 0.3s ease-out;
+    background-color: rgba(0, 255, 153, 0.5) !important;
 }
 
         .hit-particle {
     width: 10px; /* 從 8px 增加到 10px */
     height: 10px;
     /* ... 其他樣式不變 */
+}
+
+        .note.burst-effect, .long-note.burst-effect {
+    animation: noteBurst 0.3s ease-out forwards; /* forwards 確保結束後保持狀態 */
+}
+@keyframes noteBurst {
+    0% {
+        transform: scale(1) rotate(0deg); /* 起始：正常 */
+        opacity: 1;
+        box-shadow: 0 0 10px rgba(255, 255, 255, 0.7); /* 初始陰影 */
+    }
+    50% {
+        transform: scale(1.5) rotate(15deg); /* 中間：變大、旋轉，像爆破 */
+        opacity: 0.8;
+        box-shadow: 0 0 20px 10px rgba(255, 255, 255, 1); /* 加強陰影 */
+    }
+    100% {
+        transform: scale(0) rotate(30deg); /* 結束：縮小消失 */
+        opacity: 0;
+        box-shadow: none;
+    }
 }
         
     </style>
@@ -3197,7 +3232,7 @@ closeNotification.addEventListener('click', () => {
                 }
             }
 
-         function judgeHit(trackIndex, type) {
+        function judgeHit(trackIndex, type) {
     if (sounds[type]) {
         sounds[type]();
     }
@@ -3230,11 +3265,11 @@ closeNotification.addEventListener('click', () => {
             hitLine.classList.add('pulse-effect');
         }
 
-        // 新增：軌道閃光效果
+        // 軌道閃光效果：根據 type 添加顏色類
         if (track) {
-            track.classList.remove('flash-effect');
+            track.classList.remove('flash-effect', 'flash-perfect', 'flash-great', 'flash-good');
             void track.offsetWidth;
-            track.classList.add('flash-effect');
+            track.classList.add('flash-effect', `flash-${type}`); /* 添加顏色變體 */
         }
 
         // 觸發畫面晃動
@@ -3242,15 +3277,15 @@ closeNotification.addEventListener('click', () => {
         void mainGameContainer.offsetWidth;
         mainGameContainer.classList.add('shake-effect');
 
-        // 觸發裝置震動（縮短時間，並根據等級調整）
+        // 觸發裝置震動（調整為 GREAT/GOOD 稍弱，PERFECT 稍強）
         if (navigator.vibrate) {
             let vibrationPattern;
             if (type === 'perfect') {
-                vibrationPattern = [70, 30, 70];  // 加強但縮短：兩個短震動
+                vibrationPattern = [70, 30, 70];  // 稍強：兩個短震動
             } else if (type === 'great') {
-                vibrationPattern = [50];  // 中等：單一短震動
+                vibrationPattern = [60];  // 稍弱但加強（從 50 增加）
             } else if (type === 'good') {
-                vibrationPattern = [30];  // 輕微：單一更短震動
+                vibrationPattern = [40];  // 最弱但加強（從 30 增加）
             }
             navigator.vibrate(vibrationPattern);
         }
@@ -3981,15 +4016,19 @@ function endGame() {
                         if (minDistance < 15) judgment = 'perfect';
                         else if (minDistance < 30) judgment = 'great';
                         else judgment = 'good';
-                        if (hitNote.type === 'long') {
-                            hitNote.hitStarted = true;
-                            hitNote.element.classList.add('held');
-                            judgeHit(trackIndex, judgment);
-                        } else {
-                            hitNote.active = false;
-                            hitNote.element.remove();
-                            notes.splice(hitIndex, 1);
-                            judgeHit(trackIndex, judgment);
+                       // 在擊中長音符頭部或短音符時：
+if (hitNote.type === 'long') {
+    hitNote.hitStarted = true;
+    hitNote.element.classList.add('held');
+    hitNote.element.classList.add('burst-effect');  /* 新增：觸發爆破（頭部） */
+    judgeHit(trackIndex, judgment);
+} else {
+    hitNote.active = false;
+    hitNote.element.classList.add('burst-effect');  /* 新增：觸發爆破（短音符） */
+    setTimeout(() => hitNote.element.remove(), 300);  /* 延遲移除，讓動畫完成 */
+    notes.splice(hitIndex, 1);
+    judgeHit(trackIndex, judgment);
+}
                         }
                     } else {
                         // 如果按下時，沒有任何音符在可擊中範圍內，則判定為 MISS
@@ -4032,11 +4071,14 @@ function endGame() {
             }
             
             // 只在非 MISS 時觸發效果（包括震動）
-            if (type !== 'miss') {
-                judgeHit(trackIndex, type);  // 呼叫 judgeHit 觸發粒子/晃動等（內含震動）
-            } else {
-                judgeHit(trackIndex, 'miss');  // MISS 時只呼叫 judgeHit，但無震動
-            }
+          if (type !== 'miss') {
+    note.element.classList.add('burst-effect');  /* 新增：觸發爆破（尾部） */
+    setTimeout(() => note.element.remove(), 300);  /* 延遲移除 */
+    judgeHit(trackIndex, type);  // 觸發效果（含震動）
+} else {
+    judgeHit(trackIndex, 'miss');  // MISS 無爆破
+    note.element.remove();
+}
             
             note.active = false;
             note.element.remove();
