@@ -4169,18 +4169,21 @@ function endGame() {
             const noteTailY = rect.top;
             const distance = Math.abs(noteTailY - hitLineY);
             let type = 'miss';  // 預設為 MISS
-            if (distance < 50) {
-                if (distance < 15) type = 'perfect';
-                else if (distance < 30) type = 'great';
-                else type = 'good';
-            }
-            
-            // 修訂：無論 MISS 或非 MISS，都呼叫 judgeHit，讓它處理所有效果（包括粒子/震動）
-            judgeHit(trackIndex, type);
-            
-            note.active = false;
-            note.element.remove();
-            notes.splice(heldNoteIndex, 1);
+if (distance < 50) {
+    if (distance < 15) type = 'perfect';
+    else if (distance < 30) type = 'great';
+    else type = 'good';
+}
+
+// 修訂：無論 MISS 或非 MISS，都呼叫 judgeHit，讓它處理所有效果（包括粒子/震動）
+judgeHit(trackIndex, type);
+if (type !== 'miss') {
+    explodeNote(note.element, type); // 新增：長音符釋放成功時分解粒子
+}
+
+note.active = false;
+note.element.remove();
+notes.splice(heldNoteIndex, 1);
         }
     }
 }
