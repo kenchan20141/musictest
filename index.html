@@ -3313,11 +3313,11 @@ closeNotification.addEventListener('click', () => {
         if (navigator.vibrate) {
             let vibrationPattern;
             if (type === 'perfect') {
-                vibrationPattern = [60];  // 縮短：總 170ms
+                vibrationPattern = [70];  // 縮短：總 170ms
             } else if (type === 'great') {
-                vibrationPattern = [40];  // 減弱：單一較短震動
+                vibrationPattern = [50];  // 減弱：單一較短震動
             } else if (type === 'good') {
-                vibrationPattern = [20];  // 減弱：單一更短震動
+                vibrationPattern = [30];  // 減弱：單一更短震動
             }
             navigator.vibrate(vibrationPattern);
         }
