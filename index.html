@@ -2615,9 +2615,10 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
            // --- Constants and Configuration ---
-// [新增] 定義新的、基於成功擊打音符數量的解鎖門檻
-const SONG_UNLOCK_HIT_PERCENTAGE = 0.85; // 建議值：必須成功擊打 85% 的音符才能解鎖新歌
-const DIFFICULTY_UNLOCK_HIT_PERCENTAGE = 0.95; // 建議值：必須成功擊打 95% 的音符才能解鎖新難度
+// [修訂] 歌曲解鎖條件：需要達到普通難度最高分的 80%
+const SONG_UNLOCK_PERCENTAGE = 0.75; 
+// [修訂] 難度解鎖條件：需要達到當前難度最高分的 100%
+const DIFFICULTY_UNLOCK_PERCENTAGE = 0.85;
 
 const difficultySettings = {
     // Easy 難度：長音符較長，音符間距大，遊玩體驗輕鬆
@@ -2981,8 +2982,6 @@ let maxScoreForCurrentLevel = 0; // ▼▼▼ 新增狀態變數
             let unlockThresholdPercentage = 0; // ▼▼▼ 新增狀態變數
             let score = 0; // 總分，包含連擊獎勵
 let pureHitScore = 0; // 新增：純擊打分數，用於解鎖計算
-            let successfulHits = 0; // 用於計算成功擊打的次數 (Perfect/Great/Good)
-let totalNotesInLevel = 0; // 用於儲存當前關卡的總音符數
             let combo = 0;
             let notificationQueue = [];      // 我們的通知「待辦清單」
 let isNotificationActive = false; // 一個旗標，用來判斷是否已有通知正在顯示
@@ -3376,8 +3375,6 @@ closeNotification.addEventListener('click', () => {
     maxCombo = 0;
     // 新增：重設 pureHitScore 以確保每次遊戲開始時從0開始（避免累積BUG）
     pureHitScore = 0;
-                successfulHits = 0;
-    totalNotesInLevel = 0;
     notes = [];
     noteQueue = [];
     progressBar.style.width = '0%';
@@ -3546,7 +3543,6 @@ function explodeNote(noteElement, judgment) {
 
                 // 處理非 'miss' 的成功打擊
                 if (type !== 'miss') {
-                    successfulHits++;
                     // 觸發粒子效果
                     createHitParticles(trackIndex, type);
 
@@ -3642,16 +3638,17 @@ updateUnlockMeter(); // ▼▼▼ 在 addScore 結尾呼叫新函數
  // ▼▼▼ 新增的函數 ▼▼▼
            // ▼▼▼ 修正後的函數 ▼▼▼
 function updateUnlockMeter() {
-    // [修訂] 整個函數的邏輯
-    if (totalNotesInLevel <= 0) return; // 如果沒有音符，則不執行
+if (maxScoreForCurrentLevel <= 0) {
+    console.warn('maxScoreForCurrentLevel 計算異常，使用預設值');
+    maxScoreForCurrentLevel = 300000; // 預防邊緣情況（無音符）
+}
 
-    // 計算當前成功擊打的百分比
-    const currentPercent = Math.min(100, (successfulHits / totalNotesInLevel) * 100);
-    unlockProgressBar.style.width = `${currentPercent}%`;
-
-    // 檢查是否超過了任一合格線，以觸發發光效果
-    // 我們以較高的難度解鎖線為發光標準
-    if (currentPercent >= DIFFICULTY_UNLOCK_HIT_PERCENTAGE * 100) {
+    
+    if (maxScoreForCurrentLevel === 0) return;
+    // 核心修訂：使用 pureHitScore 來計算百分比
+   const currentPercent = Math.min(100, (score / maxScoreForCurrentLevel) * 100);
+unlockProgressBar.style.width = `${currentPercent}%`;
+    if (currentPercent >= unlockThresholdPercentage * 100) {
         unlockProgressBar.classList.add('glowing');
     } else {
         unlockProgressBar.classList.remove('glowing');
@@ -3745,12 +3742,12 @@ function updateUnlockMeter() {
     musicSelect.disabled = true;
     difficultySelect.disabled = true;
 
-  // ▼▼▼ 【核心修訂】無條件設定兩條合格線的位置 ▼▼▼
+    // ▼▼▼ 【核心修訂】無條件設定兩條合格線的位置 ▼▼▼
     mainGameContainer.classList.add('game-running'); 
     
-    // [修訂] 根據新的擊打數量百分比，設定兩條線的 left 屬性
-    songUnlockMarker.style.left = `${SONG_UNLOCK_HIT_PERCENTAGE * 100}%`;
-    difficultyUnlockMarker.style.left = `${DIFFICULTY_UNLOCK_HIT_PERCENTAGE * 100}%`;
+    // 根據預設的百分比常數，設定兩條線的 left 屬性
+    songUnlockMarker.style.left = `${SONG_UNLOCK_PERCENTAGE * 100}%`;
+    difficultyUnlockMarker.style.left = `${DIFFICULTY_UNLOCK_PERCENTAGE * 100}%`;
     // ▲▲▲ 修訂結束 ▲▲▲
     
     // 新增：初始化進度條高度和寬度，確保顯示正常（修復無法顯示的BUG）
@@ -3791,12 +3788,16 @@ console.log(`Generating notes for ${selectedSong} (${selectedDifficulty}) with s
 noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed); // 傳入 noteSpeed
 // ▲▲▲ [修訂結束] ▲▲▲
 
- // [新增] 在這裡記錄當前關卡的總音符數
-    totalNotesInLevel = noteQueue.length;
-    console.log(`關卡總音符數: ${totalNotesInLevel}`); // 用於偵錯
+    // ▼▼▼ 【修訂後的核心邏輯】 ▼▼▼
+    // 在生成音符後，動態計算不含連擊獎勵的理論最高分
+  const maxBaseScorePerNote = 55; // 修正為 "Perfect" 的實際基礎分數 55
+maxScoreForCurrentLevel = noteQueue.length * maxBaseScorePerNote;
 
-              
-   
+    // 如果計算結果為 0 (例如歌曲沒有音符)，則提供一個預設值以避免錯誤
+    if (maxScoreForCurrentLevel === 0) {
+        maxScoreForCurrentLevel = 300000; // 設置一個後備值
+    }
+    // ▲▲▲ 【修訂結束】 ▲▲▲
 
     await audio.play().catch(e => console.log("音訊播放失敗:", e));
     gameStartTime = Date.now();
@@ -4167,7 +4168,7 @@ function endQuiz(success) {
  * @param {string} difficulty - 當前難度
  * @param {number} pureHitScore - 純粹的擊打分數
  */
-function checkAndShowQuizOrInfo(songUrl, difficulty, hitCount) { // [修訂] 參數名改為 hitCount
+function checkAndShowQuizOrInfo(songUrl, difficulty, pureHitScore) {
     const hasLyrics = songLyrics[songUrl] && songLyrics[songUrl].length > 0;
     let potentialUnlock = null;
 
@@ -4180,14 +4181,12 @@ function checkAndShowQuizOrInfo(songUrl, difficulty, hitCount) { // [修訂] 參
             if (currentIndex >= 0 && currentIndex < allSongs.length - 1) {
                 const nextSong = allSongs[currentIndex + 1];
                 if (!isSongUnlocked(nextSong)) {
-                    // [修訂] 檢查擊打數量是否達標
-                    const requiredHits = Math.ceil(totalNotesInLevel * SONG_UNLOCK_HIT_PERCENTAGE);
-                    if (hitCount >= requiredHits) {
+                    const requiredScore = maxScoreForCurrentLevel * SONG_UNLOCK_PERCENTAGE;
+                    if (pureHitScore >= requiredScore) {
                         potentialUnlock = { type: 'song', value: songUrl };
                     } else {
-                        // [修訂] 更新提示訊息
-                        const remainingHits = requiredHits - hitCount;
-                        showNotification('info', '目標差一點！', `您在「普通」難度下還差 <strong>${remainingHits}</strong> 次成功打擊就能解鎖下一首歌曲了。再加把勁！`, 6000);
+                        const remainingScore = Math.ceil(requiredScore - pureHitScore);
+                        showNotification('info', '目標差一點！', `您在「普通」難度下還差 <strong>${remainingScore.toLocaleString()}</strong> 分就能解鎖下一首歌曲了。再加把勁！`, 6000);
                     }
                 }
             }
@@ -4199,44 +4198,37 @@ function checkAndShowQuizOrInfo(songUrl, difficulty, hitCount) { // [修訂] 參
         if (hasLyrics) {
             startLyricsQuiz(potentialUnlock.type, potentialUnlock.value, songUrl);
         } else {
-            // 對於沒有歌詞的歌曲，直接解鎖
-            if (potentialUnlock.type === 'song') {
-                unlockNextSong(potentialUnlock.value);
-            }
+            unlockNextSong(potentialUnlock.value);
         }
         return; 
     }
 
     // 檢查2: 是否滿足解鎖「困難」難度的條件
     if (difficulty === 'normal' && !isDifficultyUnlocked(songUrl, 'hard')) {
-        // [修訂] 檢查擊打數量是否達標
-        const requiredHits = Math.ceil(totalNotesInLevel * DIFFICULTY_UNLOCK_HIT_PERCENTAGE);
-        if (hitCount >= requiredHits) {
+        const requiredScore = maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE;
+        if (pureHitScore >= requiredScore) {
             potentialUnlock = { type: 'difficulty', value: { song: songUrl, difficulty: 'hard' } };
         }
     }
 
     // 檢查3: 是否滿足解鎖「地獄」難度的條件
     if (difficulty === 'hard' && !isDifficultyUnlocked(songUrl, 'hell')) {
-        // [修訂] 檢查擊打數量是否達標
-        const requiredHits = Math.ceil(totalNotesInLevel * DIFFICULTY_UNLOCK_HIT_PERCENTAGE);
-        if (hitCount >= requiredHits) {
+        const requiredScore = maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE;
+        if (pureHitScore >= requiredScore) {
             potentialUnlock = { type: 'difficulty', value: { song: songUrl, difficulty: 'hell' } };
         }
     }
     
-    // 如果滿足解鎖難度的條件，觸發測驗或直接解鎖
+    // 如果滿足解鎖難度的條件，觸發測驗
     if (potentialUnlock) {
          if (hasLyrics) {
             startLyricsQuiz(potentialUnlock.type, potentialUnlock.value, songUrl);
          } else {
-            // 對於沒有歌詞的歌曲，直接解鎖
-            if (potentialUnlock.type === 'difficulty') {
-                unlockDifficulty(potentialUnlock.value.song, potentialUnlock.value.difficulty);
-            }
+            unlockDifficulty(potentialUnlock.value.song, potentialUnlock.value.difficulty);
          }
     }
 }
+// ▲▲▲ 新增函數結束 ▲▲▲
 
 
             
@@ -4268,7 +4260,7 @@ function endGame() {
     updatePersonalHighScore(selectedSong, selectedDifficulty, score);
 
     // 【核心修訂】呼叫統一的檢查函數，它將負責判斷是否需要啟動測驗
-    checkAndShowQuizOrInfo(selectedSong, selectedDifficulty, successfulHits);
+    checkAndShowQuizOrInfo(selectedSong, selectedDifficulty, pureHitScore);
 
     // 無論是否解鎖，都顯示遊戲結束畫面
     showGameOver();
