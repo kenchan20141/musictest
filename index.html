@@ -3646,8 +3646,8 @@ if (maxScoreForCurrentLevel <= 0) {
     
     if (maxScoreForCurrentLevel === 0) return;
     // 核心修訂：使用 pureHitScore 來計算百分比
-   const currentPercent = Math.min(100, (score / maxScoreForCurrentLevel) * 100);
-unlockProgressBar.style.width = `${currentPercent}%`;
+   const currentPercent = Math.min(100, (pureHitScore / maxScoreForCurrentLevel) * 100);
+    unlockProgressBar.style.width = `${currentPercent}%`;
     if (currentPercent >= unlockThresholdPercentage * 100) {
         unlockProgressBar.classList.add('glowing');
     } else {
@@ -4260,7 +4260,7 @@ function endGame() {
     updatePersonalHighScore(selectedSong, selectedDifficulty, score);
 
     // 【核心修訂】呼叫統一的檢查函數，它將負責判斷是否需要啟動測驗
-    checkAndShowQuizOrInfo(selectedSong, selectedDifficulty, score);
+      checkAndShowQuizOrInfo(selectedSong, selectedDifficulty, pureHitScore);
 
     // 無論是否解鎖，都顯示遊戲結束畫面
     showGameOver();
