@@ -3197,7 +3197,7 @@ closeNotification.addEventListener('click', () => {
                 }
             }
 
-          function judgeHit(trackIndex, type) {
+         function judgeHit(trackIndex, type) {
     if (sounds[type]) {
         sounds[type]();
     }
@@ -3219,8 +3219,9 @@ closeNotification.addEventListener('click', () => {
 
     if (type !== 'miss') {
         // 加強粒子：根據等級增加數量
-        const particleCount = (type === 'perfect') ? 15 : (type === 'great' ? 10 : 7); /* 從原 12/8/5 增加 */
-        createHitParticles(trackIndex, type, particleCount); /* 如果 createHitParticles 支持額外參數，傳入 particleCount；否則在該函數內修改 */
+        const particleCount = (type === 'perfect') ? 15 : (type === 'great' ? 10 : 7);
+
+        createHitParticles(trackIndex, type, particleCount);
 
         const hitLine = track.querySelector('.hit-line');
         if (hitLine) {
@@ -3236,20 +3237,20 @@ closeNotification.addEventListener('click', () => {
             track.classList.add('flash-effect');
         }
 
-        // 觸發畫面晃動（對 GOOD/GREAT/PERFECT 都適用）
+        // 觸發畫面晃動
         mainGameContainer.classList.remove('shake-effect');
         void mainGameContainer.offsetWidth;
         mainGameContainer.classList.add('shake-effect');
 
-        // 觸發裝置震動（根據判斷等級調整強度）
+        // 觸發裝置震動（縮短時間，並根據等級調整）
         if (navigator.vibrate) {
             let vibrationPattern;
             if (type === 'perfect') {
-                vibrationPattern = [150, 50, 150]; /* 加強：從 100 增加到 150ms */
+                vibrationPattern = [70, 30, 70];  // 加強但縮短：兩個短震動
             } else if (type === 'great') {
-                vibrationPattern = [100];
+                vibrationPattern = [50];  // 中等：單一短震動
             } else if (type === 'good') {
-                vibrationPattern = [70]; /* 從 50 增加到 70ms */
+                vibrationPattern = [30];  // 輕微：單一更短震動
             }
             navigator.vibrate(vibrationPattern);
         }
@@ -4007,37 +4008,42 @@ function endGame() {
                 }
             }
 
-            function handleKeyUp(e) {
-                if (!gameActive) return;
-                const keyCode = e.keyCode;
-                keyStates[keyCode] = false;
-                const trackIndex = keyCodes.indexOf(keyCode);
-                if (trackIndex !== -1) {
-                    const heldNoteIndex = notes.findIndex(note =>
-                        note.track === trackIndex && note.type === 'long' && note.hitStarted
-                    );
-                    if (heldNoteIndex !== -1) {
-                        const note = notes[heldNoteIndex];
-                        const trackRect = tracksContainer.getBoundingClientRect();
-                        const hitLineY = trackRect.top + trackRect.height - 100;
-                        const rect = note.element.getBoundingClientRect();
-                        const noteTailY = rect.top;
-                        const distance = Math.abs(noteTailY - hitLineY);
-                        if (distance < 50) {
-                            let judgment;
-                            if (distance < 15) judgment = 'perfect';
-                            else if (distance < 30) judgment = 'great';
-                            else judgment = 'good';
-                            judgeHit(trackIndex, judgment);
-                        } else {
-                            judgeHit(trackIndex, 'miss');
-                        }
-                        note.active = false;
-                        note.element.remove();
-                        notes.splice(heldNoteIndex, 1);
-                    }
-                }
+          function handleKeyUp(e) {
+    if (!gameActive) return;
+    const keyCode = e.keyCode;
+    keyStates[keyCode] = false;
+    const trackIndex = keyCodes.indexOf(keyCode);
+    if (trackIndex !== -1) {
+        const heldNoteIndex = notes.findIndex(note =>
+            note.track === trackIndex && note.type === 'long' && note.hitStarted
+        );
+        if (heldNoteIndex !== -1) {
+            const note = notes[heldNoteIndex];
+            const trackRect = tracksContainer.getBoundingClientRect();
+            const hitLineY = trackRect.top + trackRect.height - 100;
+            const rect = note.element.getBoundingClientRect();
+            const noteTailY = rect.top;
+            const distance = Math.abs(noteTailY - hitLineY);
+            let type = 'miss';  // 預設為 MISS
+            if (distance < 50) {
+                if (distance < 15) type = 'perfect';
+                else if (distance < 30) type = 'great';
+                else type = 'good';
             }
+            
+            // 只在非 MISS 時觸發效果（包括震動）
+            if (type !== 'miss') {
+                judgeHit(trackIndex, type);  // 呼叫 judgeHit 觸發粒子/晃動等（內含震動）
+            } else {
+                judgeHit(trackIndex, 'miss');  // MISS 時只呼叫 judgeHit，但無震動
+            }
+            
+            note.active = false;
+            note.element.remove();
+            notes.splice(heldNoteIndex, 1);
+        }
+    }
+}
 
             function onTouchStart(e) {
                 e.preventDefault();
