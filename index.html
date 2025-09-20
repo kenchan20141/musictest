@@ -4062,14 +4062,10 @@ function generateQuizQuestions(songUrl) {
 function startLyricsQuiz(unlockType, unlockValue, songUrlForQuiz) {
     quizQuestions = generateQuizQuestions(songUrlForQuiz);
 
-    // 如果歌曲沒有歌詞，無法出題，則直接解鎖
+    // 【修訂】如果歌曲沒有歌詞或無法生成題目，則視為解鎖失敗，不直接解鎖
     if (quizQuestions.length === 0) {
-        console.warn(`歌曲 ${songUrlForQuiz} 沒有歌詞或無法生成題目，自動授予解鎖。`);
-        if (unlockType === 'song') {
-            unlockNextSong(unlockValue);
-        } else if (unlockType === 'difficulty') {
-            unlockDifficulty(unlockValue.song, unlockValue.difficulty);
-        }
+        console.warn(`歌曲 ${songUrlForQuiz} 沒有歌詞或無法生成題目，解鎖失敗。`);
+        endQuiz(false); // 直接呼叫 endQuiz(false) 結束測驗並顯示失敗通知
         return;
     }
 
