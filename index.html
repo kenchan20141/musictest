@@ -3329,73 +3329,86 @@ function explodeNote(noteElement, judgment) {
             
 
      function judgeHit(trackIndex, type) {
-    if (sounds[type]) {
-        sounds[type]();
-    }
-    const judgment = document.createElement('div');
-    judgment.className = `judgment ${type}`;
-    judgment.textContent = `${type.toUpperCase()}!`;
-    const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
-    if (track) {
-        track.appendChild(judgment);
-        judgment.style.left = '0';
-        judgment.style.width = '100%';
-        judgment.style.textAlign = 'center';
-    }
-    setTimeout(() => {
-        if (judgment && judgment.parentNode) {
-            judgment.remove();
-        }
-    }, 1000);
+                const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
+                if (sounds[type]) {
+                    sounds[type]();
+                }
 
-    if (type !== 'miss') {
-        // 修 BUG：直接觸發效果，而非遞迴呼叫 judgeHit
-        // 加強粒子：根據等級增加數量
-        const particleCount = (type === 'perfect') ? 15 : (type === 'great' ? 10 : 7);
-        createHitParticles(trackIndex, type, particleCount);
+                // 創建並顯示判定文字 (Perfect, Great, etc.)
+                const judgment = document.createElement('div');
+                judgment.className = `judgment ${type}`;
+                judgment.textContent = `${type.toUpperCase()}!`;
+                if (track) {
+                    track.appendChild(judgment);
+                    judgment.style.left = '0';
+                    judgment.style.width = '100%';
+                    judgment.style.textAlign = 'center';
+                }
+                setTimeout(() => {
+                    if (judgment && judgment.parentNode) {
+                        judgment.remove();
+                    }
+                }, 1000);
 
-        const hitLine = track.querySelector('.hit-line');
-        if (hitLine) {
-            hitLine.classList.remove('pulse-effect');
-            void hitLine.offsetWidth;
-            hitLine.classList.add('pulse-effect');
-        }
+                // 處理非 'miss' 的成功打擊
+                if (type !== 'miss') {
+                    // 觸發粒子效果
+                    createHitParticles(trackIndex, type);
 
-        // 新增：軌道閃光效果（根據判斷等級添加顏色 class）
-        if (track) {
-            track.classList.remove('flash-perfect', 'flash-great', 'flash-good'); // 先移除舊 class
-            void track.offsetWidth; // 強制重繪
-            if (type === 'perfect') {
-                track.classList.add('flash-perfect');
-            } else if (type === 'great') {
-                track.classList.add('flash-great');
-            } else if (type === 'good') {
-                track.classList.add('flash-good');
+                    // 觸發打擊線的脈衝動畫
+                    const hitLine = track.querySelector('.hit-line');
+                    if (hitLine) {
+                        hitLine.classList.remove('pulse-effect');
+                        void hitLine.offsetWidth; // 強制瀏覽器重繪
+                        hitLine.classList.add('pulse-effect');
+                    }
+
+                    // 根據判定等級觸發不同的軌道閃光效果
+                    if (track) {
+                        track.classList.remove('flash-perfect', 'flash-great', 'flash-good');
+                        void track.offsetWidth;
+                        if (type === 'perfect') {
+                            track.classList.add('flash-perfect');
+                        } else if (type === 'great') {
+                            track.classList.add('flash-great');
+                        } else if (type === 'good') {
+                            track.classList.add('flash-good');
+                        }
+                    }
+
+                    // 觸發裝置震動回饋
+                    if (navigator.vibrate) {
+                        let vibrationPattern;
+                        if (type === 'perfect') {
+                            vibrationPattern = [70]; // 短促有力的震動
+                        } else if (type === 'great') {
+                            vibrationPattern = [50]; // 中等震動
+                        } else if (type === 'good') {
+                            vibrationPattern = [30]; // 輕微震動
+                        }
+                        if (vibrationPattern) {
+                            navigator.vibrate(vibrationPattern);
+                        }
+                    }
+
+                    // 【關鍵修復 1】在這裡根據判定類型，定義 baseScore 的值
+                    let baseScore = 0;
+                    if (type === 'perfect') baseScore = 100;
+                    else if (type === 'great') baseScore = 70;
+                    else if (type === 'good') baseScore = 40;
+                    
+                    // 【關鍵修復 2】將 addScore 移到這裡，確保無論裝置是否支援震動，都會計分
+                    addScore(baseScore);
+
+                } else {
+                    // 處理 'miss' 的情況
+                    combo = 0;
+                    const difficulty = getCurrentDifficulty();
+                    trackCooldownUntil[trackIndex] = Date.now() + difficulty.cooldown;
+                }
+
+                updateUI();
             }
-        }
-
- 
-
-        // 觸發裝置震動（調整 PERFECT 為更短）
-        if (navigator.vibrate) {
-            let vibrationPattern;
-            if (type === 'perfect') {
-                vibrationPattern = [70];  // 縮短：總 170ms
-            } else if (type === 'great') {
-                vibrationPattern = [50];  // 減弱：單一較短震動
-            } else if (type === 'good') {
-                vibrationPattern = [30];  // 減弱：單一更短震動
-            }
-            navigator.vibrate(vibrationPattern);
-            addScore(baseScore);
-        }
-    } else {
-        combo = 0;
-        const difficulty = getCurrentDifficulty();
-        trackCooldownUntil[trackIndex] = Date.now() + difficulty.cooldown;
-    }
-    updateUI();
-}
 
             function addScore(baseScore) {
                 combo++;
