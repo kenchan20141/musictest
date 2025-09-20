@@ -534,21 +534,21 @@
             100% { background-color: rgba(255, 255, 255, 0.15); }
         }
         .hit-line.pulse-effect {
-            animation: hitLinePulse 0.15s ease-out;
-        }
-        @keyframes hitLinePulse {
-             0% { transform: scaleX(1); box-shadow: 0 0 10px rgba(229, 46, 113, 0.7); }
-             50% { transform: scaleX(1.05); box-shadow: 0 0 25px 5px rgba(255, 204, 0, 1); }
-             100% { transform: scaleX(1); box-shadow: 0 0 10px rgba(229, 46, 113, 0.7); }
-        }
+    animation: hitLinePulse 0.2s ease-out; /* 延長到 0.2s */
+}
+@keyframes hitLinePulse {
+    0% { transform: scaleX(1); box-shadow: 0 0 10px rgba(229, 46, 113, 0.7); }
+    50% { transform: scaleX(1.1); box-shadow: 0 0 30px 8px rgba(255, 204, 0, 1); } /* 加強陰影與縮放 */
+    100% { transform: scaleX(1); box-shadow: 0 0 10px rgba(229, 46, 113, 0.7); }
+}
         .main-game-container.shake-effect {
             animation: screenShake 0.1s linear;
         }
         @keyframes screenShake {
             0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-2px); }
-            50% { transform: translateX(2px); }
-            75% { transform: translateX(-2px); }
+            25% { transform: translateX(-4px); }
+            50% { transform: translateX(4px); }
+            75% { transform: translateX(-4px); }
         }
         .hit-particle {
             position: absolute;
@@ -2107,6 +2107,20 @@
         line-height: 1.1; /* 統一行距 */
     }
 }
+
+        .track.flash-effect {
+    animation: trackFlashStrong 0.3s ease-out; /* 新增強版閃光 */
+}
+@keyframes trackFlashStrong {
+    0% { background-color: rgba(255, 255, 255, 0.5); } /* 更亮的閃光，從 0.35 加強到 0.5 */
+    100% { background-color: rgba(255, 255, 255, 0.15); }
+}
+
+        .hit-particle {
+    width: 10px; /* 從 8px 增加到 10px */
+    height: 10px;
+    /* ... 其他樣式不變 */
+}
         
     </style>
 </head>
@@ -3183,56 +3197,69 @@ closeNotification.addEventListener('click', () => {
                 }
             }
 
-            function judgeHit(trackIndex, type) {
-    const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
+          function judgeHit(trackIndex, type) {
     if (sounds[type]) {
         sounds[type]();
     }
     const judgment = document.createElement('div');
     judgment.className = `judgment ${type}`;
     judgment.textContent = `${type.toUpperCase()}!`;
+    const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
     if (track) {
-        // 将 judgment 元素添加到 track
         track.appendChild(judgment);
-        // 【新增】确保 judgment 在其父元素 (track) 内水平居中
-        // 由于 .judgment 本身有 `left: 0; width: 100%; text-align: center;`，通常已居中。
-        // 此步骤是保险做法，明确设置。
         judgment.style.left = '0';
         judgment.style.width = '100%';
         judgment.style.textAlign = 'center';
     }
     setTimeout(() => {
-        if (judgment && judgment.parentNode) { // 检查元素是否还在
+        if (judgment && judgment.parentNode) {
             judgment.remove();
         }
     }, 1000);
-                if (type !== 'miss') {
-                    createHitParticles(trackIndex, type);
-                    const hitLine = track.querySelector('.hit-line');
-                    if (hitLine) {
-                        hitLine.classList.remove('pulse-effect');
-                        void hitLine.offsetWidth;
-                        hitLine.classList.add('pulse-effect');
-                    }
-                    if (type === 'perfect') {
-                        mainGameContainer.classList.remove('shake-effect');
-                        void mainGameContainer.offsetWidth;
-                        mainGameContainer.classList.add('shake-effect');
-                    }
-                }
-                if (type === 'miss') {
-                    combo = 0;
-                    const difficulty = getCurrentDifficulty();
-                    trackCooldownUntil[trackIndex] = Date.now() + difficulty.cooldown;
-                } else {
-                    let baseScore = 0;
-                    if (type === 'perfect') baseScore = 100;
-                    else if (type === 'great') baseScore = 70;
-                    else if (type === 'good') baseScore = 40;
-                    addScore(baseScore);
-                }
-                updateUI();
+
+    if (type !== 'miss') {
+        // 加強粒子：根據等級增加數量
+        const particleCount = (type === 'perfect') ? 15 : (type === 'great' ? 10 : 7); /* 從原 12/8/5 增加 */
+        createHitParticles(trackIndex, type, particleCount); /* 如果 createHitParticles 支持額外參數，傳入 particleCount；否則在該函數內修改 */
+
+        const hitLine = track.querySelector('.hit-line');
+        if (hitLine) {
+            hitLine.classList.remove('pulse-effect');
+            void hitLine.offsetWidth;
+            hitLine.classList.add('pulse-effect');
+        }
+
+        // 新增：軌道閃光效果
+        if (track) {
+            track.classList.remove('flash-effect');
+            void track.offsetWidth;
+            track.classList.add('flash-effect');
+        }
+
+        // 觸發畫面晃動（對 GOOD/GREAT/PERFECT 都適用）
+        mainGameContainer.classList.remove('shake-effect');
+        void mainGameContainer.offsetWidth;
+        mainGameContainer.classList.add('shake-effect');
+
+        // 觸發裝置震動（根據判斷等級調整強度）
+        if (navigator.vibrate) {
+            let vibrationPattern;
+            if (type === 'perfect') {
+                vibrationPattern = [150, 50, 150]; /* 加強：從 100 增加到 150ms */
+            } else if (type === 'great') {
+                vibrationPattern = [100];
+            } else if (type === 'good') {
+                vibrationPattern = [70]; /* 從 50 增加到 70ms */
             }
+            navigator.vibrate(vibrationPattern);
+        }
+    } else {
+        combo = 0;
+        const difficulty = getCurrentDifficulty();
+        trackCooldownUntil[trackIndex] = Date.now() + difficulty.cooldown;
+    }
+    updateUI();
+}
 
             function addScore(baseScore) {
                 combo++;
