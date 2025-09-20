@@ -3291,7 +3291,7 @@ function explodeNote(noteElement, judgment) {
     const rect = noteElement.getBoundingClientRect();
     const trackRect = tracksContainer.getBoundingClientRect();
     const particleCount = (judgment === 'perfect') ? 20 : (judgment === 'great' ? 15 : 10); // 分解粒子數
-    const maxOffset = 80; // 分解範圍
+    const maxOffset = 100; // 加強範圍，讓飛散更廣
     
     const colors = {
         perfect: '#ffcc00',
@@ -3308,9 +3308,11 @@ function explodeNote(noteElement, judgment) {
         const size = Math.floor(4 + Math.random() * 9);
         particle.style.setProperty('--size', `${size}px`);
         
-        // 隨機飛散位置（從音符中心）
-        const x = (Math.random() - 0.5) * maxOffset * 2;
-        const y = (Math.random() - 0.5) * maxOffset * 2; // 上下左右飛散
+        // 新增：極座標隨機飛散（360度全方向）
+        const angle = Math.random() * 2 * Math.PI; // 隨機角度（0-360度，弧度）
+        const distance = Math.random() * maxOffset; // 隨機距離（0-maxOffset）
+        const x = distance * Math.cos(angle);
+        const y = distance * Math.sin(angle);
         particle.style.setProperty('--x', `${x}px`);
         particle.style.setProperty('--y', `${y}px`);
         
@@ -3328,7 +3330,6 @@ function explodeNote(noteElement, judgment) {
         setTimeout(() => particle.remove(), 500); // 匹配動畫時間
     }
 }
-
 
 
             
@@ -4118,7 +4119,7 @@ function endGame() {
                             }
                         }
                     });
-                   if (hitNote && minDistance < 50) {
+                  if (hitNote && minDistance < 50) {
     let judgment;
     if (minDistance < 15) judgment = 'perfect';
     else if (minDistance < 30) judgment = 'great';
@@ -4127,10 +4128,10 @@ function endGame() {
         hitNote.hitStarted = true;
         hitNote.element.classList.add('held');
         judgeHit(trackIndex, judgment);
-        explodeNote(hitNote.element, judgment); // 新增：長音符按下時分解粒子
+        // 移除：長音符按下時不再有粒子飛散
     } else {
         hitNote.active = false;
-        explodeNote(hitNote.element, judgment); // 新增：短音符擊中時分解粒子
+        explodeNote(hitNote.element, judgment); // 短音符擊中時仍有粒子
         hitNote.element.remove();
         notes.splice(hitIndex, 1);
         judgeHit(trackIndex, judgment);
