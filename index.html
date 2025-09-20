@@ -3232,7 +3232,7 @@ closeNotification.addEventListener('click', () => {
                 }
             }
 
-        function judgeHit(trackIndex, type) {
+       function judgeHit(trackIndex, type) {
     if (sounds[type]) {
         sounds[type]();
     }
@@ -3982,70 +3982,66 @@ function endGame() {
                 animationFrame = requestAnimationFrame(gameLoop);
             }
 
-         function handleKeyDown(e) {
-                if (!gameActive) return;
-                const keyCode = e.keyCode;
-                if (keyStates[keyCode]) return;
-                keyStates[keyCode] = true;
-                const trackIndex = keyCodes.indexOf(keyCode);
-                if (trackIndex !== -1) {
-                    const trackEl = document.querySelector(`.track[data-track="${trackIndex}"]`);
-                    if (trackEl) {
-                        trackEl.classList.remove('hit-effect');
-                        void trackEl.offsetWidth;
-                        trackEl.classList.add('hit-effect');
-                    }
-                    const trackRect = tracksContainer.getBoundingClientRect();
-                    const hitLineY = trackRect.top + trackRect.height - 100;
-                    let hitNote = null;
-                    let minDistance = Infinity;
-                    let hitIndex = -1;
-                    notes.forEach((note, index) => {
-                        if (note.track === trackIndex && note.active && !note.hitStarted) {
-                            const rect = note.element.getBoundingClientRect();
-                            const distance = Math.abs(rect.bottom - hitLineY);
-                            if (distance < minDistance) {
-                                minDistance = distance;
-                                hitNote = note;
-                                hitIndex = index;
-                            }
-                        }
-                    });
-                    if (hitNote && minDistance < 50) {
-                        let judgment;
-                        if (minDistance < 15) judgment = 'perfect';
-                        else if (minDistance < 30) judgment = 'great';
-                        else judgment = 'good';
-                       // 在擊中長音符頭部或短音符時：
-if (hitNote.type === 'long') {
-    hitNote.hitStarted = true;
-    hitNote.element.classList.add('held');
-    hitNote.element.classList.add('burst-effect');  /* 新增：觸發爆破（頭部） */
-    judgeHit(trackIndex, judgment);
-} else {
-    hitNote.active = false;
-    hitNote.element.classList.add('burst-effect');  /* 新增：觸發爆破（短音符） */
-    setTimeout(() => hitNote.element.remove(), 300);  /* 延遲移除，讓動畫完成 */
-    notes.splice(hitIndex, 1);
-    judgeHit(trackIndex, judgment);
-}
-                        }
-                    } else {
-                        // 如果按下時，沒有任何音符在可擊中範圍內，則判定為 MISS
-                        judgeHit(trackIndex, 'miss');
-
-                        // ▼▼▼ 修訂的關鍵之處 ▼▼▼
-                        // 並且，如果軌道上確實有一個最近的音符（只是太遠了），
-                        // 則將該音符移除，以懲罰提早按鍵的行為。
-                        if (hitNote) {
-                            hitNote.active = false;
-                            hitNote.element.remove();
-                            notes.splice(hitIndex, 1);
-                        }
-                        // ▲▲▲ 修訂結束 ▲▲▲
-                    }
+        function handleKeyDown(e) {
+    if (!gameActive) return;
+    const keyCode = e.keyCode;
+    if (keyStates[keyCode]) return;
+    keyStates[keyCode] = true;
+    const trackIndex = keyCodes.indexOf(keyCode);
+    if (trackIndex !== -1) {
+        const trackEl = document.querySelector(`.track[data-track="${trackIndex}"]`);
+        if (trackEl) {
+            trackEl.classList.remove('hit-effect');
+            void trackEl.offsetWidth;
+            trackEl.classList.add('hit-effect');
+        }
+        const trackRect = tracksContainer.getBoundingClientRect();
+        const hitLineY = trackRect.top + trackRect.height - 100;
+        let hitNote = null;
+        let minDistance = Infinity;
+        let hitIndex = -1;
+        notes.forEach((note, index) => {
+            if (note.track === trackIndex && note.active && !note.hitStarted) {
+                const rect = note.element.getBoundingClientRect();
+                const distance = Math.abs(rect.bottom - hitLineY);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    hitNote = note;
+                    hitIndex = index;
                 }
             }
+        });
+        if (hitNote && minDistance < 50) {
+            let judgment;
+            if (minDistance < 15) judgment = 'perfect';
+            else if (minDistance < 30) judgment = 'great';
+            else judgment = 'good';
+            if (hitNote.type === 'long') {
+                hitNote.hitStarted = true;
+                hitNote.element.classList.add('held');
+                hitNote.element.classList.add('burst-effect');  /* 新增：觸發爆破（頭部） */
+                judgeHit(trackIndex, judgment);
+            } else {
+                hitNote.active = false;
+                hitNote.element.classList.add('burst-effect');  /* 新增：觸發爆破（短音符） */
+                setTimeout(() => hitNote.element.remove(), 300);  /* 延遲移除，讓動畫完成 */
+                notes.splice(hitIndex, 1);
+                judgeHit(trackIndex, judgment);
+            }
+        } else {
+            // 如果按下時，沒有任何音符在可擊中範圍內，則判定為 MISS
+            judgeHit(trackIndex, 'miss');
+
+            // 並且，如果軌道上確實有一個最近的音符（只是太遠了），
+            // 則將該音符移除，以懲罰提早按鍵的行為。
+            if (hitNote) {
+                hitNote.active = false;
+                hitNote.element.remove();
+                notes.splice(hitIndex, 1);
+            }
+        }
+    }
+}
 
           function handleKeyUp(e) {
     if (!gameActive) return;
@@ -4071,17 +4067,16 @@ if (hitNote.type === 'long') {
             }
             
             // 只在非 MISS 時觸發效果（包括震動）
-          if (type !== 'miss') {
-    note.element.classList.add('burst-effect');  /* 新增：觸發爆破（尾部） */
-    setTimeout(() => note.element.remove(), 300);  /* 延遲移除 */
-    judgeHit(trackIndex, type);  // 觸發效果（含震動）
-} else {
-    judgeHit(trackIndex, 'miss');  // MISS 無爆破
-    note.element.remove();
-}
+            if (type !== 'miss') {
+                note.element.classList.add('burst-effect');  /* 新增：觸發爆破（尾部） */
+                setTimeout(() => note.element.remove(), 300);  /* 延遲移除 */
+                judgeHit(trackIndex, type);  // 觸發效果（含震動）
+            } else {
+                judgeHit(trackIndex, 'miss');  // MISS 無爆破
+                note.element.remove();
+            }
             
             note.active = false;
-            note.element.remove();
             notes.splice(heldNoteIndex, 1);
         }
     }
