@@ -4260,25 +4260,13 @@ function endGame() {
     const selectedDifficulty = difficultySelect.value;
     updatePersonalHighScore(selectedSong, selectedDifficulty, score);
 
-    // 步驟 1: 獨立檢查歌曲解鎖 (僅限普通難度)
-    if (selectedDifficulty === 'normal') {
-        const requiredScoreToUnlock = maxScoreForCurrentLevel * SONG_UNLOCK_PERCENTAGE;
-        if (pureHitScore >= requiredScoreToUnlock) {
-            unlockNextSong(selectedSong);
-        } else {
-            const remainingScore = Math.ceil(requiredScoreToUnlock - pureHitScore);
-            const allSongs = Array.from(musicSelect.options).map(opt => opt.value);
-            const isLastSong = saveData.unlockedSongs.length === allSongs.length;
-            if (!isLastSong) {
-                showNotification('info', '目標差一點！', `您在「普通」難度下還差 <strong>${remainingScore.toLocaleString()}</strong> 分就能解鎖下一首歌曲了。再加把勁！`, 6000);
-            }
-        }
-    }
+    // 【核心修訂】
+    // 將原本分散的歌曲解鎖和難度解鎖邏輯，
+    // 統一由 checkAndShowQuizOrInfo 函數來處理。
+    // 這個函數會自動判斷是否滿足條件，並決定是觸發測驗還是直接顯示提示。
+    checkAndShowQuizOrInfo(selectedSong, selectedDifficulty, pureHitScore);
 
-    // 步驟 2: 獨立檢查難度解鎖 (傳入正確的 pureHitScore)
-    checkAndUnlockDifficulties(selectedSong, selectedDifficulty, pureHitScore);
-
-    // 步驟 3: 顯示結束畫面
+    // 顯示結束畫面
     showGameOver();
 
     // 清理遊戲中的歌詞背景
