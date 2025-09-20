@@ -2183,6 +2183,202 @@
         opacity: 0;
     }
 }
+
+        /* ====== 歌詞填充測驗彈窗樣式 (Lyrics Quiz Modal Styles) ====== */
+.lyrics-quiz-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(5px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2001; /* 確保在最上層，高於通知視窗 */
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+
+.lyrics-quiz-modal.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.lyrics-quiz-content {
+    background: linear-gradient(145deg, #1e1e3f, #10182b);
+    padding: 30px 40px;
+    border-radius: 15px;
+    text-align: center;
+    max-width: 500px;
+    width: 90%;
+    position: relative;
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+    transform: scale(0.9);
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.4s ease;
+}
+
+.lyrics-quiz-modal.active .lyrics-quiz-content {
+    transform: scale(1);
+    opacity: 1;
+}
+
+.lyrics-quiz-title {
+    font-size: 2rem;
+    color: #FFD700; /* 金黃色 */
+    margin-bottom: 10px;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.lyrics-quiz-intro {
+    font-size: 1rem;
+    color: #e0e0e0;
+    margin-bottom: 15px;
+}
+
+.lyrics-quiz-progress {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 8px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #93F9B9; /* 淡綠色 */
+}
+
+.lyrics-quiz-question-container {
+    margin-bottom: 20px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#lyricsQuizQuestionText {
+    font-size: 1.5rem;
+    color: #fff;
+    line-height: 1.6;
+}
+
+/* 用來顯示底線填空處的樣式 */
+#lyricsQuizQuestionText .blank {
+    display: inline-block;
+    width: 120px; /* 底線寬度 */
+    border-bottom: 2px solid #FFD700;
+    margin: 0 8px;
+    vertical-align: bottom; /* 確保底線與文字對齊 */
+}
+
+.lyrics-quiz-feedback {
+    min-height: 24px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-bottom: 15px;
+    transition: opacity 0.3s ease, color 0.3s ease;
+    opacity: 0;
+}
+
+.lyrics-quiz-feedback.show {
+    opacity: 1;
+}
+
+.lyrics-quiz-feedback.correct {
+    color: #93F9B9; /* 淡綠色 */
+}
+
+.lyrics-quiz-feedback.incorrect {
+    color: #F96666; /* 淡紅色 */
+}
+
+.lyrics-quiz-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.lyrics-quiz-input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.4);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    font-size: 1.2rem;
+    text-align: center;
+    font-family: 'Noto Serif TC', serif; /* 繼承遊戲字體 */
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.lyrics-quiz-input:focus {
+    outline: none;
+    border-color: #FFD700;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.lyrics-quiz-submit-btn {
+    background: linear-gradient(45deg, #1D976C, #93F9B9);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.lyrics-quiz-submit-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(147, 249, 185, 0.4);
+}
+
+.lyrics-quiz-submit-btn:disabled {
+    cursor: not-allowed;
+    background: #555;
+    opacity: 0.7;
+}
+
+.lyrics-quiz-close-btn {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: rgba(255, 255, 255, 0.7);
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+.lyrics-quiz-close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* 響應式設計：針對手機螢幕的調整 */
+@media (max-width: 480px) {
+    .lyrics-quiz-content {
+        padding: 20px;
+        width: 95%;
+    }
+    .lyrics-quiz-title {
+        font-size: 1.5rem;
+    }
+    #lyricsQuizQuestionText {
+        font-size: 1.2rem;
+    }
+    .lyrics-quiz-input {
+        font-size: 1rem;
+        padding: 10px;
+    }
+}
         
     </style>
 </head>
@@ -2558,159 +2754,75 @@ const difficultySettings = {
                 }
             };
 
-            // Sample Lyrics Data
-            const songLyrics = {
-                "等待.mp3": [
-        { "time": 9, "text": "月亮高掛在夜空之上" },
-        { "time": 13, "text": "宛如不眠的眼睛一樣" },
-        { "time": 17, "text": "靜靜注視著喧囂的人間" },
-        { "time": 21, "text": "有多少悲歡離合在上演" },
-        { "time": 27, "text": "它守望著夜的蒼茫" },
-        { "time": 29, "text": "也守望著黎明的曙光" },
-        { "time": 33, "text": "在漫長歲月裡等待著" },
-        { "time": 36, "text": "等待著某個人的出現" },
-        { "time": 49, "text": "她已經記不清你的模樣" },
-        { "time": 54, "text": "卻依然在原地默默守望" },
-        { "time": 58, "text": "那是一種怎樣的深情" },
-        { "time": 61, "text": "才能如此執著又漫長" },
-        { "time": 67, "text": "也許你早已把它遺忘" },
-        { "time": 72, "text": "而她卻還在為你照亮" },
-        { "time": 76, "text": "在這城市的喧囂之中" },
-        { "time": 80, "text": "還有多少人在等待著" }
-    ],
-                "白影.mp3": [
-    {
-      "time": 12,
-      "text": "他走進了一個荒誕的夢境"
+           const songLyrics = {
+    "等待.mp3": {
+        lyrics: [
+            { "time": 9, "text": "月亮高掛在夜空之上" }, { "time": 13, "text": "宛如不眠的眼睛一樣" }, { "time": 17, "text": "靜靜注視著喧囂的人間" }, { "time": 21, "text": "有多少悲歡離合在上演" }, { "time": 27, "text": "它守望著夜的蒼茫" }, { "time": 29, "text": "也守望著黎明的曙光" }, { "time": 33, "text": "在漫長歲月裡等待著" }, { "time": 36, "text": "等待著某個人的出現" }, { "time": 49, "text": "她已經記不清你的模樣" }, { "time": 54, "text": "卻依然在原地默默守望" }, { "time": 58, "text": "那是一種怎樣的深情" }, { "time": 61, "text": "才能如此執著又漫長" }, { "time": 67, "text": "也許你早已把它遺忘" }, { "time": 72, "text": "而她卻還在為你照亮" }, { "time": 76, "text": "在這城市的喧囂之中" }, { "time": 80, "text": "還有多少人在等待著" }
+        ],
+        quiz: [
+            { "line": "月亮高掛在夜空__", "answer": "之上" }, { "line": "宛如不眠的__一樣", "answer": "眼睛" }, { "line": "靜靜注視著__的人間", "answer": "喧囂" }, { "line": "有多少__離合在上演", "answer": "悲歡" }, { "line": "它守望著夜的__", "answer": "蒼茫" }, { "line": "那是一種怎樣的__", "answer": "深情" }, { "line": "才能如此執著又__", "answer": "漫長" }
+        ]
     },
-    {
-      "time": 18,
-      "text": "夢裡有個重複出現的白影"
+    "白影.mp3": {
+        lyrics: [
+            { "time": 12, "text": "他走進了一個荒誕的夢境" }, { "time": 18, "text": "夢裡有個重複出現的白影" }, { "time": 24, "text": "白影微笑著準備登上" }, { "time": 30, "text": "有獠牙的火車廂頂" }, { "time": 35, "text": "黃昏一次次的把白影擄走" }, { "time": 41, "text": "他一次次的站在原地目送" }, { "time": 47, "text": "他沒有辦法挽留" }, { "time": 51, "text": "他沒有辦法伸出手" }, { "time": 71, "text": "多年後他還是會常常驚醒" }, { "time": 77, "text": "枕邊總是濕潤的一片狼藉" }, { "time": 83, "text": "白影像餃子皮一樣包裹著他" }, { "time": 90, "text": "越掙扎越陷進去" }, { "time": 95, "text": "黃昏一次次的把白影擄走" }, { "time": 101, "text": "他一次次的站在原地目送" }, { "time": 107, "text": "他只能默默地看" }, { "time": 112, "text": "他只能默默地吐" }
+        ],
+        quiz: [
+            { "line": "他走進了一個__的夢境", "answer": "荒誕" }, { "line": "夢裡有個重複出現的__", "answer": "白影" }, { "line": "有__的火車廂頂", "answer": "獠牙" }, { "line": "__一次次的把白影擄走", "answer": "黃昏" }, { "line": "他一次次的站在原地__", "answer": "目送" }, { "line": "枕邊總是濕潤的一片__", "answer": "狼藉" }, { "line": "越掙扎越__", "answer": "陷進去" }
+        ]
     },
-    {
-      "time": 24,
-      "text": "白影微笑著準備登上"
+    "下一枝的惆悵.mp3": {
+        lyrics: [
+            { "time": 16, "text": "北京的雨是" }, { "time": 18, "text": "四月未停歇的傾訴" }, { "time": 23, "text": "胡同的路是我" }, { "time": 26, "text": "無法忘卻的孤獨" }, { "time": 31, "text": "拆遷的通知" }, { "time": 34, "text": "是我還未收拾的包袱" }, { "time": 39, "text": "騎行的外賣" }, { "time": 42, "text": "是我唯一能做的救贖" }, { "time": 46, "text": "有那麼一刻我以為我" }, { "time": 50, "text": "忘記了哭" }, { "time": 53, "text": "直到又聞到中華牌香菸的溫度" }, { "time": 59, "text": "有那麼一刻我以為我" }, { "time": 62, "text": "習慣了哭" }, { "time": 65, "text": "直到又看到中華牌香菸的閃爍" }, { "time": 82, "text": "你說歲月漫長" }, { "time": 86, "text": "八年風塵僕僕卻也轉眼一晃" }, { "time": 89, "text": "我說光陰匆忙" }, { "time": 91, "text": "我只是忘了我是誰的兒郎" }, { "time": 97, "text": "你說未來長河" }, { "time": 101, "text": "你又點起了下一支的惆悵" }, { "time": 104, "text": "我說人生匆忙" }, { "time": 106, "text": "可我又躲不過" }, { "time": 108, "text": "歲月的蒼茫" }
+        ],
+        quiz: [
+            { "line": "北京的雨是, 四月未停歇的__", "answer": "傾訴" }, { "line": "__的路是我, 無法忘卻的孤獨", "answer": "胡同" }, { "line": "騎行的__是我, 唯一能做的救贖", "answer": "外賣" }, { "line": "直到又聞到__牌香菸的溫度", "answer": "中華" }, { "line": "你又點起了下一支的__", "answer": "惆悵" }, { "line": "八年__卻也轉眼一晃", "answer": "風塵僕僕" }
+        ]
     },
-    {
-      "time": 30,
-      "text": "有獠牙的火車廂頂"
+    "餘燼落入虛無.mp3": {
+        lyrics: [
+            { "time": 11, "text": "火焰跳著靈動的舞蹈" }, { "time": 16, "text": "灰燼飄落最後一遭" }, { "time": 20, "text": "燒化的紙錢開始飛向雲霄" }, { "time": 25, "text": "地獄的大門即將來到" }, { "time": 30, "text": "就像那風中飄零的草" }, { "time": 34, "text": "沒有根基只能隨風起" }, { "time": 39, "text": "落飄搖你看那天空中瀰漫的煙" }, { "time": 44, "text": "那是你我生命最終的樣貌" }, { "time": 58, "text": "火焰跳著靈動的舞蹈" }, { "time": 102, "text": "灰燼飄落最後一早" }, { "time": 107, "text": "燒化的紙錢開始飛向雲霄" }, { "time": 111, "text": "一切似乎就要結束了" }, { "time": 116, "text": "就像那風中飄零的草" }, { "time": 121, "text": "沒有根基只能隨風起" }, { "time": 126, "text": "若飄搖你看那天空中瀰漫的煙" }, { "time": 131, "text": "那是你我生命最終的樣貌" }
+        ],
+        quiz: [
+            { "line": "火焰跳著靈動的__", "answer": "舞蹈" }, { "line": "灰燼飄落最後一__", "answer": "遭" }, { "line": "燒化的__開始飛向雲霄", "answer": "紙錢" }, { "line": "就像那風中__的草", "answer": "飄零" }, { "line": "那是你我生命最終的__", "answer": "樣貌" }
+        ]
     },
-    {
-      "time": 35,
-      "text": "黃昏一次次的把白影擄走"
+    "老屋回憶.mp3": {
+        lyrics: [
+            { "time": 16, "text": "老屋的木門常年虛掩" }, { "time": 22, "text": "門外種着一棵桂花樹" }, { "time": 28, "text": "秋深時節 花瓣零散一地" }, { "time": 35, "text": "我與爺爺用竹箕收集" }, { "time": 42, "text": "回憶的碎片" }, { "time": 44, "text": "那時的快樂" }, { "time": 46, "text": "是被捕捉後又放生的小魚" }, { "time": 55, "text": "是桂花糕出鍋時的蒸汽" }, { "time": 62, "text": "是一串串銀鈴般的蟲鳴鳥囀" }, { "time": 69, "text": "然而後來" }, { "time": 71, "text": "鈴聲中斷了我所邂逅的花鳥蟲魚" }, { "time": 79, "text": "已是活生生的標本" }
+        ],
+        quiz: [
+            { "line": "老屋的木門常年__", "answer": "虛掩" }, { "line": "門外種着一棵__樹", "answer": "桂花" }, { "line": "我與爺爺用__收集", "answer": "竹箕" }, { "line": "是__出鍋時的蒸汽", "answer": "桂花糕" }, { "line": "已是活生生的__", "answer": "標本" }
+        ]
     },
-    {
-      "time": 41,
-      "text": "他一次次的站在原地目送"
-    },
-    {
-      "time": 47,
-      "text": "他沒有辦法挽留"
-    },
-    {
-      "time": 51,
-      "text": "他沒有辦法伸出手"
-    },
-    {
-      "time": 71,
-      "text": "多年後他還是會常常驚醒"
-    },
-    {
-      "time": 77,
-      "text": "枕邊總是濕潤的一片狼藉"
-    },
-    {
-      "time": 83,
-      "text": "白影像餃子皮一樣包裹著他"
-    },
-    {
-      "time": 90,
-      "text": "越掙扎越陷進去"
-    },
-    {
-      "time": 95,
-      "text": "黃昏一次次的把白影擄走"
-    },
-    {
-      "time": 101,
-      "text": "他一次次的站在原地目送"
-    },
-    {
-      "time": 107,
-      "text": "他只能默默地看"
-    },
-    {
-      "time": 112,
-      "text": "他只能默默地吐"
-    }
-  ],
-
-"下一枝的惆悵.mp3":    [
-{ "time": 16, "text": "北京的雨是" },
-{ "time": 18, "text": "四月未停歇的傾訴" },
-{ "time": 23, "text": "胡同的路是我" },
-{ "time": 26, "text": "無法忘卻的孤獨" },
-{ "time": 31, "text": "拆遷的通知" },
-{ "time": 34, "text": "是我還未收拾的包袱" },
-{ "time": 39, "text": "騎行的外賣" },
-{ "time": 42, "text": "是我唯一能做的救贖" },
-{ "time": 46, "text": "有那麼一刻我以為我" },
-{ "time": 50, "text": "忘記了哭" },
-{ "time": 53, "text": "直到又聞到中華牌香菸的溫度" },
-{ "time": 59, "text": "有那麼一刻我以為我" },
-{ "time": 62, "text": "習慣了哭" },
-{ "time": 65, "text": "直到又看到中華牌香菸的閃爍" },
-{ "time": 82, "text": "你說歲月漫長" },
-{ "time": 86, "text": "八年風塵僕僕卻也轉眼一晃" },
-{ "time": 89, "text": "我說光陰匆忙" },
-{ "time": 91, "text": "我只是忘了我是誰的兒郎" },
-{ "time": 97, "text": "你說未來長河" },
-{ "time": 101, "text": "你又點起了下一支的惆悵" },
-{ "time": 104, "text": "我說人生匆忙" },
-{ "time": 106, "text": "可我又躲不過" },
-{ "time": 108, "text": "歲月的蒼茫" }
-],
-
-                "餘燼落入虛無.mp3": [
-  { "time": 11, "text": "火焰跳著靈動的舞蹈" },
-  { "time": 16, "text": "灰燼飄落最後一遭" },
-  { "time": 20, "text": "燒化的紙錢開始飛向雲霄" },
-  { "time": 25, "text": "地獄的大門即將來到" },
-  { "time": 30, "text": "就像那風中飄零的草" },
-  { "time": 34, "text": "沒有根基只能隨風起" },
-  { "time": 39, "text": "落飄搖你看那天空中瀰漫的煙" },
-  { "time": 44, "text": "那是你我生命最終的樣貌" },
-  { "time": 58, "text": "火焰跳著靈動的舞蹈" },
-  { "time": 102, "text": "灰燼飄落最後一早" },
-  { "time": 107, "text": "燒化的紙錢開始飛向雲霄" },
-  { "time": 111, "text": "一切似乎就要結束了" },
-  { "time": 116, "text": "就像那風中飄零的草" },
-  { "time": 121, "text": "沒有根基只能隨風起" },
-  { "time": 126, "text": "若飄搖你看那天空中瀰漫的煙" },
-  { "time": 131, "text": "那是你我生命最終的樣貌" }
-],
-
-          "老屋回憶.mp3":    [
-  { "time": 16, "text": "老屋的木門常年虛掩" },
-  { "time": 22, "text": "門外種着一棵桂花樹" },
-  { "time": 28, "text": "秋深時節 花瓣零散一地" },
-  { "time": 35, "text": "我與爺爺用竹箕收集" },
-  { "time": 42, "text": "回憶的碎片" },
-  { "time": 44, "text": "那時的快樂" },
-  { "time": 46, "text": "是被捕捉後又放生的小魚" },
-  { "time": 55, "text": "是桂花糕出鍋時的蒸汽" },
-  { "time": 62, "text": "是一串串銀鈴般的蟲鳴鳥囀" },
-  { "time": 69, "text": "然而後來" },
-  { "time": 71, "text": "鈴聲中斷了我所邂逅的花鳥蟲魚" },
-  { "time": 79, "text": "已是活生生的標本" }
-]
-
-                
-
-
-                
-                // Add lyrics for more songs here
-            };
+    // 其他歌曲若無測驗題，也必須加上空的 quiz 陣列以避免錯誤
+    "battle-abysswalker.mp3": { lyrics: [], quiz: [] },
+    "Battle-Rosemoon.mp3": { lyrics: [], quiz: [] },
+    "Battle-deadly.mp3": { lyrics: [], quiz: [] },
+    "Battle-rapier.mp3": { lyrics: [], quiz: [] },
+    "Ariadne-Battle.mp3": { lyrics: [], quiz: [] },
+    "battle-arms.mp3": { lyrics: [], quiz: [] },
+    "Battle.mp3": { lyrics: [], quiz: [] },
+    "Wanderers-City.mp3": { lyrics: [], quiz: [] },
+    "Remotest-Liblary.mp3": { lyrics: [], quiz: [] },
+    "Nostalgia.mp3": { lyrics: [], quiz: [] },
+    "sunbeams.mp3": { lyrics: [], quiz: [] },
+    "village.mp3": { lyrics: [], quiz: [] },
+    "Take-a-Rest.mp3": { lyrics: [], quiz: [] },
+    "winter-snow.mp3": { lyrics: [], quiz: [] },
+    "Forgotten-Place.mp3": { lyrics: [], quiz: [] },
+    "Rest-in-Peace.mp3": { lyrics: [], quiz: [] },
+    "Farewell.mp3": { lyrics: [], quiz: [] },
+    "reminiscence.mp3": { lyrics: [], quiz: [] },
+    "starry-night.mp3": { lyrics: [], quiz: [] },
+    "last-wish.mp3": { lyrics: [], quiz: [] },
+    "sorrow.mp3": { lyrics: [], quiz: [] },
+    "hotarumichi.mp3": { lyrics: [], quiz: [] },
+    "Sky-Airship.mp3": { lyrics: [], quiz: [] },
+    "Voyage_SE.mp3": { lyrics: [], quiz: [] },
+    "main-theme01.mp3": { lyrics: [], quiz: [] },
+    "saikai637.mp3": { lyrics: [], quiz: [] },
+};
 
 
 
@@ -2811,6 +2923,21 @@ let isNotificationActive = false; // 一個旗標，用來判斷是否已有通�
             const keyStates = { 65: false, 83: false, 68: false, 70: false };
             let trackCooldownUntil = new Array(tracks).fill(0);
             let sfxVolume = 0.5;
+            // --- Lyrics Quiz State Variables & Elements ---
+let isQuizActive = false;
+let quizConsecutiveCorrect = 0;
+let currentQuizQuestions = [];
+let currentQuestionIndex = -1;
+let currentCorrectAnswer = '';
+let quizUnlockTarget = null; // e.g., { type: 'song', song: 'url' } or { type: 'difficulty', song: 'url', difficulty: 'hard' }
+
+const lyricsQuizModal = document.getElementById('lyricsQuizModal');
+const lyricsQuizProgress = document.getElementById('lyricsQuizProgress');
+const lyricsQuizQuestionText = document.getElementById('lyricsQuizQuestionText');
+const lyricsQuizFeedback = document.getElementById('lyricsQuizFeedback');
+const lyricsQuizInput = document.getElementById('lyricsQuizInput');
+const lyricsQuizSubmitBtn = document.getElementById('lyricsQuizSubmitBtn');
+const lyricsQuizCloseBtn = document.getElementById('lyricsQuizCloseBtn');
 
             // Music Player State
             let playerAudio = new Audio();
@@ -3803,7 +3930,114 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
                 }
             }
 
-       function endGame() {
+
+/**
+ * 顯示歌詞填充測驗
+ * @param {object} unlockTarget - 要解鎖的目標 { type, song, difficulty? }
+ */
+function showLyricsQuiz(unlockTarget) {
+    const songUrl = unlockTarget.song;
+    const songData = songLyrics[songUrl];
+
+    if (!songData || !songData.quiz || songData.quiz.length < 3) {
+        console.warn(`歌曲 ${songUrl} 沒有足夠的測驗題目可供測驗，將自動解鎖。`);
+        // 如果沒有足夠題目，直接執行解鎖
+        if (unlockTarget.type === 'song') {
+            unlockNextSong(unlockTarget.song);
+        } else if (unlockTarget.type === 'difficulty') {
+            unlockDifficulty(unlockTarget.song, unlockTarget.difficulty);
+        }
+        return;
+    }
+
+    isQuizActive = true;
+    quizUnlockTarget = unlockTarget;
+    quizConsecutiveCorrect = 0;
+    
+    // 隨機打亂題庫順序，選取題目
+    currentQuizQuestions = [...songData.quiz].sort(() => 0.5 - Math.random());
+    currentQuestionIndex = -1;
+
+    lyricsQuizModal.classList.add('active');
+    loadNewQuizQuestion();
+}
+
+/**
+ * 載入一題新的測驗題目
+ */
+function loadNewQuizQuestion() {
+    lyricsQuizInput.value = '';
+    lyricsQuizInput.focus();
+    lyricsQuizFeedback.textContent = '';
+    lyricsQuizFeedback.className = 'lyrics-quiz-feedback';
+    lyricsQuizSubmitBtn.disabled = false;
+    lyricsQuizProgress.textContent = `進度: ${quizConsecutiveCorrect} / 3`;
+
+    currentQuestionIndex++;
+    // 如果題目都用完了，從頭開始循環
+    if (currentQuestionIndex >= currentQuizQuestions.length) {
+        currentQuestionIndex = 0;
+    }
+
+    const question = currentQuizQuestions[currentQuestionIndex];
+    // 將題目中的 `__` 替換成帶有 class 的 span，以便用 CSS 加上底線
+    lyricsQuizQuestionText.innerHTML = question.line.replace('__', '<span class="blank"></span>');
+    currentCorrectAnswer = question.answer;
+}
+
+/**
+ * 檢查玩家提交的答案
+ */
+function checkQuizAnswer() {
+    const userAnswer = lyricsQuizInput.value.trim();
+    if (userAnswer === '') return;
+
+    lyricsQuizSubmitBtn.disabled = true; // 防止重複提交
+
+    if (userAnswer === currentCorrectAnswer) {
+        quizConsecutiveCorrect++;
+        lyricsQuizFeedback.textContent = '正確！';
+        lyricsQuizFeedback.className = 'lyrics-quiz-feedback correct show';
+
+        if (quizConsecutiveCorrect >= 3) {
+            // 挑戰成功！
+            lyricsQuizProgress.textContent = `進度: 3 / 3`;
+            showNotification('success', '挑戰成功！', `恭喜您通過歌詞測驗，新內容已解鎖！`);
+            
+            // 根據儲存的目標執行解鎖
+            if (quizUnlockTarget.type === 'song') {
+                unlockNextSong(quizUnlockTarget.song);
+            } else if (quizUnlockTarget.type === 'difficulty') {
+                unlockDifficulty(quizUnlockTarget.song, quizUnlockTarget.difficulty);
+            }
+
+            setTimeout(closeLyricsQuiz, 1500); // 延遲 1.5 秒後關閉視窗
+        } else {
+            // 答對了，但還沒滿三題，準備下一題
+            setTimeout(loadNewQuizQuestion, 1200);
+        }
+
+    } else {
+        // 答錯了
+        quizConsecutiveCorrect = 0; // 連續答對次數歸零
+        lyricsQuizFeedback.innerHTML = `錯誤！正確答案是：<strong>${currentCorrectAnswer}</strong>`;
+        lyricsQuizFeedback.className = 'lyrics-quiz-feedback incorrect show';
+        setTimeout(loadNewQuizQuestion, 2000); // 讓玩家看清楚答案再跳到下一題
+    }
+}
+
+/**
+ * 關閉測驗視窗並重置狀態
+ */
+function closeLyricsQuiz() {
+    isQuizActive = false;
+    quizUnlockTarget = null;
+    lyricsQuizModal.classList.remove('active');
+}
+
+            
+
+     function endGame() {
     gameActive = false;
     audio.pause();
     audio.currentTime = 0;
@@ -3815,7 +4049,6 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     difficultySelect.disabled = false;
 
     mainGameContainer.classList.remove('game-running'); 
-    // 修訂：移除設置高度為 '0%' 的代碼，只重設寬度（修復下次遊戲無法顯示的BUG）
     unlockProgressBar.style.width = '0%';
     unlockProgressBar.classList.remove('glowing');
 
@@ -3830,35 +4063,49 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     const selectedDifficulty = difficultySelect.value;
     updatePersonalHighScore(selectedSong, selectedDifficulty, score);
 
-    // 步驟 1: 獨立檢查歌曲解鎖 (僅限普通難度)
-    if (selectedDifficulty === 'normal') {
-        const requiredScoreToUnlock = maxScoreForCurrentLevel * SONG_UNLOCK_PERCENTAGE;
-        if (pureHitScore >= requiredScoreToUnlock) {
-            unlockNextSong(selectedSong);
-        } else {
-            const remainingScore = Math.ceil(requiredScoreToUnlock - pureHitScore);
-            const allSongs = Array.from(musicSelect.options).map(opt => opt.value);
-            const isLastSong = saveData.unlockedSongs.length === allSongs.length;
-            if (!isLastSong) {
-                showNotification('info', '目標差一點！', `您在「普通」難度下還差 <strong>${remainingScore.toLocaleString()}</strong> 分就能解鎖下一首歌曲了。再加把勁！`, 6000);
-            }
-        }
-    }
-
-    // 步驟 2: 獨立檢查難度解鎖 (傳入正確的 pureHitScore)
-    checkAndUnlockDifficulties(selectedSong, selectedDifficulty, pureHitScore);
-
-    // 步驟 3: 顯示結束畫面
+    // 首先顯示遊戲結束畫面
     showGameOver();
 
-    // 新增：清空遊戲歌詞顯示
-    const lyricsLeft = document.querySelector('.lyrics-left');
-    const lyricsRight = document.querySelector('.lyrics-right');
-    if (lyricsLeft && lyricsRight) {
-        lyricsLeft.textContent = '';
-        lyricsRight.textContent = '';
-        lyricsLeft.classList.add('hidden');
-        lyricsRight.classList.add('hidden');
+    // 延遲一小段時間再檢查解鎖，讓玩家先看到分數
+    setTimeout(() => {
+        let unlockTriggered = false;
+
+        // 檢查 1: 是否達到解鎖下一首歌曲的條件
+        if (selectedDifficulty === 'normal') {
+            const requiredScoreToUnlockSong = maxScoreForCurrentLevel * SONG_UNLOCK_PERCENTAGE;
+            const allSongs = Array.from(musicSelect.options).map(opt => opt.value);
+            const lastUnlockedSong = saveData.unlockedSongs[saveData.unlockedSongs.length - 1];
+            const isLastSongInList = allSongs.indexOf(lastUnlockedSong) === allSongs.length - 1;
+
+            if (pureHitScore >= requiredScoreToUnlockSong && selectedSong === lastUnlockedSong && !isLastSongInList) {
+                unlockTriggered = true;
+                showLyricsQuiz({ type: 'song', song: selectedSong });
+                return; // 觸發了解鎖，結束後續判斷
+            }
+        }
+
+        // 檢查 2: 是否達到解鎖更高難度的條件
+        const requiredScoreToUnlockDifficulty = maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE;
+        if (pureHitScore >= requiredScoreToUnlockDifficulty) {
+            if (selectedDifficulty === 'normal' && !isDifficultyUnlocked(selectedSong, 'hard')) {
+                unlockTriggered = true;
+                showLyricsQuiz({ type: 'difficulty', song: selectedSong, difficulty: 'hard' });
+                return;
+            }
+            if (selectedDifficulty === 'hard' && !isDifficultyUnlocked(selectedSong, 'hell')) {
+                unlockTriggered = true;
+                showLyricsQuiz({ type: 'difficulty', song: selectedSong, difficulty: 'hell' });
+                return;
+            }
+        }
+
+    }, 1000); // 延遲 1 秒後檢查
+
+    // 清空遊戲中的歌詞顯示
+    const lyricsBackground = document.getElementById('lyricsBackground');
+    if (lyricsBackground) {
+        lyricsBackground.style.display = 'none';
+        lyricsBackground.innerHTML = '';
     }
 }
 
@@ -4513,6 +4760,10 @@ function updateCdCover(songUrl) {
                 if (e.target === personalHighScoreModal) personalHighScoreModal.classList.remove('active');
                 if (e.target === unlockModal) unlockModal.classList.remove('active');
             });
+            // 新增以下三行
+lyricsQuizSubmitBtn.addEventListener('click', checkQuizAnswer);
+lyricsQuizInput.addEventListener('keyup', (e) => { if (e.key === 'Enter') checkQuizAnswer(); });
+lyricsQuizCloseBtn.addEventListener('click', closeLyricsQuiz);
 
             // Fixed volume slider input listeners to use 'change' event for full range
             volumeControlModal.addEventListener('change', () => {
@@ -4700,6 +4951,26 @@ disclaimerModal.addEventListener('click', (e) => {
         </div>
     </div>
 </div>
+
+
+<!-- 歌詞填充測驗彈窗 (Lyrics Fill-in-the-blank Quiz Modal) -->
+<div class="lyrics-quiz-modal" id="lyricsQuizModal">
+    <div class="lyrics-quiz-content">
+        <h2 class="lyrics-quiz-title">歌詞填充測驗</h2>
+        <p class="lyrics-quiz-intro">請填入歌詞中缺失的詞語，連續答對三題即可解鎖！</p>
+        <div class="lyrics-quiz-progress" id="lyricsQuizProgress">進度: 0 / 3</div>
+        <div class="lyrics-quiz-question-container">
+            <p id="lyricsQuizQuestionText"></p>
+        </div>
+        <div class="lyrics-quiz-feedback" id="lyricsQuizFeedback"></div>
+        <div class="lyrics-quiz-controls">
+            <input type="text" id="lyricsQuizInput" class="lyrics-quiz-input" placeholder="請在此輸入答案..." autocomplete="off">
+            <button id="lyricsQuizSubmitBtn" class="lyrics-quiz-submit-btn">提交答案</button>
+        </div>
+         <button id="lyricsQuizCloseBtn" class="lyrics-quiz-close-btn">放棄挑戰</button>
+    </div>
+</div>
+    
 
 
 </body>
