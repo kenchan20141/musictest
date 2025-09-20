@@ -3526,7 +3526,7 @@ function updateUnlockMeter() {
                 return difficultySettings[difficultySelect.value] || difficultySettings.normal;
             }
 
-           async function startGame() {
+          async function startGame() {
     const selectedSong = musicSelect.value;
     const selectedDifficulty = difficultySelect.value;
 
@@ -3554,11 +3554,14 @@ function updateUnlockMeter() {
     musicSelect.disabled = true;
     difficultySelect.disabled = true;
 
+    // ▼▼▼ 【核心修訂】無條件設定兩條合格線的位置 ▼▼▼
     mainGameContainer.classList.add('game-running'); 
     
+    // 根據預設的百分比常數，設定兩條線的 left 屬性
     songUnlockMarker.style.left = `${SONG_UNLOCK_PERCENTAGE * 100}%`;
     difficultyUnlockMarker.style.left = `${DIFFICULTY_UNLOCK_PERCENTAGE * 100}%`;
-
+    // ▲▲▲ 修訂結束 ▲▲▲
+    
     startBtn.innerHTML = `<svg class="start-button-svg" viewBox="0 0 40 40" style="width:40px;height:40px;">
         <circle cx="20" cy="20" r="18" stroke="#ff8a00" stroke-width="3" fill="none" stroke-dasharray="89" stroke-dashoffset="20">
             <animateTransform attributeName="transform" type="rotate" from="0 20 20" to="360 20 20" dur="1s" repeatCount="indefinite" />
@@ -3575,24 +3578,33 @@ function updateUnlockMeter() {
     audio.volume = volumeControlModal.value;
     currentSongDuration = await getAudioDuration(selectedSong);
     noteSpeed = Math.floor(4000 / difficulty.speedMultiplier);
-    const songAndDifficultyString = selectedSong + selectedDifficulty;
-    let seed = 0;
-    for (let i = 0; i < songAndDifficultyString.length; i++) {
-        const char = songAndDifficultyString.charCodeAt(i);
-        seed = ((seed << 5) - seed) + char;
-        seed |= 0;
-    }
-    seed = Math.abs(seed) || 1;
-    console.log(`Generating notes for ${selectedSong} (${selectedDifficulty}) with seed: ${seed}`);
+    // ▼▼▼ [修訂] 生成基於歌曲和難度的固定種子 ▼▼▼
+const songAndDifficultyString = selectedSong + selectedDifficulty;
+let seed = 0;
+for (let i = 0; i < songAndDifficultyString.length; i++) {
+    const char = songAndDifficultyString.charCodeAt(i);
+    seed = ((seed << 5) - seed) + char;
+    seed |= 0; // Convert to 32bit integer
+}
+// 確保種子為正數
+seed = Math.abs(seed) || 1; // 避免種子為 0
+console.log(`Generating notes for ${selectedSong} (${selectedDifficulty}) with seed: ${seed}`);
+// ▲▲▲ [修訂結束] ▲▲▲
 
-    noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed);
+// ▼▼▼ [修訂] 傳入種子 ▼▼▼
+noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed); // 傳入 noteSpeed
+// ▲▲▲ [修訂結束] ▲▲▲
 
-    const maxBaseScorePerNote = 100;
+    // ▼▼▼ 【修訂後的核心邏輯】 ▼▼▼
+    // 在生成音符後，動態計算不含連擊獎勵的理論最高分
+    const maxBaseScorePerNote = 100; // "Perfect" 的基礎分數是 100
     maxScoreForCurrentLevel = noteQueue.length * maxBaseScorePerNote;
 
+    // 如果計算結果為 0 (例如歌曲沒有音符)，則提供一個預設值以避免錯誤
     if (maxScoreForCurrentLevel === 0) {
-        maxScoreForCurrentLevel = 300000;
+        maxScoreForCurrentLevel = 300000; // 設置一個後備值
     }
+    // ▲▲▲ 【修訂結束】 ▲▲▲
 
     unlockThresholdPercentage = (difficultySelect.value === 'normal') ? SONG_UNLOCK_PERCENTAGE : DIFFICULTY_UNLOCK_PERCENTAGE;
 
@@ -3603,10 +3615,48 @@ function updateUnlockMeter() {
     progressInterval = setInterval(updateProgress, 100);
     setTimeout(() => { if (gameActive) endGame(); }, currentSongDuration * 1000 + 2000);
 
+    // 新增：顯示背景歌詞容器
     const lyricsBackground = document.getElementById('lyricsBackground');
     if (lyricsBackground) {
         lyricsBackground.style.display = 'grid';
     }
+}
+
+function gameLoop() {
+    if (!gameActive) return;
+    const trackRect = tracksContainer.getBoundingClientRect();
+    const hitLineY = trackRect.top + trackRect.height - 100;
+    for (let i = notes.length - 1; i >= 0; i--) {
+        const note = notes[i];
+        if (!note.active) continue;
+        const rect = note.element.getBoundingClientRect();
+        
+        // 當音符的頂部完全超過判定線加一個緩衝區時
+        if (rect.top > hitLineY + 20) {
+             // ▼▼▼ 修訂核心邏輯開始 ▼▼▼
+            
+            // 檢查該軌道上是否有正在被按下的長音符 (進入無敵狀態)
+            const isTrackInvincible = notes.some(n =>
+                n.track === note.track && // 條件1: 是同一個軌道
+                n.type === 'long' &&      // 條件2: 該軌道上有一個長音符
+                n.hitStarted              // 條件3: 並且那個長音符已經開始被按住
+            );
+
+            // 只有在軌道不是無敵狀態時，才判定為 MISS
+            if (!isTrackInvincible) {
+                judgeHit(note.track, 'miss');
+            }
+            
+            // 無論軌道是否無敵，這個已經錯過的音符都必須被移除
+            note.active = false;
+            note.element.remove();
+            notes.splice(i, 1);
+            
+            // ▲▲▲ 修訂核心邏輯結束 ▲▲▲
+        }
+    }
+    updateUnlockMeter();
+    animationFrame = requestAnimationFrame(gameLoop);
 }
 
 
