@@ -4260,7 +4260,7 @@ function endGame() {
     updatePersonalHighScore(selectedSong, selectedDifficulty, score);
 
     // 【核心修訂】呼叫統一的檢查函數，它將負責判斷是否需要啟動測驗
-    checkAndShowQuizOrInfo(selectedSong, selectedDifficulty, pureHitScore);
+    checkAndShowQuizOrInfo(selectedSong, selectedDifficulty, score);
 
     // 無論是否解鎖，都顯示遊戲結束畫面
     showGameOver();
