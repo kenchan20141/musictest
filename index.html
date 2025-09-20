@@ -3258,7 +3258,7 @@ closeNotification.addEventListener('click', () => {
     }
 }
 
-         function judgeHit(trackIndex, type) {
+     function judgeHit(trackIndex, type) {
     if (sounds[type]) {
         sounds[type]();
     }
@@ -3279,9 +3279,9 @@ closeNotification.addEventListener('click', () => {
     }, 1000);
 
     if (type !== 'miss') {
+        // 修 BUG：直接觸發效果，而非遞迴呼叫 judgeHit
         // 加強粒子：根據等級增加數量
         const particleCount = (type === 'perfect') ? 15 : (type === 'great' ? 10 : 7);
-
         createHitParticles(trackIndex, type, particleCount);
 
         const hitLine = track.querySelector('.hit-line');
@@ -3291,33 +3291,33 @@ closeNotification.addEventListener('click', () => {
             hitLine.classList.add('pulse-effect');
         }
 
-       // 新增：軌道閃光效果（根據判斷等級添加顏色 class）
-if (track) {
-    track.classList.remove('flash-perfect', 'flash-great', 'flash-good'); // 先移除舊 class
-    void track.offsetWidth; // 強制重繪
-    if (type === 'perfect') {
-        track.classList.add('flash-perfect');
-    } else if (type === 'great') {
-        track.classList.add('flash-great');
-    } else if (type === 'good') {
-        track.classList.add('flash-good');
-    }
-}
+        // 新增：軌道閃光效果（根據判斷等級添加顏色 class）
+        if (track) {
+            track.classList.remove('flash-perfect', 'flash-great', 'flash-good'); // 先移除舊 class
+            void track.offsetWidth; // 強制重繪
+            if (type === 'perfect') {
+                track.classList.add('flash-perfect');
+            } else if (type === 'great') {
+                track.classList.add('flash-great');
+            } else if (type === 'good') {
+                track.classList.add('flash-good');
+            }
+        }
 
         // 觸發畫面晃動
         mainGameContainer.classList.remove('shake-effect');
         void mainGameContainer.offsetWidth;
         mainGameContainer.classList.add('shake-effect');
 
-        // 觸發裝置震動（縮短時間，並根據等級調整）
+        // 觸發裝置震動（調整 PERFECT 為更短）
         if (navigator.vibrate) {
             let vibrationPattern;
             if (type === 'perfect') {
-                vibrationPattern = [70, 30, 70];  // 加強但縮短：兩個短震動
+                vibrationPattern = [60];  // 縮短：總 170ms
             } else if (type === 'great') {
-                vibrationPattern = [50];  // 中等：單一短震動
+                vibrationPattern = [40];  // 減弱：單一較短震動
             } else if (type === 'good') {
-                vibrationPattern = [30];  // 輕微：單一更短震動
+                vibrationPattern = [20];  // 減弱：單一更短震動
             }
             navigator.vibrate(vibrationPattern);
         }
@@ -4075,7 +4075,7 @@ function endGame() {
                 }
             }
 
-          function handleKeyUp(e) {
+         function handleKeyUp(e) {
     if (!gameActive) return;
     const keyCode = e.keyCode;
     keyStates[keyCode] = false;
@@ -4098,25 +4098,8 @@ function endGame() {
                 else type = 'good';
             }
             
-            // 只在非 MISS 時觸發效果（包括震動）
-if (type !== 'miss') {
-    judgeHit(trackIndex, type);  // 呼叫 judgeHit 觸發粒子/晃動等（內含震動）
-} else {
-    judgeHit(trackIndex, 'miss');  // MISS 時只呼叫 judgeHit，但無震動
-}
-
-// 觸發裝置震動（縮短時間，並根據等級調整）
-if (navigator.vibrate && type !== 'miss') {
-    let vibrationPattern;
-    if (type === 'perfect') {
-        vibrationPattern = [100, 50, 100];  // 加強：更長、更強的雙震動
-    } else if (type === 'great') {
-        vibrationPattern = [40];  // 減弱：單一較短震動
-    } else if (type === 'good') {
-        vibrationPattern = [20];  // 減弱：單一更短震動
-    }
-    navigator.vibrate(vibrationPattern);
-}
+            // 修訂：無論 MISS 或非 MISS，都呼叫 judgeHit，讓它處理所有效果（包括粒子/震動）
+            judgeHit(trackIndex, type);
             
             note.active = false;
             note.element.remove();
@@ -4124,7 +4107,6 @@ if (navigator.vibrate && type !== 'miss') {
         }
     }
 }
-
             function onTouchStart(e) {
                 e.preventDefault();
                 const keyElement = e.target.closest('.touch-key');
