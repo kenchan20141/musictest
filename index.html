@@ -43,15 +43,15 @@
 .unlock-progress-bar {
     height: 100%; /* [修訂] 高度填滿容器 */
     width: 0%;    /* [修訂] 由 JS 控制寬度來顯示進度 */
-    background: linear-gradient(90deg, #00B74A, #00FF85); /* [修訂] 更鮮明綠色，清楚顯示 */
+    background: linear-gradient(90deg, #1D976C, #93F9B9); /* [修訂] 漸變方向改為 90 度 */
     transition: width 0.2s ease-out, box-shadow 0.3s ease; /* [修訂] 動畫屬性改為 width */
-    box-shadow: 0 0 10px rgba(0, 255, 133, 0); /* 初始無影 */
+    box-shadow: 0 0 10px rgba(147, 249, 185, 0);
 }
 
-/* 當進度超過門檻時的發光效果 */
-.unlock-progress-bar.glowing {
-    box-shadow: 0 0 20px 8px rgba(0, 255, 133, 1); /* [修訂] 加強發亮效果，更明顯 */
-}
+        /* 當進度超過門檻時的發光效果 */
+        .unlock-progress-bar.glowing {
+            box-shadow: 0 0 15px 5px rgba(147, 249, 185, 0.8);
+        }
 
        .unlock-progress-marker {
             position: absolute;
@@ -2798,7 +2798,6 @@ let maxScoreForCurrentLevel = 0; // ▼▼▼ 新增狀態變數
             let unlockThresholdPercentage = 0; // ▼▼▼ 新增狀態變數
             let score = 0; // 總分，包含連擊獎勵
 let pureHitScore = 0; // 新增：純擊打分數，用於解鎖計算
-            let scoreChanged = false; // 新增旗標，用於 gameLoop 檢測變化
             let combo = 0;
             let notificationQueue = [];      // 我們的通知「待辦清單」
 let isNotificationActive = false; // 一個旗標，用來判斷是否已有通知正在顯示
@@ -3248,9 +3247,9 @@ closeNotification.addEventListener('click', () => {
     const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
     if (!track) return;
     
-    // 根據等級調整粒子數和範圍（增加範圍）
-    const particleCount = (judgment === 'perfect') ? 25 : (judgment === 'great' ? 18 : 12);
-    const maxOffset = (judgment === 'perfect') ? 150 : (judgment === 'great' ? 120 : 90); // 加大 maxOffset
+    // 根據等級調整粒子數和範圍
+    const particleCount = (judgment === 'perfect') ? 20 : (judgment === 'great' ? 15 : 10);
+    const maxOffset = (judgment === 'perfect') ? 100 : (judgment === 'great' ? 80 : 60); // 更大範圍
     
     const colors = {
         perfect: '#ffcc00',
@@ -3267,11 +3266,9 @@ closeNotification.addEventListener('click', () => {
         const size = Math.floor(8 + Math.random() * 8);
         particle.style.setProperty('--size', `${size}px`);
         
-        // 修改：使用極座標全方向擴展（360 度隨機角度）
-        const angle = Math.random() * 2 * Math.PI; // 隨機角度（弧度）
-        const distance = Math.random() * maxOffset; // 隨機距離（0 到 maxOffset）
-        const x = distance * Math.cos(angle);
-        const y = distance * Math.sin(angle);
+        // 隨機位置（更大範圍）
+        const x = (Math.random() - 0.5) * maxOffset * 2;
+        const y = (Math.random() * -maxOffset) - 20;
         particle.style.setProperty('--x', `${x}px`);
         particle.style.setProperty('--y', `${y}px`);
         
@@ -3337,7 +3334,7 @@ function explodeNote(noteElement, judgment) {
 
             
 
-    function judgeHit(trackIndex, type) {
+     function judgeHit(trackIndex, type) {
     if (sounds[type]) {
         sounds[type]();
     }
@@ -3358,6 +3355,8 @@ function explodeNote(noteElement, judgment) {
     }, 1000);
 
     if (type !== 'miss') {
+        // 修 BUG：直接觸發效果，而非遞迴呼叫 judgeHit
+        // 加強粒子：根據等級增加數量
         const particleCount = (type === 'perfect') ? 15 : (type === 'great' ? 10 : 7);
         createHitParticles(trackIndex, type, particleCount);
 
@@ -3368,9 +3367,10 @@ function explodeNote(noteElement, judgment) {
             hitLine.classList.add('pulse-effect');
         }
 
+        // 新增：軌道閃光效果（根據判斷等級添加顏色 class）
         if (track) {
-            track.classList.remove('flash-perfect', 'flash-great', 'flash-good');
-            void track.offsetWidth;
+            track.classList.remove('flash-perfect', 'flash-great', 'flash-good'); // 先移除舊 class
+            void track.offsetWidth; // 強制重繪
             if (type === 'perfect') {
                 track.classList.add('flash-perfect');
             } else if (type === 'great') {
@@ -3380,60 +3380,65 @@ function explodeNote(noteElement, judgment) {
             }
         }
 
+        // 觸發畫面晃動
         mainGameContainer.classList.remove('shake-effect');
         void mainGameContainer.offsetWidth;
         mainGameContainer.classList.add('shake-effect');
 
+        // 觸發裝置震動（調整 PERFECT 為更短）
         if (navigator.vibrate) {
             let vibrationPattern;
             if (type === 'perfect') {
-                vibrationPattern = [70];
+                vibrationPattern = [70];  // 縮短：總 170ms
             } else if (type === 'great') {
-                vibrationPattern = [50];
+                vibrationPattern = [50];  // 減弱：單一較短震動
             } else if (type === 'good') {
-                vibrationPattern = [30];
+                vibrationPattern = [30];  // 減弱：單一更短震動
             }
             navigator.vibrate(vibrationPattern);
         }
-        scoreChanged = true; // 新增：標記變化，確保 gameLoop 更新
     } else {
         combo = 0;
         const difficulty = getCurrentDifficulty();
         trackCooldownUntil[trackIndex] = Date.now() + difficulty.cooldown;
     }
     updateUI();
-    updateUnlockMeter(); // 每次判定後強制更新進度條
 }
-         function addScore(baseScore) {
-    combo++;
-    if (combo > maxCombo) maxCombo = combo;
+
+            function addScore(baseScore) {
+                combo++;
+                if (combo > maxCombo) maxCombo = combo;
+                score += baseScore + Math.floor(baseScore * (Math.floor(combo / 10) * 0.1));
+
+ // 核心修訂：分開計算
     pureHitScore += baseScore; // 純擊打分數，用於解鎖
     score += baseScore + Math.floor(baseScore * (Math.floor(combo / 10) * 0.1)); // 總分，包含連擊獎勵，用於顯示
-    scoreChanged = true; // 新增：標記得分變化
-    if (combo > 5) {
-        const comboEl = document.createElement('div');
-        comboEl.className = 'combo-display';
-        comboEl.textContent = `${combo} COMBO!`;
-        if (combo >= 1000) comboEl.classList.add('combo-rainbow');
-        else if (combo >= 500) comboEl.classList.add('combo-purple');
-        else if (combo >= 200) comboEl.classList.add('combo-pink');
-        else if (combo >= 100) comboEl.classList.add('combo-orange');
-        else if (combo >= 50) comboEl.classList.add('combo-blue');
-        else comboEl.classList.add('combo-base');
-        tracksContainer.appendChild(comboEl);
-        if (sounds.combo) sounds.combo();
-        setTimeout(() => comboEl.remove(), 500);
-    }
-    let trackComboClass = '';
-    if (combo >= 1000) trackComboClass = 'combo-rainbow';
-    else if (combo >= 500) trackComboClass = 'combo-purple';
-    else if (combo >= 200) trackComboClass = 'combo-pink';
-    else if (combo >= 100) trackComboClass = 'combo-orange';
-    else if (combo >= 50) trackComboClass = 'combo-blue';
-    tracksContainer.className = 'tracks';
-    if (trackComboClass) tracksContainer.classList.add(trackComboClass);
-    updateUnlockMeter(); // 確保每次加分後實時更新進度條
-}
+
+                if (combo > 5) {
+                    const comboEl = document.createElement('div');
+                    comboEl.className = 'combo-display';
+                    comboEl.textContent = `${combo} COMBO!`;
+                    if (combo >= 1000) comboEl.classList.add('combo-rainbow');
+                    else if (combo >= 500) comboEl.classList.add('combo-purple');
+                    else if (combo >= 200) comboEl.classList.add('combo-pink');
+                    else if (combo >= 100) comboEl.classList.add('combo-orange');
+                    else if (combo >= 50) comboEl.classList.add('combo-blue');
+                    else comboEl.classList.add('combo-base');
+                    tracksContainer.appendChild(comboEl);
+                    if (sounds.combo) sounds.combo();
+                    setTimeout(() => comboEl.remove(), 500);
+                }
+                let trackComboClass = '';
+                if (combo >= 1000) trackComboClass = 'combo-rainbow';
+                else if (combo >= 500) trackComboClass = 'combo-purple';
+                else if (combo >= 200) trackComboClass = 'combo-pink';
+                else if (combo >= 100) trackComboClass = 'combo-orange';
+                else if (combo >= 50) trackComboClass = 'combo-blue';
+                tracksContainer.className = 'tracks';
+                if (trackComboClass) tracksContainer.classList.add(trackComboClass);
+updateUnlockMeter(); // ▼▼▼ 在 addScore 結尾呼叫新函數
+            }
+
  // ▼▼▼ 新增的函數 ▼▼▼
            // ▼▼▼ 修正後的函數 ▼▼▼
 function updateUnlockMeter() {
@@ -3507,7 +3512,7 @@ function updateUnlockMeter() {
                 return difficultySettings[difficultySelect.value] || difficultySettings.normal;
             }
 
-         async function startGame() {
+           async function startGame() {
     const selectedSong = musicSelect.value;
     const selectedDifficulty = difficultySelect.value;
 
@@ -3535,17 +3540,14 @@ function updateUnlockMeter() {
     musicSelect.disabled = true;
     difficultySelect.disabled = true;
 
+    // ▼▼▼ 【核心修訂】無條件設定兩條合格線的位置 ▼▼▼
     mainGameContainer.classList.add('game-running'); 
     
+    // 根據預設的百分比常數，設定兩條線的 left 屬性
     songUnlockMarker.style.left = `${SONG_UNLOCK_PERCENTAGE * 100}%`;
     difficultyUnlockMarker.style.left = `${DIFFICULTY_UNLOCK_PERCENTAGE * 100}%`;
+    // ▲▲▲ 修訂結束 ▲▲▲
     
-    // 新增：重置 pureHitScore 和進度條
-    pureHitScore = 0;
-    scoreChanged = false;
-    unlockProgressBar.style.width = '0%';
-    unlockProgressBar.classList.remove('glowing');
-
     startBtn.innerHTML = `<svg class="start-button-svg" viewBox="0 0 40 40" style="width:40px;height:40px;">
         <circle cx="20" cy="20" r="18" stroke="#ff8a00" stroke-width="3" fill="none" stroke-dasharray="89" stroke-dashoffset="20">
             <animateTransform attributeName="transform" type="rotate" from="0 20 20" to="360 20 20" dur="1s" repeatCount="indefinite" />
@@ -3562,23 +3564,33 @@ function updateUnlockMeter() {
     audio.volume = volumeControlModal.value;
     currentSongDuration = await getAudioDuration(selectedSong);
     noteSpeed = Math.floor(4000 / difficulty.speedMultiplier);
-    const songAndDifficultyString = selectedSong + selectedDifficulty;
-    let seed = 0;
-    for (let i = 0; i < songAndDifficultyString.length; i++) {
-        const char = songAndDifficultyString.charCodeAt(i);
-        seed = ((seed << 5) - seed) + char;
-        seed |= 0; // Convert to 32bit integer
-    }
-    seed = Math.abs(seed) || 1; // 避免種子為 0
-    console.log(`Generating notes for ${selectedSong} (${selectedDifficulty}) with seed: ${seed}`);
-    noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed); // 傳入 noteSpeed
+    // ▼▼▼ [修訂] 生成基於歌曲和難度的固定種子 ▼▼▼
+const songAndDifficultyString = selectedSong + selectedDifficulty;
+let seed = 0;
+for (let i = 0; i < songAndDifficultyString.length; i++) {
+    const char = songAndDifficultyString.charCodeAt(i);
+    seed = ((seed << 5) - seed) + char;
+    seed |= 0; // Convert to 32bit integer
+}
+// 確保種子為正數
+seed = Math.abs(seed) || 1; // 避免種子為 0
+console.log(`Generating notes for ${selectedSong} (${selectedDifficulty}) with seed: ${seed}`);
+// ▲▲▲ [修訂結束] ▲▲▲
 
+// ▼▼▼ [修訂] 傳入種子 ▼▼▼
+noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed); // 傳入 noteSpeed
+// ▲▲▲ [修訂結束] ▲▲▲
+
+    // ▼▼▼ 【修訂後的核心邏輯】 ▼▼▼
+    // 在生成音符後，動態計算不含連擊獎勵的理論最高分
     const maxBaseScorePerNote = 100; // "Perfect" 的基礎分數是 100
     maxScoreForCurrentLevel = noteQueue.length * maxBaseScorePerNote;
 
+    // 如果計算結果為 0 (例如歌曲沒有音符)，則提供一個預設值以避免錯誤
     if (maxScoreForCurrentLevel === 0) {
         maxScoreForCurrentLevel = 300000; // 設置一個後備值
     }
+    // ▲▲▲ 【修訂結束】 ▲▲▲
 
     await audio.play().catch(e => console.log("音訊播放失敗:", e));
     gameStartTime = Date.now();
@@ -3587,6 +3599,7 @@ function updateUnlockMeter() {
     progressInterval = setInterval(updateProgress, 100);
     setTimeout(() => { if (gameActive) endGame(); }, currentSongDuration * 1000 + 2000);
 
+    // 新增：載入並初始化遊戲歌詞顯示
     const lyricsLeft = document.querySelector('.lyrics-left');
     const lyricsRight = document.querySelector('.lyrics-right');
     if (lyricsLeft && lyricsRight) {
@@ -3594,6 +3607,7 @@ function updateUnlockMeter() {
         lyricsRight.classList.remove('hidden');
     }
 }
+
 
 // 新增輔助函數：分析節拍間隔，估算基本時間單位（如十六分音符長度）
 function analyzeBeatIntervals(beatTimestamps) {
@@ -4041,39 +4055,40 @@ function endGame() {
             }
 
             function gameLoop() {
-    if (!gameActive) return;
-    const trackRect = tracksContainer.getBoundingClientRect();
-    const hitLineY = trackRect.top + trackRect.height - 100;
-    for (let i = notes.length - 1; i >= 0; i--) {
-        const note = notes[i];
-        if (!note.active) continue;
-        const rect = note.element.getBoundingClientRect();
-        
-        if (rect.top > hitLineY + 20) {
-            const isTrackInvincible = notes.some(n =>
-                n.track === note.track && 
-                n.type === 'long' &&      
-                n.hitStarted              
-            );
+                if (!gameActive) return;
+                const trackRect = tracksContainer.getBoundingClientRect();
+                const hitLineY = trackRect.top + trackRect.height - 100;
+                for (let i = notes.length - 1; i >= 0; i--) {
+                    const note = notes[i];
+                    if (!note.active) continue;
+                    const rect = note.element.getBoundingClientRect();
+                    
+                    // 當音符的頂部完全超過判定線加一個緩衝區時
+                    if (rect.top > hitLineY + 20) {
+                         // ▼▼▼ 修訂核心邏輯開始 ▼▼▼
+                        
+                        // 檢查該軌道上是否有正在被按下的長音符 (進入無敵狀態)
+                        const isTrackInvincible = notes.some(n =>
+                            n.track === note.track && // 條件1: 是同一個軌道
+                            n.type === 'long' &&      // 條件2: 該軌道上有一個長音符
+                            n.hitStarted              // 條件3: 並且那個長音符已經開始被按住
+                        );
 
-            if (!isTrackInvincible) {
-                judgeHit(note.track, 'miss');
+                        // 只有在軌道不是無敵狀態時，才判定為 MISS
+                        if (!isTrackInvincible) {
+                            judgeHit(note.track, 'miss');
+                        }
+                        
+                        // 無論軌道是否無敵，這個已經錯過的音符都必須被移除
+                        note.active = false;
+                        note.element.remove();
+                        notes.splice(i, 1);
+                        
+                        // ▲▲▲ 修訂核心邏輯結束 ▲▲▲
+                    }
+                }
+                animationFrame = requestAnimationFrame(gameLoop);
             }
-            
-            note.active = false;
-            note.element.remove();
-            notes.splice(i, 1);
-        }
-    }
-    
-    // 新增：如果得分變化，則更新進度條（確保實時）
-    if (scoreChanged) {
-        updateUnlockMeter();
-        scoreChanged = false; // 重置旗標
-    }
-    
-    animationFrame = requestAnimationFrame(gameLoop);
-}
 
          function handleKeyDown(e) {
                 if (!gameActive) return;
