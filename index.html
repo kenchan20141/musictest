@@ -3601,14 +3601,13 @@ function explodeNote(noteElement, judgment) {
                 updateUI();
             }
 
-            function addScore(baseScore) {
+          function addScore(baseScore) {
                 combo++;
                 if (combo > maxCombo) maxCombo = combo;
-                score += baseScore + Math.floor(baseScore * (Math.floor(combo / 10) * 0.1));
-
- // 核心修訂：分開計算
-    pureHitScore += baseScore; // 純擊打分數，用於解鎖
-    score += baseScore + Math.floor(baseScore * (Math.floor(combo / 10) * 0.1)); // 總分，包含連擊獎勵，用於顯示
+                
+                // 核心修訂：分開計算總分與用於解鎖的純粹分數
+                pureHitScore += baseScore; // 純擊打分數，用於解鎖條件判斷
+                score += baseScore + Math.floor(baseScore * (Math.floor(combo / 10) * 0.1)); // 包含連擊獎勵的總分，用於顯示
 
                 if (combo > 5) {
                     const comboEl = document.createElement('div');
@@ -3632,28 +3631,30 @@ function explodeNote(noteElement, judgment) {
                 else if (combo >= 50) trackComboClass = 'combo-blue';
                 tracksContainer.className = 'tracks';
                 if (trackComboClass) tracksContainer.classList.add(trackComboClass);
-updateUnlockMeter(); // ▼▼▼ 在 addScore 結尾呼叫新函數
+                
+                updateUnlockMeter(); // 在分數更新後，同步更新解鎖進度條
             }
 
  // ▼▼▼ 新增的函數 ▼▼▼
            // ▼▼▼ 修正後的函數 ▼▼▼
 function updateUnlockMeter() {
-if (maxScoreForCurrentLevel <= 0) {
-    console.warn('maxScoreForCurrentLevel 計算異常，使用預設值');
-    maxScoreForCurrentLevel = 300000; // 預防邊緣情況（無音符）
-}
+                if (maxScoreForCurrentLevel <= 0) return; // 避免除以零的錯誤
+                
+                // 【核心修正】進度條的百分比應基於不含 COMBO 的純粹分數（pureHitScore）來計算
+                const currentPercent = Math.min(100, (pureHitScore / maxScoreForCurrentLevel) * 100);
+                
+                unlockProgressBar.style.width = `${currentPercent}%`;
 
-    
-    if (maxScoreForCurrentLevel === 0) return;
-    // 核心修訂：使用 pureHitScore 來計算百分比
-   const currentPercent = Math.min(100, (score / maxScoreForCurrentLevel) * 100);
-unlockProgressBar.style.width = `${currentPercent}%`;
-    if (currentPercent >= unlockThresholdPercentage * 100) {
-        unlockProgressBar.classList.add('glowing');
-    } else {
-        unlockProgressBar.classList.remove('glowing');
-    }
-}
+                // 檢查是否超過了任一條解鎖線，如果超過則添加發光效果
+                const hasReachedSongUnlock = currentPercent >= SONG_UNLOCK_PERCENTAGE * 100;
+                const hasReachedDifficultyUnlock = currentPercent >= DIFFICULTY_UNLOCK_PERCENTAGE * 100;
+                
+                if (hasReachedSongUnlock || hasReachedDifficultyUnlock) {
+                    unlockProgressBar.classList.add('glowing');
+                } else {
+                    unlockProgressBar.classList.remove('glowing');
+                }
+            }
             // ▲▲▲ 新增結束 ▲▲▲
 
             async function getAudioDuration(src) {
@@ -4234,44 +4235,44 @@ function checkAndShowQuizOrInfo(songUrl, difficulty, pureHitScore) {
             
     // ▼▼▼ 【修訂】請用這段程式碼「完整替換」掉你舊的 endGame 函數 ▼▼▼
 function endGame() {
-    gameActive = false;
-    audio.pause();
-    audio.currentTime = 0;
-    clearTimeout(generateNotesTimer);
-    clearInterval(progressInterval);
-    cancelAnimationFrame(animationFrame);
-    startBtn.disabled = false;
-    musicSelect.disabled = false;
-    difficultySelect.disabled = false;
+                gameActive = false;
+                audio.pause();
+                audio.currentTime = 0;
+                clearTimeout(generateNotesTimer);
+                clearInterval(progressInterval);
+                cancelAnimationFrame(animationFrame);
+                startBtn.disabled = false;
+                musicSelect.disabled = false;
+                difficultySelect.disabled = false;
 
-    mainGameContainer.classList.remove('game-running');
-    unlockProgressBar.style.width = '0%';
-    unlockProgressBar.classList.remove('glowing');
+                mainGameContainer.classList.remove('game-running');
+                unlockProgressBar.style.width = '0%';
+                unlockProgressBar.classList.remove('glowing');
 
-    musicSelectorDiv.style.display = '';
-    progressContainerDiv.style.display = 'none';
-    progressBar.style.width = '0%';
-    notes.forEach(note => note.element.remove());
-    notes = [];
+                musicSelectorDiv.style.display = '';
+                progressContainerDiv.style.display = 'none';
+                progressBar.style.width = '0%';
+                notes.forEach(note => note.element.remove());
+                notes = [];
 
-    // --- 遊戲後續處理 ---
-    const selectedSong = musicSelect.value;
-    const selectedDifficulty = difficultySelect.value;
-    updatePersonalHighScore(selectedSong, selectedDifficulty, score);
+                // --- 遊戲後續處理 ---
+                const selectedSong = musicSelect.value;
+                const selectedDifficulty = difficultySelect.value;
+                updatePersonalHighScore(selectedSong, selectedDifficulty, score); // 更新個人最高分時，仍然使用包含 COMBO 的總分
 
-    // 【核心修訂】呼叫統一的檢查函數，它將負責判斷是否需要啟動測驗
-    checkAndShowQuizOrInfo(selectedSong, selectedDifficulty, score);
+                // 【核心修正】呼叫解鎖檢查函數時，必須傳入不含 COMBO 的純粹分數 (pureHitScore)
+                checkAndShowQuizOrInfo(selectedSong, selectedDifficulty, pureHitScore);
 
-    // 無論是否解鎖，都顯示遊戲結束畫面
-    showGameOver();
+                // 無論是否解鎖，都顯示遊戲結束畫面
+                showGameOver();
 
-    // 清理遊戲中的歌詞背景
-    const lyricsBackground = document.getElementById('lyricsBackground');
-    if (lyricsBackground) {
-        lyricsBackground.style.display = 'none';
-        lyricsBackground.innerHTML = '';
-    }
-}
+                // 清理遊戲中的歌詞背景
+                const lyricsBackground = document.getElementById('lyricsBackground');
+                if (lyricsBackground) {
+                    lyricsBackground.style.display = 'none';
+                    lyricsBackground.innerHTML = '';
+                }
+            }
 
 
 function updateGameLyrics(currentTime) {
