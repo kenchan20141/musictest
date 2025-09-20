@@ -2108,26 +2108,31 @@
     }
 }
 
-       .track.flash-effect {
-    animation: trackFlashStrong 0.3s ease-out;
+        .track.flash-effect {
+    animation: trackFlashStrong 0.3s ease-out; /* 新增強版閃光 */
 }
-/* 基礎閃光 keyframes（保持不變） */
-@keyframes trackFlashStrong {
-    0% { background-color: rgba(255, 255, 255, 0.5); }
+.track.flash-perfect {
+    animation: trackFlashPerfect 0.3s ease-out;
+}
+@keyframes trackFlashPerfect {
+    0% { background-color: rgba(255, 204, 0, 0.5); } /* PERFECT 黃色閃爍 */
     100% { background-color: rgba(255, 255, 255, 0.15); }
 }
-/* 新增顏色變體（與判斷顏色一致） */
-.track.flash-perfect { /* PERFECT: 黃 */
-    animation: trackFlashStrong 0.3s ease-out;
-    background-color: rgba(255, 204, 0, 0.5) !important; /* 起始顏色覆寫 */
+
+.track.flash-great {
+    animation: trackFlashGreat 0.3s ease-out;
 }
-.track.flash-great { /* GREAT: 藍 */
-    animation: trackFlashStrong 0.3s ease-out;
-    background-color: rgba(0, 204, 255, 0.5) !important;
+@keyframes trackFlashGreat {
+    0% { background-color: rgba(0, 204, 255, 0.5); } /* GREAT 藍色閃爍 */
+    100% { background-color: rgba(255, 255, 255, 0.15); }
 }
-.track.flash-good { /* GOOD: 綠 */
-    animation: trackFlashStrong 0.3s ease-out;
-    background-color: rgba(0, 255, 153, 0.5) !important;
+
+.track.flash-good {
+    animation: trackFlashGood 0.3s ease-out;
+}
+@keyframes trackFlashGood {
+    0% { background-color: rgba(0, 255, 153, 0.5); } /* GOOD 綠色閃爍 */
+    100% { background-color: rgba(255, 255, 255, 0.15); }
 }
 
         .hit-particle {
@@ -2136,24 +2141,27 @@
     /* ... 其他樣式不變 */
 }
 
-        .note.burst-effect, .long-note.burst-effect {
-    animation: noteBurst 0.3s ease-out forwards; /* forwards 確保結束後保持狀態 */
+        .hit-particle {
+    position: absolute;
+    bottom: 100px; /* Start at hit line */
+    width: var(--size, 10px); /* 隨機尺寸，由 JS 設定 */
+    height: var(--size, 10px);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 30;
+    opacity: 1;
+    animation: particleBurst 0.6s ease-out forwards; /* 延長到 0.6s，加強爆破 */
+    transform: rotate(var(--rot, 0deg)); /* 新增：隨機旋轉 */
 }
-@keyframes noteBurst {
+
+@keyframes particleBurst {
     0% {
-        transform: scale(1) rotate(0deg); /* 起始：正常 */
+        transform: translateY(0) scale(1) rotate(0deg);
         opacity: 1;
-        box-shadow: 0 0 10px rgba(255, 255, 255, 0.7); /* 初始陰影 */
-    }
-    50% {
-        transform: scale(1.5) rotate(15deg); /* 中間：變大、旋轉，像爆破 */
-        opacity: 0.8;
-        box-shadow: 0 0 20px 10px rgba(255, 255, 255, 1); /* 加強陰影 */
     }
     100% {
-        transform: scale(0) rotate(30deg); /* 結束：縮小消失 */
+        transform: translateY(var(--y)) translateX(var(--x)) scale(0) rotate(var(--rot-end, 360deg)); /* 新增：結束時旋轉 */
         opacity: 0;
-        box-shadow: none;
     }
 }
         
@@ -3209,30 +3217,48 @@ closeNotification.addEventListener('click', () => {
                 notes.push(noteObj);
             }
 
-            function createHitParticles(trackIndex, judgment) {
-                const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
-                if (!track) return;
-                const particleCount = judgment === 'perfect' ? 12 : (judgment === 'great' ? 8 : 5);
-                const colors = {
-                    perfect: '#ffcc00',
-                    great: '#00ccff',
-                    good: '#00ff99'
-                };
-                for (let i = 0; i < particleCount; i++) {
-                    const particle = document.createElement('div');
-                    particle.className = 'hit-particle';
-                    particle.style.background = colors[judgment] || '#fff';
-                    const x = (Math.random() - 0.5) * 80;
-                    const y = (Math.random() * -80) - 20;
-                    particle.style.setProperty('--x', `${x}px`);
-                    particle.style.setProperty('--y', `${y}px`);
-                    particle.style.left = `calc(50% - 4px)`;
-                    track.appendChild(particle);
-                    setTimeout(() => particle.remove(), 500);
-                }
-            }
+           function createHitParticles(trackIndex, judgment) {
+    const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
+    if (!track) return;
+    
+    // 根據等級調整粒子數和範圍
+    const particleCount = (judgment === 'perfect') ? 20 : (judgment === 'great' ? 15 : 10);
+    const maxOffset = (judgment === 'perfect') ? 100 : (judgment === 'great' ? 80 : 60); // 更大範圍
+    
+    const colors = {
+        perfect: '#ffcc00',
+        great: '#00ccff',
+        good: '#00ff99'
+    };
+    
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'hit-particle';
+        particle.style.background = colors[judgment] || '#fff';
+        
+        // 隨機尺寸（8-15px）
+        const size = Math.floor(8 + Math.random() * 8);
+        particle.style.setProperty('--size', `${size}px`);
+        
+        // 隨機位置（更大範圍）
+        const x = (Math.random() - 0.5) * maxOffset * 2;
+        const y = (Math.random() * -maxOffset) - 20;
+        particle.style.setProperty('--x', `${x}px`);
+        particle.style.setProperty('--y', `${y}px`);
+        
+        // 隨機旋轉（開始和結束）
+        const rot = Math.random() * 360;
+        const rotEnd = rot + (Math.random() * 720 - 360); // 隨機轉1-2圈
+        particle.style.setProperty('--rot', `${rot}deg`);
+        particle.style.setProperty('--rot-end', `${rotEnd}deg`);
+        
+        particle.style.left = `calc(50% - ${size / 2}px)`;
+        track.appendChild(particle);
+        setTimeout(() => particle.remove(), 600); // 匹配動畫時間
+    }
+}
 
-       function judgeHit(trackIndex, type) {
+         function judgeHit(trackIndex, type) {
     if (sounds[type]) {
         sounds[type]();
     }
@@ -3265,27 +3291,33 @@ closeNotification.addEventListener('click', () => {
             hitLine.classList.add('pulse-effect');
         }
 
-        // 軌道閃光效果：根據 type 添加顏色類
-        if (track) {
-            track.classList.remove('flash-effect', 'flash-perfect', 'flash-great', 'flash-good');
-            void track.offsetWidth;
-            track.classList.add('flash-effect', `flash-${type}`); /* 添加顏色變體 */
-        }
+       // 新增：軌道閃光效果（根據判斷等級添加顏色 class）
+if (track) {
+    track.classList.remove('flash-perfect', 'flash-great', 'flash-good'); // 先移除舊 class
+    void track.offsetWidth; // 強制重繪
+    if (type === 'perfect') {
+        track.classList.add('flash-perfect');
+    } else if (type === 'great') {
+        track.classList.add('flash-great');
+    } else if (type === 'good') {
+        track.classList.add('flash-good');
+    }
+}
 
         // 觸發畫面晃動
         mainGameContainer.classList.remove('shake-effect');
         void mainGameContainer.offsetWidth;
         mainGameContainer.classList.add('shake-effect');
 
-        // 觸發裝置震動（調整為 GREAT/GOOD 稍弱，PERFECT 稍強）
+        // 觸發裝置震動（縮短時間，並根據等級調整）
         if (navigator.vibrate) {
             let vibrationPattern;
             if (type === 'perfect') {
-                vibrationPattern = [70, 30, 70];  // 稍強：兩個短震動
+                vibrationPattern = [70, 30, 70];  // 加強但縮短：兩個短震動
             } else if (type === 'great') {
-                vibrationPattern = [60];  // 稍弱但加強（從 50 增加）
+                vibrationPattern = [50];  // 中等：單一短震動
             } else if (type === 'good') {
-                vibrationPattern = [40];  // 最弱但加強（從 30 增加）
+                vibrationPattern = [30];  // 輕微：單一更短震動
             }
             navigator.vibrate(vibrationPattern);
         }
@@ -3982,66 +4014,66 @@ function endGame() {
                 animationFrame = requestAnimationFrame(gameLoop);
             }
 
-        function handleKeyDown(e) {
-    if (!gameActive) return;
-    const keyCode = e.keyCode;
-    if (keyStates[keyCode]) return;
-    keyStates[keyCode] = true;
-    const trackIndex = keyCodes.indexOf(keyCode);
-    if (trackIndex !== -1) {
-        const trackEl = document.querySelector(`.track[data-track="${trackIndex}"]`);
-        if (trackEl) {
-            trackEl.classList.remove('hit-effect');
-            void trackEl.offsetWidth;
-            trackEl.classList.add('hit-effect');
-        }
-        const trackRect = tracksContainer.getBoundingClientRect();
-        const hitLineY = trackRect.top + trackRect.height - 100;
-        let hitNote = null;
-        let minDistance = Infinity;
-        let hitIndex = -1;
-        notes.forEach((note, index) => {
-            if (note.track === trackIndex && note.active && !note.hitStarted) {
-                const rect = note.element.getBoundingClientRect();
-                const distance = Math.abs(rect.bottom - hitLineY);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    hitNote = note;
-                    hitIndex = index;
+         function handleKeyDown(e) {
+                if (!gameActive) return;
+                const keyCode = e.keyCode;
+                if (keyStates[keyCode]) return;
+                keyStates[keyCode] = true;
+                const trackIndex = keyCodes.indexOf(keyCode);
+                if (trackIndex !== -1) {
+                    const trackEl = document.querySelector(`.track[data-track="${trackIndex}"]`);
+                    if (trackEl) {
+                        trackEl.classList.remove('hit-effect');
+                        void trackEl.offsetWidth;
+                        trackEl.classList.add('hit-effect');
+                    }
+                    const trackRect = tracksContainer.getBoundingClientRect();
+                    const hitLineY = trackRect.top + trackRect.height - 100;
+                    let hitNote = null;
+                    let minDistance = Infinity;
+                    let hitIndex = -1;
+                    notes.forEach((note, index) => {
+                        if (note.track === trackIndex && note.active && !note.hitStarted) {
+                            const rect = note.element.getBoundingClientRect();
+                            const distance = Math.abs(rect.bottom - hitLineY);
+                            if (distance < minDistance) {
+                                minDistance = distance;
+                                hitNote = note;
+                                hitIndex = index;
+                            }
+                        }
+                    });
+                    if (hitNote && minDistance < 50) {
+                        let judgment;
+                        if (minDistance < 15) judgment = 'perfect';
+                        else if (minDistance < 30) judgment = 'great';
+                        else judgment = 'good';
+                        if (hitNote.type === 'long') {
+                            hitNote.hitStarted = true;
+                            hitNote.element.classList.add('held');
+                            judgeHit(trackIndex, judgment);
+                        } else {
+                            hitNote.active = false;
+                            hitNote.element.remove();
+                            notes.splice(hitIndex, 1);
+                            judgeHit(trackIndex, judgment);
+                        }
+                    } else {
+                        // 如果按下時，沒有任何音符在可擊中範圍內，則判定為 MISS
+                        judgeHit(trackIndex, 'miss');
+
+                        // ▼▼▼ 修訂的關鍵之處 ▼▼▼
+                        // 並且，如果軌道上確實有一個最近的音符（只是太遠了），
+                        // 則將該音符移除，以懲罰提早按鍵的行為。
+                        if (hitNote) {
+                            hitNote.active = false;
+                            hitNote.element.remove();
+                            notes.splice(hitIndex, 1);
+                        }
+                        // ▲▲▲ 修訂結束 ▲▲▲
+                    }
                 }
             }
-        });
-        if (hitNote && minDistance < 50) {
-            let judgment;
-            if (minDistance < 15) judgment = 'perfect';
-            else if (minDistance < 30) judgment = 'great';
-            else judgment = 'good';
-            if (hitNote.type === 'long') {
-                hitNote.hitStarted = true;
-                hitNote.element.classList.add('held');
-                hitNote.element.classList.add('burst-effect');  /* 新增：觸發爆破（頭部） */
-                judgeHit(trackIndex, judgment);
-            } else {
-                hitNote.active = false;
-                hitNote.element.classList.add('burst-effect');  /* 新增：觸發爆破（短音符） */
-                setTimeout(() => hitNote.element.remove(), 300);  /* 延遲移除，讓動畫完成 */
-                notes.splice(hitIndex, 1);
-                judgeHit(trackIndex, judgment);
-            }
-        } else {
-            // 如果按下時，沒有任何音符在可擊中範圍內，則判定為 MISS
-            judgeHit(trackIndex, 'miss');
-
-            // 並且，如果軌道上確實有一個最近的音符（只是太遠了），
-            // 則將該音符移除，以懲罰提早按鍵的行為。
-            if (hitNote) {
-                hitNote.active = false;
-                hitNote.element.remove();
-                notes.splice(hitIndex, 1);
-            }
-        }
-    }
-}
 
           function handleKeyUp(e) {
     if (!gameActive) return;
@@ -4067,16 +4099,27 @@ function endGame() {
             }
             
             // 只在非 MISS 時觸發效果（包括震動）
-            if (type !== 'miss') {
-                note.element.classList.add('burst-effect');  /* 新增：觸發爆破（尾部） */
-                setTimeout(() => note.element.remove(), 300);  /* 延遲移除 */
-                judgeHit(trackIndex, type);  // 觸發效果（含震動）
-            } else {
-                judgeHit(trackIndex, 'miss');  // MISS 無爆破
-                note.element.remove();
-            }
+if (type !== 'miss') {
+    judgeHit(trackIndex, type);  // 呼叫 judgeHit 觸發粒子/晃動等（內含震動）
+} else {
+    judgeHit(trackIndex, 'miss');  // MISS 時只呼叫 judgeHit，但無震動
+}
+
+// 觸發裝置震動（縮短時間，並根據等級調整）
+if (navigator.vibrate && type !== 'miss') {
+    let vibrationPattern;
+    if (type === 'perfect') {
+        vibrationPattern = [100, 50, 100];  // 加強：更長、更強的雙震動
+    } else if (type === 'great') {
+        vibrationPattern = [40];  // 減弱：單一較短震動
+    } else if (type === 'good') {
+        vibrationPattern = [20];  // 減弱：單一更短震動
+    }
+    navigator.vibrate(vibrationPattern);
+}
             
             note.active = false;
+            note.element.remove();
             notes.splice(heldNoteIndex, 1);
         }
     }
