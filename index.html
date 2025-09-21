@@ -2156,47 +2156,50 @@
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: -1; /* 在背景圖上方，但低於遊戲內容 */
-    display: flex; /* 保留 flex 以自動排列 */
-    flex-wrap: wrap; /* 自動換行，填滿畫面 */
-    align-content: flex-start; /* 從頂部開始，無垂直間距 */
-    justify-content: space-around; /* 均勻分散，填滿左右 */
-    gap: 2px; /* 統一小間距（2px），所有設備一致 */
-    margin: 0; /* 確保容器無邊距 */
-    padding: 0; /* 確保容器無內距 */
-    opacity: 0.25; /* 保留半透明 */
-    color: #fff; /* 保留白色文字 */
-    font-size: 5rem; /* 預設大小，media query 會調整 */
-    pointer-events: none; /* 不擋互動 */
-    text-align: center;
-    overflow: hidden; /* 防止溢出產生空白或重疊 */
-    display: none; /* 預設隱藏，由 JS 控制 */
+    z-index: -1;
+    /* 使用 Flexbox 進行佈局，並允許換行 */
+    display: flex;
+    flex-wrap: wrap;
+    /* 確保內容從頂部開始排列 */
+    align-content: flex-start;
+    justify-content: flex-start;
+    gap: 0; /* 移除容器間距，由 span 內部控制 */
+    opacity: 0.25;
+    color: #fff;
+    /* 使用 clamp 實現響應式字體大小，在不同設備上效果更佳 */
+    font-size: clamp(3rem, 8vw, 4.5rem);
+    pointer-events: none;
+    /* 關鍵：隱藏超出容器範圍的內容，避免滾動條出現 */
+    overflow: hidden;
+    display: none; /* 預設隱藏 */
 }
 
 .lyrics-background span {
-    /* ▼▼▼ 【核心修改】新增以下三行 ▼▼▼ */
-    writing-mode: vertical-rl; /* 將文字方向改為垂直，並由右至左排列 */
-    text-orientation: mixed;   /* 確保中、英、數字符號都能以正確的方向直立顯示 */
-    letter-spacing: 0.2em;     /* (可選) 增加文字的垂直間距，使其更美觀 */
-
-    /* ▼▼▼ 以下為保留並適應垂直排版的原始樣式 ▼▼▼ */
-    margin: 0;
-    /* 為垂直文字的上下兩端增加一些留白 */
-    padding: 1em 0;
-    line-height: 1.1;
-    word-spacing: 0;
+    /* --- 核心：設定文字為直向 --- */
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    /* 防止單句歌詞在垂直方向上自己換行 */
     white-space: nowrap;
-    flex: 0 0 auto;
-    min-width: 10%;
-    min-height: 10vh;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-    word-break: break-word;
-    overflow: hidden;
-}
 
+    /* --- 核心：尺寸與佈局設定 --- */
+    /* 讓每一列文字都和螢幕一樣高 */
+    height: 100vh;
+    /* 設定 flex 屬性，讓其根據內容寬度自動排列，不拉伸或壓縮 */
+    flex: 0 0 auto;
+
+    /* --- 間距與對齊 --- */
+    /* 設定左右內邊距，製造欄位之間的間隔 */
+    padding: 0 15px;
+    display: flex;
+    /* 讓文字在垂直欄位中置中對齊 */
+    justify-content: center;
+
+    /* --- 其他視覺樣式 --- */
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    line-height: 1.2;
+    /* 控制直向文字的字間距 */
+    letter-spacing: 2px;
+}
         
 @media (max-width: 1024px) { /* 平板：中等密集，每行約 8 個 */
     .lyrics-background {
