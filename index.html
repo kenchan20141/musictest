@@ -2174,27 +2174,21 @@
 }
 
 .lyrics-background span {
-    /* ▼▼▼ 【核心修改】新增以下三行 ▼▼▼ */
-    writing-mode: vertical-rl; /* 將文字方向改為垂直，並由右至左排列 */
-    text-orientation: mixed;   /* 確保中、英、數字符號都能以正確的方向直立顯示 */
-    letter-spacing: 0.2em;     /* (可選) 增加文字的垂直間距，使其更美觀 */
-
-    /* ▼▼▼ 以下為保留並適應垂直排版的原始樣式 ▼▼▼ */
-    margin: 0;
-    /* 為垂直文字的上下兩端增加一些留白 */
-    padding: 1em 0;
-    line-height: 1.1;
-    word-spacing: 0;
-    white-space: nowrap;
-    flex: 0 0 auto;
-    min-width: 10%;
-    min-height: 10vh;
-    display: inline-flex;
+    margin: 0; /* 移除邊距 */
+    padding: 0; /* 移除內距 */
+    line-height: 1.1; /* 修訂：統一為 1.1，讓行距一致（平衡值：手機不太大，電腦不太密；可調成 1.05 以更緊密） */
+    word-spacing: 0; /* 正常字距 */
+    letter-spacing: 0; /* 正常字母間距 */
+    white-space: nowrap; /* 防止換行，讓文字連續 */
+    flex: 0 0 auto; /* 自動調整大小 */
+    min-width: 10%; /* 預設每行約 10 個，media query 會調整 */
+    min-height: 10vh; /* 最小高度，防止垂直壓縮重疊 */
+    display: inline-flex; /* 內聯 flex，讓文字緊貼 */
     align-items: center;
     justify-content: center;
-    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-    word-break: break-word;
-    overflow: hidden;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5); /* 保留陰影，提升可讀性 */
+    word-break: break-word; /* 正常斷詞，避免過長重疊 */
+    overflow: hidden; /* 隱藏溢出文字，強制防止重疊 */
 }
 
         
