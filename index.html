@@ -5267,32 +5267,56 @@ function shuffleArray(array) {
 
 /**
  * 開始歌詞填充測驗
- * @param {string} unlockType - 解鎖類型 ('song' 或 'difficulty')
+ * @param {string} unlockType - 解鎖類型 ('song', 'difficulty', 'leaderboard')
  * @param {any} unlockValue - 要解鎖的目標值
  * @param {string} songUrlForQuiz - 用於生成測驗題目的歌曲 URL
  */
 function startLyricsQuiz(unlockType, unlockValue, songUrlForQuiz) {
-    // 從 songData 中獲取預設的題目
+    // 獲取該歌曲的全部預設題目
     const predefinedQuestions = songData[songUrlForQuiz]?.quiz || [];
 
+    // 如果這首歌沒有題目，則直接成功
     if (predefinedQuestions.length === 0) {
         console.warn(`歌曲 ${songUrlForQuiz} 沒有預設題目，自動授予解鎖。`);
-        showNotification('info', '自動解鎖', '由於此歌曲無歌詞可供測驗，已為您直接解鎖新內容！');
-        if (unlockType === 'song') {
-            unlockNextSong(unlockValue);
-        } else if (unlockType === 'difficulty') {
-            unlockDifficulty(unlockValue.song, unlockValue.difficulty);
-        }
+        // 根據解鎖類型，顯示不同的提示
+        const message = unlockType === 'leaderboard' ? '您的分數已自動提交至排行榜。' : '已為您直接解鎖新內容！';
+        const title = unlockType === 'leaderboard' ? '自動提交分數' : '自動解鎖';
+        showNotification('info', title, `由於此歌曲無歌詞可供測驗，${message}`);
+        
+        // 執行對應的成功操作
+        if (unlockType === 'song') unlockNextSong(unlockValue);
+        else if (unlockType === 'difficulty') unlockDifficulty(unlockValue.song, unlockValue.difficulty);
+        else if (unlockType === 'leaderboard') submitScoreToLeaderboard(unlockValue.songUrl, unlockValue.difficulty, unlockValue.score);
         return;
     }
     
+    // ▼▼▼ 【核心修訂】從完整題庫中隨機抽取 5 題 ▼▼▼
+
+    // 1. 先將完整的題庫陣列洗牌，使其順序隨機
+    const shuffledPool = shuffleArray([...predefinedQuestions]);
+    
+    // 2. 從洗牌後的陣列中，取出前 5 個元素作為本次測驗的題目
+    //    使用 slice(0, 5) 可以優雅地處理這個問題，
+    //    同時也能應對題庫總數不足 5 題的邊界情況（此時會取出所有題目）。
+    quizQuestions = shuffledPool.slice(0, 5); 
+    
+    // 3. 將本次測驗的總題數設定為我們取出的題目數量 (最多為 5)
+    totalQuestionsInQuiz = quizQuestions.length; 
+    
+    // 如果因故沒有選出任何題目，也視為通過
+    if (totalQuestionsInQuiz === 0) {
+        console.warn(`無法為 ${songUrlForQuiz} 選出測驗題目，自動通過。`);
+        if (unlockType === 'song') unlockNextSong(unlockValue);
+        else if (unlockType === 'difficulty') unlockDifficulty(unlockValue.song, unlockValue.difficulty);
+        else if (unlockType === 'leaderboard') submitScoreToLeaderboard(unlockValue.songUrl, unlockValue.difficulty, unlockValue.score);
+        return;
+    }
+    // ▲▲▲ 修訂結束 ▲▲▲
+
+    // --- 以下是原有的測驗啟動邏輯，無需改動 ---
     isQuizActive = true;
     quizUnlockTarget = { type: unlockType, value: unlockValue };
     questionsAnsweredCorrectly = 0;
-    
-    // 複製並打亂題庫，避免影響原始資料
-    quizQuestions = shuffleArray([...predefinedQuestions]); 
-    totalQuestionsInQuiz = quizQuestions.length;
     
     lyricsQuizModal.classList.add('active');
     displayNextQuizQuestion();
@@ -6390,8 +6414,8 @@ disclaimerModal.addEventListener('click', (e) => {
 <div class="lyrics-quiz-modal" id="lyricsQuizModal">
     <div class="quiz-content">
         <h2 class="quiz-title">歌詞填充測驗</h2>
-        <p class="quiz-instructions">連續答對五題即可解鎖新內容！</p>
-        <div class="quiz-progress" id="quizProgress">連續答對: 0 / 3</div>
+        <p class="quiz-instructions">連續答對五題即可解鎖新內容或登入排行榜！</p>
+        <div class="quiz-progress" id="quizProgress">連續答對: 0 / 5</div>
         <div class="quiz-question-container">
             <p id="quizQuestionText"></p>
         </div>
