@@ -99,10 +99,10 @@
         
         body {
      
-            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+           background: #f0f4f8; /* 一個乾淨、柔和的淺灰色 */
            font-family: 'Noto Serif TC', 'cwTeXHei', 'cwTeXFangSong', 'cwTeXKai', 'cwTeXMing', 'PingFang TC', 'Microsoft JhengHei', serif;
             touch-action: manipulation; /* Prevent default touch actions like double-tap zoom */
-            color: #fff;
+            color: #333;
             min-height: 100vh;
             overflow-x: hidden;
             position: relative;
@@ -147,14 +147,15 @@
             z-index: 1; /* Above the background image */
         }
         /* Main game area container with border */
-        .main-game-container {
-             border: 2px solid rgba(255, 255, 255, 0.2);
-             border-radius: 15px;
-             padding: 15px;
-             background: rgba(0, 0, 0, 0.15);
-             box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-             margin-bottom: 20px;
-        }
+       /* 主要遊戲區域容器 */
+.main-game-container {
+     border: 2px solid rgba(0, 0, 0, 0.1); /* 邊框可以調淡一些 */
+     border-radius: 15px;
+     padding: 15px;
+     background: rgba(255, 255, 255, 0.3); /* 【修改】從黑色透明變為白色透明 */
+     box-shadow: 0 0 20px rgba(0, 0, 0, 0.1); /* 陰影可以調淡 */
+     margin-bottom: 20px;
+}
         header {
             text-align: center;
             padding: 10px 0; /* Reduced padding */
@@ -360,17 +361,19 @@
             gap: 10px; /* Reduced gap */
         }
         .tracks {
-            display: flex;
-            justify-content: center;
-            gap: 8px; /* Reduced gap */
-            position: relative;
-            height: 600px; /* Increased height */
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 10px; /* Reduced radius */
-            overflow: hidden;
-            padding: 15px 0; /* Reduced padding */
-            transition: box-shadow 0.3s ease;
-        }
+    display: flex;
+    justify-content: center;
+    gap: 8px; /* Reduced gap */
+    position: relative;
+    height: 600px; /* Increased height */
+    background: rgba(0, 0, 0, 0.05); /* 【修改】軌道背景可以是非常淡的灰色透明 */
+    border-radius: 10px; /* Reduced radius */
+    overflow: hidden;
+    padding: 15px 0; /* Reduced padding */
+    transition: box-shadow 0.3s ease;
+}
+
+
         /* Combo Glow Effects */
         .tracks.combo-blue {
             box-shadow: 0 0 20px 5px rgba(30, 144, 255, 0.7); /* Softer blue */
@@ -397,13 +400,14 @@
             83.33% { box-shadow-color: rgba(255, 0, 255, 0.7); }
             100% { box-shadow-color: rgba(255, 0, 0, 0.7); }
         }
-        .track {
-            width: 80px;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 8px; /* Reduced radius */
-            position: relative;
-        }
+        /* 每個單獨的軌道 */
+.track {
+    width: 80px;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.08); /* 【修改】單獨軌道也可以是淡灰色透明 */
+    border-radius: 8px; /* Reduced radius */
+    position: relative;
+}
         .track::before {
             content: '';
             position: absolute;
