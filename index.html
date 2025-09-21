@@ -2837,6 +2837,152 @@
         width: 70px;
     }
 }
+
+        /* ======================================================================== */
+/* ====== 【全新獨立設計】"星光殿堂" 主題視窗 (Starlight Hall Theme) ====== */
+/* ======================================================================== */
+
+/* --- 1. 為主題定義一組顏色變數，方便未來統一修改 --- */
+:root {
+    --starlight-bg: linear-gradient(145deg, #fdfbfb 0%, #ebedee 100%); /* 溫暖的象牙白漸層背景 */
+    --starlight-accent: #b48f5a;         /* 精緻、不刺眼的啞光金色，用於標題和重點 */
+    --starlight-accent-glow: rgba(180, 143, 90, 0.35); /* 金色的柔和光暈效果 */
+    --starlight-text-primary: #3a332a;   /* 溫暖的深棕黑色，比純黑更柔和且易讀 */
+    --starlight-text-secondary: #8c7d6b; /* 用於次要說明的淺棕灰色 */
+    --starlight-border: rgba(180, 143, 90, 0.4); /* 半透明的金色邊框 */
+    --starlight-item-bg: rgba(255, 255, 255, 0.6); /* 列表項目的半透明背景 */
+    --starlight-item-hover-bg: #ffffff;  /* 滑鼠懸停時變為不透明白色 */
+}
+
+/* --- 2. 應用新樣式到所有目標視窗的容器上 --- */
+.settings-modal .settings-content,
+.personal-high-score-modal .personal-high-score-content,
+.unlock-modal .unlock-content {
+    /* 【核心】寬度設定 */
+    width: 90%;
+    max-width: 500px;
+    box-sizing: border-box;
+
+    /* 【設計】套用全新的顏色和背景 */
+    background: var(--starlight-bg);
+    color: var(--starlight-text-primary);
+    
+    border-radius: 16px; /* 更大的圓角，顯得更現代 */
+    border: 1px solid var(--starlight-border);
+    /* 精緻的陰影：外部柔和陰影 + 內部金色光暈，營造高級感 */
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08), 0 0 20px var(--starlight-accent-glow) inset;
+    
+    padding: 30px;
+    
+    /* 【動畫】保留流暢的彈出效果 */
+    transform: scale(0.9);
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.4s ease;
+}
+
+/* 視窗啟動時的動畫 */
+.settings-modal.active .settings-content,
+.personal-high-score-modal.active .personal-high-score-content,
+.unlock-modal.active .unlock-content {
+    transform: scale(1);
+    opacity: 1;
+}
+
+/* --- 3. 美化視窗內部的元素 --- */
+
+/* 標題樣式 */
+.settings-title,
+.personal-high-score-title,
+.unlock-message { /* unlock-message 在此作為標題 */
+    font-size: 2rem;
+    color: var(--starlight-accent);
+    font-weight: 700;
+    /* 為標題文字添加細微的亮色陰影，使其更具立體感 */
+    text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+    margin-bottom: 25px;
+}
+
+/* 解鎖視窗的圖示也套用主題色 */
+.unlock-icon {
+    color: var(--starlight-accent);
+}
+
+/* 表單元素 (設定頁) */
+.setting-label {
+    color: var(--starlight-text-secondary);
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+.setting-control {
+    background: #f0f2f5; /* 淺灰色背景，與主背景區分 */
+    border: 1px solid #dde0e4;
+    color: var(--starlight-text-primary);
+    border-radius: 8px;
+}
+.setting-control::placeholder {
+    color: #a0a8b1;
+}
+
+/* 列表樣式 (排行榜、個人分數) */
+.personal-high-score-item, .leaderboard-item {
+    background: var(--starlight-item-bg);
+    border-left: 4px solid var(--starlight-accent);
+    margin-bottom: 10px;
+    border-radius: 8px;
+    transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+}
+.personal-high-score-item:hover, .leaderboard-item:hover {
+    background: var(--starlight-item-hover-bg);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+/* 列表內的文字顏色 */
+.personal-high-score-label, .leaderboard-rank, .leaderboard-name {
+    color: var(--starlight-text-primary);
+    font-weight: 500;
+}
+.personal-high-score-value, .leaderboard-score {
+    color: var(--starlight-accent);
+    font-weight: bold;
+}
+.leaderboard-rank {
+    color: var(--starlight-text-secondary);
+}
+
+/* 按鈕樣式 (儲存名稱、關閉解鎖提示等) */
+.setting-group .restart-btn, .close-unlock {
+    background: var(--starlight-accent);
+    color: white;
+    border-radius: 50px; /* 圓潤的藥丸形狀 */
+    border: none;
+    text-shadow: none;
+    box-shadow: 0 4px 15px var(--starlight-accent-glow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.setting-group .restart-btn:hover, .close-unlock:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px var(--starlight-accent-glow);
+}
+
+/* --- 4. 響應式設計：確保在小螢幕上同樣出色 --- */
+@media (max-width: 480px) {
+    .settings-modal .settings-content,
+    .personal-high-score-modal .personal-high-score-content,
+    .unlock-modal .unlock-content {
+        padding: 25px 15px; /* 在手機上使用更緊湊的邊距 */
+    }
+    
+    .settings-title,
+    .personal-high-score-title,
+    .unlock-message {
+        font-size: 1.8rem; /* 縮小標題以適應螢幕寬度 */
+    }
+
+    .leaderboard-name, .personal-high-score-label {
+        font-size: 0.9rem; /* 縮小列表文字 */
+    }
+}
         
     </style>
 
