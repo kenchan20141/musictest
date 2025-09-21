@@ -2023,31 +2023,50 @@
     flex-direction: row;
 }
 
-/* [新增] 遊戲中歌詞顯示容器 */
+/* 【修訂】遊戲中歌詞顯示容器 */
 .game-lyrics-container {
+    /* 核心定位：將容器置於軌道區域正中央 */
     position: absolute;
-    top: 10%;            /* [新增] 置於軌道上方，避免擋音符 */
-    left: 0;
-    right: 0;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* 使用 transform 達成精確的水平垂直置中 */
+
+    /* 尺寸與佈局：確保歌詞完整顯示且不超出範圍 */
+    width: 90%; /* 寬度為軌道區域的90%，適應不同螢幕 */
+    max-height: 100%; /* 高度不超過父容器(軌道區域) */
+    display: flex; /* 使用 flexbox 方便內部文字對齊 */
+    justify-content: center; /* 垂直置中歌詞 */
+    align-items: center; /* 水平置中歌詞 */
+    padding: 10px; /* 增加內邊距，避免文字貼邊 */
+    box-sizing: border-box; /* 確保 padding 不會影響寬度計算 */
+    
+    /* 視覺效果：維持背景設定並提升可讀性 */
+    color: white;
     text-align: center;
-    z-index: 15;         /* [新增] 高於進度條但低於粒子/判定 */
-    opacity: 0.8;        /* [新增] 半透明，避免干擾遊戲 */
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8); /* 加深陰影，在複雜背景下更清晰 */
+    pointer-events: none; /* 讓滑鼠點擊可以穿透歌詞，不會影響遊戲操作 */
+    z-index: 4; /* 將歌詞放在音符(z-index: 5)的下一層，避免遮擋 */
+    
+    /* 動畫與預設狀態 */
+    opacity: 0; /* 預設為透明，遊戲開始時才會淡入 */
     transition: opacity 0.5s ease;
-    display: none;       /* [新增] 預設隱藏，由 JS 控制 */
 }
 
+/* 當遊戲進行時 (main-game-container 有 .game-running class)，顯示歌詞容器 */
+.game-running .game-lyrics-container {
+    opacity: 0.85; /* 遊戲中歌詞的透明度，可依喜好調整 */
+}
+
+/* 【修訂】單行歌詞樣式 */
 .game-lyric-line {
-    font-size: 1.2rem;   /* [新增] 小字體，避免佔空間 */
-    color: #fff;
-    margin: 5px 0;
-    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5); /* [新增] 陰影提升可讀性 */
-    transition: transform 0.3s ease, color 0.3s ease;
-}
+    /* 核心響應式字體：確保文字在不同螢幕尺寸下都能完整顯示 */
+    font-size: clamp(1.5rem, 4vw, 2.5rem); /* 字體大小在 1.5rem 到 2.5rem 之間根據視窗寬度(vw)動態縮放 */
+    font-weight: bold;
+    line-height: 1.4; /* 設定合適的行高 */
+    margin: 0;
+    color: #fff; /* 統一歌詞顏色 */
 
-.game-lyric-line.active {
-    font-size: 1.5rem;   /* [新增] 活躍歌詞放大強調 */
-    color: #ffcc00;      /* [新增] 亮色強調教育重點 */
-    transform: scale(1.1);
+    /* 原有的 .active 樣式在此設計中不再需要，因為容器只顯示當前一句歌詞 */
 }
 
 /* 遊戲運行中隱藏選擇器，避免重疊 */
@@ -3505,6 +3524,13 @@
                 </div>
                <div class="game-area">
     <div class="tracks" id="tracksContainer"></div>
+
+                    <!-- ▼▼▼ 【新增】遊戲中歌詞顯示容器 ▼▼▼ -->
+        <div class="game-lyrics-container" id="gameLyricsContainer">
+            <!-- 歌詞將由 JavaScript 動態填入此處 -->
+            <p class="game-lyric-line" id="currentGameLyricLine"></p>
+        </div>
+        <!-- ▲▲▲ 新增結束 ▲▲▲ -->
    
     
     <!-- 觸控按鍵 (僅在觸控裝置上顯示) -->
