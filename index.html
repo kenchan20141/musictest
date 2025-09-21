@@ -2983,6 +2983,52 @@
         font-size: 0.9rem; /* 縮小列表文字 */
     }
 }
+
+        /* =================================================================== */
+/* ====== 【新增修訂】修正所有彈出視窗的關閉按鈕樣式 ====== */
+/* =================================================================== */
+
+/* --- 1. 為所有使用 '×' 的關閉按鈕，設定統一、清晰的基礎樣式 --- */
+.close-settings,
+.close-personal-high-score,
+.close-disclaimer,
+.close-notification,
+.quiz-close-btn {
+    position: absolute;
+    top: 15px; /* 統一與頂部的距離 */
+    right: 20px; /* 統一與右側的距離 */
+
+    /* 移除不必要的背景和邊框 */
+    background: transparent;
+    border: none;
+    
+    /* 調整字體和大小，使其更清晰、更像一個圖標 */
+    font-size: 2.2rem; 
+    font-weight: 400; /* 使用適中的字重，避免 '×' 看起來太粗 */
+    line-height: 1; /* 確保 '×' 垂直居中 */
+
+    /* 【核心修正】設定一個在淺色背景下清晰可見的預設顏色 */
+    /* 我們直接使用 "星光殿堂" 主題的次要文字顏色，這是一個溫和的棕灰色 */
+    color: var(--starlight-text-secondary, #8c7d6b); 
+    
+    cursor: pointer;
+    
+    /* 【互動效果】為顏色和變換效果添加流暢的過渡動畫 */
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+
+/* --- 2. 設定統一的滑鼠懸停 (hover) 效果 --- */
+.close-settings:hover,
+.close-personal-high-score:hover,
+.close-disclaimer:hover,
+.close-notification:hover,
+.quiz-close-btn:hover {
+    /* 【核心修正】懸停時變為更深的主題文字顏色，提供明確反饋 */
+    color: var(--starlight-text-primary, #3a332a);
+
+    /* 【互動效果】添加一個優雅的90度旋轉動畫 */
+    transform: rotate(90deg);
+}
         
     </style>
 
