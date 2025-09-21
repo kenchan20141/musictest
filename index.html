@@ -366,11 +366,12 @@
     gap: 8px; /* Reduced gap */
     position: relative;
     height: 600px; /* Increased height */
-    background: rgba(0, 0, 0, 0.05); /* 【修改】軌道背景可以是非常淡的灰色透明 */
+    background: rgba(0, 0, 0, 0.2); /* 【修改這裡】將 0.05 增加到 0.2 或 0.25 試試看 */
     border-radius: 10px; /* Reduced radius */
     overflow: hidden;
     padding: 15px 0; /* Reduced padding */
     transition: box-shadow 0.3s ease;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12); /* 添加一個柔和、自然的陰影 */
 }
 
 
@@ -404,7 +405,7 @@
 .track {
     width: 80px;
     height: 100%;
-    background: rgba(0, 0, 0, 0.08); /* 【修改】單獨軌道也可以是淡灰色透明 */
+    background: rgba(0, 0, 0, 0.1); 
     border-radius: 8px; /* Reduced radius */
     position: relative;
 }
