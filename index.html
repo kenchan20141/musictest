@@ -5051,35 +5051,34 @@ async function startGame() {
     console.log(`[startGame] 檢查開始。目前 playerName: "${playerName}" (類型: ${typeof playerName})`);
 
     // 【強化版守門員】這個檢查會攔截所有無效的名稱狀態
+    // 它會檢查 playerName 是否為空字串、null、undefined 或僅由空白組成
     if (!playerName || playerName.trim() === '' || playerName === 'null' || playerName === 'undefined') {
         
         console.log('[startGame] 檢查失敗：玩家名稱無效。已阻止遊戲開始，並強制打開排行榜視窗。');
 
-        // 1. 顯示一個清晰的引導通知
+        // 1. 顯示一個清晰的引導通知，告訴玩家該做什麼
         showNotification(
-            'info',
-            '請先設定玩家名稱',
-            '為了開始遊戲並記錄您的成績，請先在此視窗中設定您的顯示名稱。',
-            7000
+            'info', // 通知類型
+            '請先設定玩家名稱', // 標題
+            '為了開始遊戲並記錄您的成績，請先在此視窗中設定您的顯示名稱。', // 訊息內容
+            7000 // 持續時間 (7秒)
         );
         
-        // 2. 【核心修正】強制彈出【排行榜視窗】而不是設定視窗
+        // 2. 【核心修正】強制彈出【排行榜視窗】
         leaderboardModal.classList.add('active');
         
-        // 3. 將游標聚焦在排行榜視窗內的名稱輸入框
+        // 3. 將游標自動聚焦在排行榜視窗內的名稱輸入框，提升使用者體驗
         const playerNameInput = document.getElementById('playerNameInput');
         if (playerNameInput) {
             playerNameInput.focus();
         }
 
-        // 4. 【最重要】立即中止函數，不執行後續任何遊戲啟動程式碼
+        // 4. 【最重要】使用 return 立即中止函數，不執行後續任何遊戲啟動的程式碼
         return; 
     }
     
     // --- 只有在通過名稱檢查後，才會執行以下的遊戲邏輯 ---
     console.log('[startGame] 名稱檢查通過，遊戲正常啟動。');
-    
-    // ... 以下是您原有的、無需修改的遊戲啟動邏輯 ...
     
     const selectedSong = musicSelect.value;
     const selectedDifficulty = difficultySelect.value;
