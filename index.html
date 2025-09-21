@@ -2538,6 +2538,305 @@
         font-size: 1.1rem;
     }
 }
+
+        /* =================================================================== */
+/* ====== 【全新設計】所有彈出視窗的統一風格 (Clean HUD Theme) ====== */
+/* =================================================================== */
+
+
+/* ====== 1. 通知視窗 (Notification Modal) - 用於解鎖成功/失敗等提示 ====== */
+.notification-modal .notification-content {
+    /* 【核心】設定寬度為 90%，並有最大寬度限制 */
+    width: 90%;
+    max-width: 400px; 
+    box-sizing: border-box; /* 確保 padding 不會撐大寬度 */
+    
+    /* 【設計】改為乾淨明亮的淺灰色背景 */
+    background: #f0f4f8; 
+    color: #334155; /* 使用深石板灰，確保文字清晰易讀 */
+    
+    /* 【設計】更柔和的圓角與陰影 */
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15); 
+    
+    padding: 25px 30px;
+    border-left: 5px solid #64748b; /* 預設的側邊強調色 */
+
+    /* 【動畫】流暢的彈出動畫 */
+    transform: scale(0.8) translateY(20px);
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.4s ease;
+}
+
+.notification-modal.active .notification-content {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+}
+
+.notification-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.notification-message {
+    font-size: 1rem;
+    color: #64748b; /* 使用較柔和的灰色 */
+    line-height: 1.6;
+}
+
+.notification-message strong {
+    font-weight: 700;
+    color: #334155;
+}
+
+/* --- 成功樣式 (綠色) --- */
+.notification-content.success {
+    border-left-color: #10b981; 
+}
+.notification-content.success .notification-icon {
+    color: #10b981;
+}
+.notification-content.success .notification-title {
+    color: #059669;
+}
+
+/* --- 資訊/失敗樣式 (藍色) --- */
+.notification-content.info {
+    border-left-color: #3b82f6; 
+}
+.notification-content.info .notification-icon {
+    color: #3b82f6;
+}
+.notification-content.info .notification-title {
+    color: #2563eb;
+}
+
+
+/* ====== 2. 遊戲結束畫面 (Game Over Modal) - "榮耀殿堂" 主題 ====== */
+.game-over-modal .game-over-content {
+    /* 【核心】設定寬度 */
+    width: 90%;
+    max-width: 450px;
+    box-sizing: border-box;
+
+    /* 【設計】維持深邃、有成就感的深藍漸層，但細節更精緻 */
+    background: linear-gradient(160deg, #1d2b4a, #11182c);
+    border: 1px solid rgba(255, 204, 0, 0.3); /* 細緻的金色邊框 */
+    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5), 0 0 25px rgba(255, 204, 0, 0.2) inset; /* 外部深度陰影 + 內部光暈 */
+    border-radius: 20px;
+    padding: 30px 40px;
+
+    /* 【動畫】彈出動畫 */
+    transform: scale(0.8);
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.4s ease;
+}
+
+.game-over-modal.active .game-over-content {
+    transform: scale(1);
+    opacity: 1;
+}
+
+.game-over-title {
+    font-size: 2.8rem;
+    margin-bottom: 20px;
+    color: #ffcc00; /* 明亮的金色 */
+    text-shadow: 0 0 15px rgba(255, 204, 0, 0.6);
+}
+
+
+/* ====== 3. 歌詞填充測驗視窗 (Lyrics Quiz Modal) ====== */
+.lyrics-quiz-modal .quiz-content {
+    /* 【核心】設定寬度 */
+    width: 90%;
+    max-width: 500px;
+    box-sizing: border-box;
+
+    /* 【設計】採用與通知視窗一致的明亮風格，讓使用者專注於作答 */
+    background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+    color: #343a40;
+    padding: 30px 40px;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+
+    /* 【動畫】彈出動畫 */
+    transform: scale(0.9);
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.4s ease;
+}
+
+.lyrics-quiz-modal.active .quiz-content {
+    transform: scale(1);
+    opacity: 1;
+}
+
+.quiz-title {
+    font-size: 2.2rem;
+    color: #17a2b8; /* 使用清爽的青色作為主題色 */
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+
+.quiz-instructions {
+    font-size: 1rem;
+    color: #6c757d;
+    margin-bottom: 20px;
+}
+
+.quiz-answer-input {
+    width: 100%; /* 輸入框填滿容器 */
+    box-sizing: border-box; /* 確保 padding 不會使其溢出 */
+}
+
+.quiz-submit-btn {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* 修正小螢幕下的 quiz-blank 底線位置 */
+#quizQuestionText {
+    font-size: 1.6rem;
+    line-height: 1.6;
+}
+.quiz-blank {
+    display: inline-block;
+    width: 100px; 
+    border-bottom: 2px solid #6c757d;
+    margin: 0 4px;
+    /* 關鍵修正：讓底線與文字基線對齊 */
+    vertical-align: baseline; 
+}
+
+
+/* ====== 4. 通用設定類型視窗 (Settings, Leaderboard, etc.) ====== */
+/* 讓所有設定相關的視窗都採用新的深色主題 */
+.settings-modal .settings-content,
+.personal-high-score-modal .personal-high-score-content {
+    /* 【核心】設定寬度 */
+    width: 90%;
+    max-width: 500px;
+    box-sizing: border-box;
+
+    /* 【設計】使用精緻的深藍色主題，並帶有光暈效果 */
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 0 40px rgba(0, 190, 255, 0.3); /* 改為科技感的藍色光暈 */
+    border: 1px solid rgba(0, 190, 255, 0.2);
+
+    /* 【動畫】彈出動畫 */
+    transform: scale(0.9);
+    opacity: 0;
+    transition: transform 0.4s ease, opacity 0.3s ease;
+}
+
+.settings-modal.active .settings-content,
+.personal-high-score-modal.active .personal-high-score-content {
+    transform: scale(1);
+    opacity: 1;
+}
+
+.settings-title, .personal-high-score-title {
+    color: #00c9ff; /* 標題顏色改為亮藍色 */
+}
+
+/* 讓按鈕樣式更統一 */
+.setting-group .restart-btn {
+    background: linear-gradient(45deg, #00c9ff, #92fe9d);
+}
+
+/* ====== 5. 解鎖提示視窗 (Unlock Modal) ====== */
+.unlock-modal .unlock-content {
+    /* 【核心】設定寬度 */
+    width: 90%;
+    max-width: 400px;
+    box-sizing: border-box;
+
+    /* 【設計】與設定視窗共享深色主題 */
+    background: linear-gradient(135deg, #2c1a2e, #161e3e);
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 0 40px rgba(255, 204, 0, 0.5);
+    border: 1px solid rgba(255, 204, 0, 0.3);
+
+    /* 【動畫】彈出動畫 */
+    transform: scale(0.9);
+    opacity: 0;
+    transition: transform 0.4s ease, opacity 0.3s ease;
+}
+
+.unlock-modal.active .unlock-content {
+    transform: scale(1);
+    opacity: 1;
+}
+
+        /* =================================================================== */
+/* ====== 【新增】彈出視窗響應式設計 (Mobile-First Adaptation) ====== */
+/* =================================================================== */
+
+/* 當螢幕寬度小於等於 480px 時 (適用於大多數手機直立模式)，套用以下樣式 */
+@media (max-width: 480px) {
+
+    /* --- 統一調整所有視窗的內邊距，減少留白，爭取更多內容空間 --- */
+    .notification-content,
+    .game-over-content,
+    .quiz-content,
+    .settings-content,
+    .personal-high-score-content,
+    .unlock-content {
+        padding: 20px 15px; /* 上下 20px, 左右 15px */
+    }
+
+    /* --- 統一縮小所有視窗的標題字體大小 --- */
+    .notification-title,
+    .game-over-title,
+    .quiz-title,
+    .settings-title,
+    .personal-high-score-title,
+    .unlock-message { /* .unlock-message 在這裡是作為標題使用 */
+        font-size: 1.8rem; /* 從 2.2rem 或 2.8rem 縮小 */
+    }
+    
+    .game-over-title {
+        font-size: 2.2rem; /* 遊戲結束標題可以稍微大一點，以示強調 */
+    }
+
+    /* --- 統一縮小內文/訊息的字體大小 --- */
+    .notification-message,
+    .quiz-instructions,
+    .stat-label {
+        font-size: 0.95rem;
+    }
+
+    /* ====== 針對「遊戲結束」畫面的特別調整 ====== */
+    .game-over-stats {
+        flex-direction: column; /* 將並排的「最終分數」和「最高連擊」改為垂直堆疊 */
+        gap: 10px; /* 減少堆疊後的間距 */
+    }
+    .stat-number {
+        font-size: 2rem; /* 縮小數字大小 */
+    }
+    .restart-btn {
+        padding: 12px 30px;
+        font-size: 1.1rem;
+    }
+
+    /* ====== 針對「歌詞測驗」畫面的特別調整 ====== */
+    #quizQuestionText {
+        font-size: 1.3rem; /* 縮小題目文字 */
+        line-height: 1.5;
+    }
+    .quiz-answer-input, .quiz-submit-btn {
+        font-size: 1.1rem;
+        padding: 12px;
+    }
+    /* 縮小題目中的填空底線，避免因寬度不足而換行 */
+    .quiz-blank {
+        width: 70px;
+    }
+}
         
     </style>
 
