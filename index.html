@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -3357,10 +3358,6 @@
     }
 }
 
-        #battleModal, #waitingModal, #rematchModal { /* 與 settings-modal 樣式一致 */ }
-#displayBattleRoomId { font-weight: bold; color: #ffcc00; }
-#waitingStatus { color: #00c9ff; }
-
         
         
     </style>
@@ -3382,50 +3379,7 @@
                         <div class="stat-box">
                             <div class="stat-value" id="score">0</div>
                             <div class="stat-label">分數</div>
-                         
                         </div>
-
-                        <div class="stat-box">
-    <div class="stat-value" id="opponentScore">0</div>
-    <div class="stat-label">對手分數</div>
-    <div class="progress-container"><div id="opponentProgressBar" class="progress-bar"></div></div>
-  </div>
-</div>
-
-<!-- 對戰模式 Modal -->
-<div class="settings-modal" id="battleModal">
-  <div class="settings-content">
-    <button class="close-settings" id="closeBattle">&times;</button>
-    <h2 class="settings-title">對戰模式</h2>
-    <div class="setting-group">
-      <label class="setting-label" for="battleRoomId">輸入房間號 (4位數，留空隨機配對):</label>
-      <input type="text" class="setting-control" id="battleRoomId" maxlength="4" placeholder="例如: 1234">
-    </div>
-    <div class="setting-group">
-      <button class="restart-btn" id="joinBattleBtn">加入/創建房間</button>
-    </div>
-  </div>
-</div>
-
-<!-- 等待房間 Modal -->
-<div class="settings-modal" id="waitingModal">
-  <div class="settings-content">
-    <h2 class="settings-title">等待對手...</h2>
-    <p>你的房間號: <span id="displayBattleRoomId"></span></p>
-    <p id="waitingStatus">搜尋中...</p>
-    <button class="restart-btn" id="cancelWaiting">取消</button>
-  </div>
-</div>
-
-<!-- 重開確認 Modal -->
-<div class="settings-modal" id="rematchModal">
-  <div class="settings-content">
-    <h2 class="settings-title">對手請求重開</h2>
-    <button class="restart-btn" id="acceptRematch">接受</button>
-    <button class="restart-btn" id="declineRematch" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">拒絕</button>
-  </div>
-</div>
-                        
 
 
 <!-- ▼▼▼ 【修訂】將原有的單一標記線改為兩個獨立的標記線 ▼▼▼ -->
@@ -3459,21 +3413,6 @@
                                 <path d="M30 12 L30 28 L50 20 Z" fill="white"/>
                             </svg>
                         </button>
-
-<button class="svg-button" id="battleBtn" title="對戰模式">
-  <svg class="start-button-svg" viewBox="0 0 80 40">
-    <defs>
-      <linearGradient id="battleGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" style="stop-color:#c0392b;stop-opacity:1" />
-        <stop offset="100%" style="stop-color:#e74c3c;stop-opacity:1" />
-      </linearGradient>
-    </defs>
-    <rect x="0" y="0" width="80" height="40" rx="20" ry="20" fill="url(#battleGradient)" />
-    <text x="20" y="25" fill="white" font-size="14">對戰</text>
-  </svg>
-</button>
-
-                        
                         <button class="settings-btn" id="settingsBtn" title="設定">
                             <svg class="settings-icon" viewBox="0 0 24 24">
                                 <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" />
@@ -3702,13 +3641,6 @@ const firebaseConfig = {
 // 初始化 Firebase
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
-
-            // 使用你的 Firebase config (從另一HTML複製)
-const firebaseConfig = { /* 你的 config */ };
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth(); // 如需登入
-// 監聽認證 (可選，參考另一HTML)
-auth.onAuthStateChanged(user => { /* 如需登入邏輯 */ });
 
 // 髒話過濾列表 (可持續擴充)
 const profanityList = [
@@ -4109,11 +4041,6 @@ const quizSubmitBtn = document.getElementById('quizSubmitBtn');
 const quizCloseBtn = document.getElementById('quizCloseBtn');
             
             // --- Game State Variables ---
-            let battleMode = false; // 是否在對戰模式
-let currentRoomId = null;
-let isHost = false; // 是否房主
-let opponentScore = 0; // 對手分數
-let rematchRequested = false;
             let gameActive = false;
 let maxScoreForCurrentLevel = 0; // ▼▼▼ 新增狀態變數
             let unlockThresholdPercentage = 0; // ▼▼▼ 新增狀態變數
@@ -4823,108 +4750,6 @@ async function submitScoreToLeaderboard(songUrl, difficulty, finalScore) {
 }
 
             // --- Game Logic ---
-
-
-// 隨機配對
-function randomMatch() {
-  const waitingRef = database.ref('waitingRooms');
-  waitingRef.once('value', snapshot => {
-    const waitingData = snapshot.val();
-    if (!waitingData) {
-      // 創建房間
-      currentRoomId = Math.floor(1000 + Math.random() * 9000).toString();
-      isHost = true;
-      database.ref('rooms/' + currentRoomId).set({
-        player1: { uid: 'player_uid', score: 0, ready: false }, // 用 auth.uid 替換
-        player2: null,
-        gameStarted: false
-      });
-      waitingRef.set({ roomId: currentRoomId });
-    } else {
-      // 加入房間
-      currentRoomId = waitingData.roomId;
-      isHost = false;
-      database.ref('rooms/' + currentRoomId + '/player2').set({ uid: 'player_uid', score: 0, ready: false });
-      waitingRef.remove();
-    }
-    showWaitingModal();
-    listenBattleRoom();
-  });
-}
-
-// 特定房間加入
-function joinSpecificRoom(roomId) {
-  const roomRef = database.ref('rooms/' + roomId);
-  roomRef.once('value', snapshot => {
-    const room = snapshot.val();
-    if (room && !room.player2) {
-      currentRoomId = roomId;
-      isHost = false;
-      roomRef.child('player2').set({ uid: 'player_uid', score: 0, ready: false });
-      showWaitingModal();
-      listenBattleRoom();
-    } else {
-      showNotification('info', '無法加入', '房間不存在或已滿。');
-    }
-  });
-}
-
-// 顯示等待 modal
-function showWaitingModal() {
-  waitingModal.classList.add('active');
-  displayBattleRoomId.textContent = currentRoomId;
-}
-
-// 監聽房間狀態
-function listenBattleRoom() {
-  const roomRef = database.ref('rooms/' + currentRoomId);
-  roomRef.on('value', snapshot => {
-    const room = snapshot.val();
-    if (room.player1 && room.player2) {
-      // 等待 ready
-      if (room.player1.ready && room.player2.ready) {
-        waitingModal.classList.remove('active');
-        battleMode = true;
-        startGame(); // 你的單人開始邏輯，但添加同步
-      }
-    }
-    // 實時分數
-    if (battleMode) {
-      opponentScore = isHost ? room.player2.score : room.player1.score;
-      updateOpponentProgress(); // 自訂函數，更新進度條
-    }
-    // 重開請求
-    if (room.rematchRequest && !rematchRequested) {
-      rematchRequested = true;
-      rematchModal.classList.add('active');
-    }
-  });
-}
-
-// 更新對手進度條 (新增到 UI)
-function updateOpponentProgress() {
-  const opponentBar = document.getElementById('opponentProgressBar'); // 需添加 HTML
-  opponentBar.style.width = `${(opponentScore / maxScoreForCurrentLevel) * 100}%`;
-}
-
-// 接受重開
-function acceptRematchRequest() {
-  database.ref('rooms/' + currentRoomId).update({ rematchAccept: true });
-  // 雙方 accept 後，重置房間並重新 startGame
-}
-
-// 拒絕重開
-function declineRematchRequest() {
-  database.ref('rooms/' + currentRoomId).remove(); // 刪除房間，返回主頁
-}
-
-// 在 endGame() 內添加
-// processPostGameRewards 後，檢查對戰模式並彈出重開選項
-if (battleMode) {
-  // 顯示重開 modal 或直接發送請求
-}
-
-            
             function generateNote(noteData) {
     if (!gameActive) return;
     const trackIndex = noteData.track;
@@ -6383,44 +6208,6 @@ function updatePlayingVisuals(isPlaying) {
             
 
             // --- Event Listeners ---
-
-const battleBtn = document.getElementById('battleBtn');
-const battleModal = document.getElementById('battleModal');
-const closeBattle = document.getElementById('closeBattle');
-const battleRoomId = document.getElementById('battleRoomId');
-const joinBattleBtn = document.getElementById('joinBattleBtn');
-const waitingModal = document.getElementById('waitingModal');
-const displayBattleRoomId = document.getElementById('displayBattleRoomId');
-const cancelWaiting = document.getElementById('cancelWaiting');
-const rematchModal = document.getElementById('rematchModal');
-const acceptRematch = document.getElementById('acceptRematch');
-const declineRematch = document.getElementById('declineRematch');
-
-battleBtn.addEventListener('click', () => battleModal.classList.add('active'));
-closeBattle.addEventListener('click', () => battleModal.classList.remove('active'));
-joinBattleBtn.addEventListener('click', () => {
-  const roomId = battleRoomId.value.trim();
-  battleModal.classList.remove('active');
-  if (roomId) {
-    joinSpecificRoom(roomId);
-  } else {
-    randomMatch();
-  }
-});
-cancelWaiting.addEventListener('click', () => {
-  waitingModal.classList.remove('active');
-  if (currentRoomId) database.ref('rooms/' + currentRoomId).remove();
-  currentRoomId = null;
-});
-acceptRematch.addEventListener('click', () => {
-  rematchModal.classList.remove('active');
-  acceptRematchRequest();
-});
-declineRematch.addEventListener('click', () => {
-  rematchModal.classList.remove('active');
-  declineRematchRequest();
-});
-            
             touchKeys.forEach(key => {
                 key.addEventListener('touchstart', onTouchStart, { passive: false });
                 key.addEventListener('touchend', onTouchEnd, { passive: false });
