@@ -3681,16 +3681,20 @@ function isProfane(name) {
 }
 
 /**
- * 處理玩家名稱的設定與儲存
+ * 處理玩家名稱的設定與儲存（修訂後版本）
+ * - 增加 Firebase 全域名稱唯一性檢查
  */
-function handlePlayerName() {
+async function handlePlayerName() {
     playerNameInput.value = playerName;
     if (!playerName) {
         showNotification('info', '設定名稱', '為了登上排行榜，請先設定你的專屬名稱！');
     }
 
-    savePlayerNameBtn.addEventListener('click', () => {
+    savePlayerNameBtn.onclick = async () => {
         const newName = playerNameInput.value.trim();
+        const oldName = playerName; // 保存目前的（舊）名稱
+
+        // --- 基本客戶端驗證 ---
         if (newName.length === 0) {
             showNotification('info', '名稱無效', '名稱不能為空！');
             return;
@@ -3699,12 +3703,65 @@ function handlePlayerName() {
             showNotification('info', '名稱不雅', '請勿使用不雅詞彙作為名稱。');
             return;
         }
-        playerName = newName;
-        localStorage.setItem('musicGamePlayerName', playerName);
-        showNotification('success', '儲存成功', `你的新名稱「<strong>${playerName}</strong>」已儲存！`);
-    });
-}
+        // 如果名稱沒有改變，則不需要執行任何操作
+        if (newName === oldName) {
+            showNotification('info', '提示', '名稱未變更。');
+            return;
+        }
 
+        // --- Firebase 全域名稱唯一性檢查 ---
+
+        // 為了讓檢查不分大小寫 (避免 Player 和 player 被視為不同)，我們統一用小寫來檢查和儲存
+        const checkNameKey = newName.toLowerCase();
+        const playerNamesRef = database.ref(`playerNames/${checkNameKey}`);
+        
+        savePlayerNameBtn.disabled = true; // 防止重複點擊
+        savePlayerNameBtn.textContent = '檢查中...';
+
+        try {
+            const snapshot = await playerNamesRef.once('value');
+
+            if (snapshot.exists()) {
+                // 如果資料庫中存在這個名稱，代表已被佔用
+                showNotification('info', '名稱已被使用', `名稱「<strong>${newName}</strong>」已被其他玩家註冊，請換一個吧！`);
+            } else {
+                // --- 名稱可用，執行儲存操作 ---
+
+                // 建立一個物件來一次性更新多個資料路徑
+                const updates = {};
+                
+                // 1. 在 playerNames 註冊新名稱
+                updates[`/playerNames/${checkNameKey}`] = true;
+                
+                // 2. 如果是「更改」名稱，需要從 playerNames 中刪除舊名稱
+                if (oldName) {
+                    const oldNameKey = oldName.toLowerCase();
+                    updates[`/playerNames/${oldNameKey}`] = null; // 在 Firebase 中，將值設為 null 等於刪除該節點
+                }
+
+                // 3. 執行原子性更新
+                await database.ref().update(updates);
+
+                // 4. 更新本地變數和 Local Storage
+                playerName = newName;
+                localStorage.setItem('musicGamePlayerName', playerName);
+                
+                showNotification('success', '儲存成功', `你的新名稱「<strong>${playerName}</strong>」已成功設定！`);
+            }
+        } catch (error) {
+            console.error("檢查名稱時發生錯誤:", error);
+            showNotification('info', '發生錯誤', '與伺服器連線時發生問題，請稍後再試。');
+        } finally {
+            // 無論成功或失敗，都恢復按鈕的狀態
+            savePlayerNameBtn.disabled = false;
+            savePlayerNameBtn.textContent = '儲存名稱';
+        }
+    };
+
+    // 移除舊的 EventListener，避免重複綁定 (如果之前是用 addEventListener 的話)
+    // 由於我們改用 onclick，這行可以省略，但保留是一種好習慣
+    // savePlayerNameBtn.removeEventListener('click', ...);
+}
 /**
  * 顯示指定歌曲與難度的排行榜
  * @param {string} songUrl - 歌曲的 URL
