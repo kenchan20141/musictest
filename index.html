@@ -4309,18 +4309,14 @@ function checkAndUnlockDifficulties(songUrl, difficulty, pureHitScore) {
 
 
 function processNotificationQueue() {
-    // 如果當前已有通知正在顯示，或者隊列是空的，就直接返回
     if (isNotificationActive || notificationQueue.length === 0) {
         return;
     }
 
-    // 標記為「正在顯示通知」
     isNotificationActive = true;
-
-    // 從隊列的頭部取出第一個通知
     const notification = notificationQueue.shift();
+    currentNotificationObject = notification; // 【新增】記錄當前通知物件
 
-    // --- 以下是原 showNotification 函數的核心顯示邏輯 ---
     const content = notificationModal.querySelector('.notification-content');
     notificationTitle.textContent = notification.title;
     notificationMessage.innerHTML = notification.message;
@@ -4336,14 +4332,18 @@ function processNotificationQueue() {
     
     notificationModal.classList.add('active');
 
-    // 設定計時器，在通知結束後觸發下一個
     notificationTimer = setTimeout(() => {
         notificationModal.classList.remove('active');
-        isNotificationActive = false; // 標記為「通知已結束」
-        processNotificationQueue();   // 再次呼叫經理，檢查隊列中是否還有下一個
+        isNotificationActive = false;
+        
+        // 【新增】在通知結束後，檢查並執行回呼函式
+        if (notification.callback) {
+            notification.callback();
+        }
+
+        processNotificationQueue();
     }, notification.duration || 5000);
 }
-// ▲▲▲ 新增函數結束 ▲▲▲
 
 
             
@@ -4351,13 +4351,14 @@ function processNotificationQueue() {
 
 let notificationTimer = null;
 
-function showNotification(type, title, message, duration = 5000) {
-    // 步驟 1: 將通知任務打包，添加到隊列的末尾
+function showNotification(type, title, message, duration = 5000, onCloseCallback = null) {
+    // 步驟 1: 將通知任務（包含回呼函式）打包，添加到隊列的末尾
     notificationQueue.push({
         type: type,
         title: title,
         message: message,
-        duration: duration
+        duration: duration,
+        callback: onCloseCallback // 【新增】將回呼函式儲存起來
     });
 
     // 步驟 2: 呼叫我們的「經理」來處理隊列
@@ -4368,11 +4369,17 @@ function showNotification(type, title, message, duration = 5000) {
            // 【修改後的樣子】
 closeNotification.addEventListener('click', () => {
     if (notificationTimer) {
-        clearTimeout(notificationTimer); // 清除當前的計時器
+        clearTimeout(notificationTimer);
     }
     notificationModal.classList.remove('active');
-    isNotificationActive = false;      // 立刻標記為「通知已結束」
-    processNotificationQueue();        // 立刻呼叫經理，顯示下一個通知
+    isNotificationActive = false;
+    
+    // 【新增】玩家手動關閉時，同樣檢查並執行回呼函式
+    if (currentNotificationObject && currentNotificationObject.callback) {
+        currentNotificationObject.callback();
+    }
+    
+    processNotificationQueue();
 });
 
 
@@ -5649,13 +5656,14 @@ noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, se
 
 
 // ====================================================================
-// ====== 【全新】統一的遊戲後獎勵處理函數 (取代舊的兩個函數) ======
+// ====== 【最終版】統一的遊戲後獎勵處理函數 (支援前置通知) ======
 // ====================================================================
 async function processPostGameRewards(songUrl, difficulty, score, pureHitScore) {
     const rewardsQueue = [];
     const hasQuiz = songData[songUrl]?.quiz && songData[songUrl].quiz.length > 0;
 
-    // --- 檢查 1: 新歌曲解鎖條件 ---
+    // --- 檢查所有可能的獎勵並加入佇列 (這部分邏輯不變) ---
+    // 檢查 1: 新歌曲解鎖
     if (difficulty === 'normal') {
         const allSongs = Array.from(musicSelect.options).map(opt => opt.value);
         const lastUnlockedSong = saveData.unlockedSongs[saveData.unlockedSongs.length - 1];
@@ -5672,24 +5680,18 @@ async function processPostGameRewards(songUrl, difficulty, score, pureHitScore) 
             }
         }
     }
-
-    // --- 檢查 2: 新難度解鎖條件 ---
-    // 解鎖困難
+    // 檢查 2: 新難度解鎖
     if (difficulty === 'normal' && !isDifficultyUnlocked(songUrl, 'hard')) {
-        const requiredScore = maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE;
-        if (pureHitScore >= requiredScore) {
+        if (pureHitScore >= maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE) {
             rewardsQueue.push({ type: 'difficulty', value: { song: songUrl, difficulty: 'hard' } });
         }
     }
-    // 解鎖地獄
     if (difficulty === 'hard' && !isDifficultyUnlocked(songUrl, 'hell')) {
-        const requiredScore = maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE;
-        if (pureHitScore >= requiredScore) {
+        if (pureHitScore >= maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE) {
             rewardsQueue.push({ type: 'difficulty', value: { song: songUrl, difficulty: 'hell' } });
         }
     }
-
-    // --- 檢查 3: 排行榜資格條件 (異步) ---
+    // 檢查 3: 排行榜資格 (異步)
     if (playerName) {
         const songId = sanitizeFirebaseKey(songUrl);
         const leaderboardRef = database.ref(`leaderboards/${songId}/${difficulty}`);
@@ -5698,21 +5700,40 @@ async function processPostGameRewards(songUrl, difficulty, score, pureHitScore) 
             const board = snapshot.val() || [];
             const lowestScoreOnBoard = board.length < 3 ? 0 : board[board.length - 1].score;
             const selfEntry = board.find(e => e.name === playerName);
-            const isEligible = score > lowestScoreOnBoard || (selfEntry && score > selfEntry.score);
-
-            if (isEligible) {
+            if (score > lowestScoreOnBoard || (selfEntry && score > selfEntry.score)) {
                 rewardsQueue.push({ type: 'leaderboard', value: { songUrl, difficulty, score } });
             }
-        } catch (error) {
-            console.error("檢查排行榜資格時出錯:", error);
-        }
+        } catch (error) { console.error("檢查排行榜資格時出錯:", error); }
     }
 
-    // --- 根據佇列內容，決定下一步行動 ---
+    // --- 【核心修改】根據佇列內容，決定下一步行動 ---
     if (rewardsQueue.length > 0) {
         if (hasQuiz) {
-            // 如果有獎勵且有測驗，則啟動歌詞測驗
-            startLyricsQuiz(rewardsQueue, songUrl);
+            // 如果有獎勵且有測驗，則顯示前置通知，並將「啟動測驗」作為回呼
+            const hasLeaderboardReward = rewardsQueue.some(reward => reward.type === 'leaderboard');
+            const hasUnlockReward = rewardsQueue.some(reward => reward.type !== 'leaderboard');
+
+            let title = '恭喜！表現出色！';
+            let message = '只要通過接下來的歌詞測驗，';
+
+            if (hasLeaderboardReward && hasUnlockReward) {
+                message += '你的名字就能登上排行榜，並解鎖新內容！';
+            } else if (hasLeaderboardReward) {
+                message += '你的名字就能登上排行榜！';
+            } else if (hasUnlockReward) {
+                message += '就能解鎖新的內容！';
+            }
+
+            // 呼叫升級後的通知函數
+            showNotification(
+                'success',          // 類型
+                title,              // 標題
+                message,            // 我們動態生成的消息
+                6000,               // 顯示時長 (6秒)
+                () => {             // 這是回呼函式，會在通知結束後執行
+                    startLyricsQuiz(rewardsQueue, songUrl);
+                }
+            );
         } else {
             // 如果有獎勵但沒有測驗，則直接授予所有獎勵
             showNotification('info', '自動授予獎勵', '由於此歌曲無歌詞測驗，所有已達成的獎勵將自動授予給您。');
