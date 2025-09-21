@@ -2024,31 +2024,7 @@
 }
 
 /* [新增] 遊戲中歌詞顯示容器 */
-.game-lyrics-container {
-    position: absolute;
-    top: 10%;            /* [新增] 置於軌道上方，避免擋音符 */
-    left: 0;
-    right: 0;
-    text-align: center;
-    z-index: 15;         /* [新增] 高於進度條但低於粒子/判定 */
-    opacity: 0.8;        /* [新增] 半透明，避免干擾遊戲 */
-    transition: opacity 0.5s ease;
-    display: none;       /* [新增] 預設隱藏，由 JS 控制 */
-}
 
-.game-lyric-line {
-    font-size: 1.2rem;   /* [新增] 小字體，避免佔空間 */
-    color: #fff;
-    margin: 5px 0;
-    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5); /* [新增] 陰影提升可讀性 */
-    transition: transform 0.3s ease, color 0.3s ease;
-}
-
-.game-lyric-line.active {
-    font-size: 1.5rem;   /* [新增] 活躍歌詞放大強調 */
-    color: #ffcc00;      /* [新增] 亮色強調教育重點 */
-    transform: scale(1.1);
-}
 
 /* 遊戲運行中隱藏選擇器，避免重疊 */
 .game-running .music-selector,
@@ -2067,88 +2043,7 @@
     }
 }        
 
- /* 遊戲中歌詞顯示：軌道兩側全透明垂直區域 */
-.lyrics-side {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 150px; /* 預設電腦寬度 */
-    opacity: 0.5;
-    background: transparent; /* 全透明 */
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 10px;
-    overflow-y: auto; /* 若直排溢出，自動滾動 */
-    color: #fff;
-    font-size: clamp(1rem, 10vw, 1.5rem); /* 利用寬度調整字體：最小1rem，依視窗寬10%，最大1.5rem */
-    text-align: center;
-    writing-mode: vertical-rl; /* 直排顯示：垂直從右到左 */
-    text-orientation: mixed; /* 確保中文直排正常 */
-    line-height: 1.2; /* 調整字間距 */
-    z-index: 10; /* 高於背景，低於音符 */
-    transition: opacity 0.3s ease;
-}
 
-.lyrics-left {
-    left: calc(50% - 200px - 150px); /* 軌道約344px寬，居中調整左側位置 */
-    text-align: right;
-    padding-right: 20px;
-}
-
-.lyrics-right {
-    right: calc(50% - 200px - 150px); /* 對稱右側 */
-    text-align: left;
-    padding-left: 20px;
-}
-
-.lyrics-side.hidden {
-    display: none;
-}
-
-/* 響應式設計 */
-@media (max-width: 1024px) {
-    .lyrics-side {
-        width: 120px;
-        font-size: clamp(0.9rem, 8vw, 1.2rem); /* 平板：調整clamp範圍 */
-        padding: 8px;
-    }
-    .lyrics-left {
-        left: calc(50% - 172px - 120px); /* 調整軌道寬度估計 */
-    }
-    .lyrics-right {
-        right: calc(50% - 172px - 120px);
-    }
-}
-
-@media (max-width: 768px) {
-    .lyrics-side {
-        width: 80px;
-        font-size: clamp(0.7rem, 6vw, 1rem); /* 手機：更小調整 */
-        padding: 5px;
-        opacity: 0.3; /* 手機上更透明，避免干擾觸控 */
-    }
-    .lyrics-left {
-        left: calc(50% - 172px - 80px);
-    }
-    .lyrics-right {
-        right: calc(50% - 172px - 80px);
-    }
-}
-
-@media (max-width: 480px) {
-    .lyrics-side {
-        width: 60px;
-        font-size: clamp(0.6rem, 5vw, 0.8rem); /* 小手機：最小調整 */
-    }
-    .lyrics-left {
-        left: calc(50% - 172px - 60px);
-    }
-    .lyrics-right {
-        right: calc(50% - 172px - 60px);
-    }
-}
 
 .lyrics-background {
     position: fixed;
@@ -3357,6 +3252,76 @@
 #leaderboardTitle {
     color: #6a8eae; /* 與按鈕使用相同的新顏色，保持視覺統一 */
 }
+
+        /* ================================================= */
+/* ====== 【全新】遊戲中垂直歌詞樣式 ====== */
+/* ================================================= */
+
+/* 1. 歌詞的外部容器 */
+.vertical-lyrics-container {
+    position: absolute;
+    /* 讓容器填滿整個 .tracks 軌道區域 */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    
+    /* 使用 Flexbox 來實現完美的垂直和水平置中 */
+    display: flex;
+    justify-content: center; /* 水平置中 */
+    align-items: center;     /* 垂直置中 */
+    
+    /* 確保歌詞容器不會擋住下方的音符點擊 */
+    pointer-events: none;
+    
+    /* 確保歌詞在軌道背景之上，但在音符之下 */
+    z-index: 2; 
+
+    /* 添加一些內邊距，避免文字完全貼邊 */
+    padding: 20px;
+    box-sizing: border-box; /* 確保 padding 不會讓容器超出範圍 */
+}
+
+/* 2. 顯示歌詞的文字元素本身 */
+#game-lyric-text {
+    /* 【核心】設置為垂直文字模式，由右至左書寫 */
+    writing-mode: vertical-rl;
+    text-orientation: mixed; /* 確保所有字符（英文、數字）保持直立 */
+
+    /* 【核心】文字高度絕不能超過父容器（軌道區域）的高度 */
+    max-height: 95%;
+    
+    /* 防止文字寬度過度擴張，保持美觀 */
+    max-width: 100%;
+
+    /* 文字樣式 */
+    color: rgba(255, 255, 255, 0.75);
+    font-weight: bold;
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.7);
+
+    /* 【核心】使用 clamp() 實現響應式字體大小 */
+    /* 說明：字體最小 1rem，最大 1.8rem，理想大小為螢幕寬度的 2vw */
+    font-size: clamp(1rem, 2vw, 1.8rem);
+    line-height: 1.6; /* 調整垂直行距 */
+
+    /* 【核心】自動換行功能 */
+    /* writing-mode 會自動處理換行，當一行文字高度超出 max-height 時，會自動換到新的一列（左邊） */
+    text-align: center; /* 讓多行垂直文字之間對齊 */
+    overflow: hidden;   /* 隱藏因極端情況下可能溢出的文字 */
+    margin: 0;
+    padding: 0;
+}
+
+/* 3. 響應式調整：在小螢幕（如手機）上進一步縮小字體 */
+@media (max-width: 768px) {
+    #game-lyric-text {
+        font-size: clamp(0.9rem, 2.5vw, 1.2rem);
+        line-height: 1.5;
+    }
+    .vertical-lyrics-container {
+        padding: 10px; /* 在手機上減少邊距 */
+    }
+}
         
     </style>
 
@@ -3496,6 +3461,11 @@
                 </div>
                <div class="game-area">
     <div class="tracks" id="tracksContainer"></div>
+                    <!-- ▼▼▼ 請將這段新的 HTML 加在這裡 ▼▼▼ -->
+    <div class="vertical-lyrics-container">
+        <p id="game-lyric-text"></p>
+    </div>
+    <!-- ▲▲▲ 新增結束 ▲▲▲ -->
    
     
     <!-- 觸控按鍵 (僅在觸控裝置上顯示) -->
@@ -5633,13 +5603,19 @@ function checkAndShowQuizOrInfo(songUrl, difficulty, pureHitScore) {
 
 function updateGameLyrics(currentTime) {
     const selectedSong = musicSelect.value;
-    
-    // ▼▼▼ 【修訂處】從 songData 獲取歌詞 ▼▼▼
     const lyrics = songData[selectedSong]?.lyrics || [];
-    // ▲▲▲ 修訂結束 ▲▲▲
     
-    if (lyrics.length === 0) return; // 無歌詞，直接返回
+    // 如果這首歌沒有歌詞，就直接結束，不做任何事
+    if (lyrics.length === 0) {
+        // 同時也確保垂直歌詞是空的
+        const verticalLyricElement = document.getElementById('game-lyric-text');
+        if (verticalLyricElement) {
+            verticalLyricElement.textContent = '';
+        }
+        return;
+    }
 
+    // 1. 找出當前應該顯示哪一句歌詞
     let currentIndex = -1;
     for (let i = 0; i < lyrics.length; i++) {
         if (lyrics[i].time <= currentTime) {
@@ -5648,36 +5624,39 @@ function updateGameLyrics(currentTime) {
             break;
         }
     }
+    const currentLyricText = (currentIndex >= 0 && lyrics[currentIndex]) ? lyrics[currentIndex].text : '';
 
+    // 2. 【核心新增】將找到的歌詞文字，更新到我們新的垂直歌詞元素中
+    const verticalLyricElement = document.getElementById('game-lyric-text');
+    if (verticalLyricElement) {
+        verticalLyricElement.textContent = currentLyricText;
+    }
+
+    // 3. (保留) 繼續執行您原有的滿版背景歌詞功能
     const lyricsBackground = document.getElementById('lyricsBackground');
-    if (lyricsBackground) {
+    if (lyricsBackground && lyricsBackground.style.display !== 'none') {
         lyricsBackground.innerHTML = ''; // 清空舊內容
-        const currentLyric = (currentIndex >= 0 && lyrics[currentIndex]) ? lyrics[currentIndex].text : '';
-        if (currentLyric) {
-            // 動態計算需要的 span 數量，以填滿整個畫面
-            const fontSize = parseFloat(getComputedStyle(lyricsBackground).fontSize); // 獲取當前 font-size (單位 px)
-            const approxCharWidth = fontSize * 0.6; // 估計每個字元的寬度（約 0.6 * font-size）
-            const lineHeight = fontSize * 1.2; // 估計行高（基於 line-height: 1.2）
-            
-            const lyricWidth = currentLyric.length * approxCharWidth; // 估計單個 span 的寬度
-            const spanWidth = Math.max(lyricWidth, window.innerWidth * 0.1); // 最小 10% 寬，防止太窄
-            const spanHeight = lineHeight; // 單個 span 的高度
-            
-            const horizontalCount = Math.ceil(window.innerWidth / spanWidth); // 水平能放多少個
-            const verticalCount = Math.ceil(window.innerHeight / spanHeight); // 垂直能放多少個
-            
-            const densityFactor = 1.2; // 略多 20% 以確保完全覆蓋（可調整 1.0-1.5）
-            const totalSpans = Math.ceil(horizontalCount * verticalCount * densityFactor); // 總數
+        if (currentLyricText) {
+            const fontSize = parseFloat(getComputedStyle(lyricsBackground).fontSize);
+            const approxCharWidth = fontSize * 0.6;
+            const lineHeight = fontSize * 1.2;
+            const lyricWidth = currentLyricText.length * approxCharWidth;
+            const spanWidth = Math.max(lyricWidth, window.innerWidth * 0.1);
+            const spanHeight = lineHeight;
+            const horizontalCount = Math.ceil(window.innerWidth / spanWidth);
+            const verticalCount = Math.ceil(window.innerHeight / spanHeight);
+            const densityFactor = 1.2;
+            const totalSpans = Math.ceil(horizontalCount * verticalCount * densityFactor);
             
             for (let i = 0; i < totalSpans; i++) {
                 const span = document.createElement('span');
-                span.textContent = currentLyric;
+                span.textContent = currentLyricText;
                 lyricsBackground.appendChild(span);
             }
         }
     }
 }
-
+// ▲▲▲ 替換結束 ▲▲▲
 // 修訂：startGame（顯示新背景容器）
 async function startGame() {
     const selectedSong = musicSelect.value;
