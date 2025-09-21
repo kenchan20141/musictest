@@ -3086,15 +3086,16 @@ const songCovers = {
             const playlist = document.getElementById('playlist');
             const unlockModal = document.getElementById('unlockModal');
             const closeUnlock = document.getElementById('closeUnlock');
-            const unlockRequirement = document.getElementById('unlockRequirement');
-            // ▼▼▼ 【新增】排行榜相關 DOM 元素 ▼▼▼
+          const unlockRequirement = document.getElementById('unlockRequirement');
+
+// ▼▼▼ 【請確認此部分完整無誤】排行榜相關 DOM 元素 ▼▼▼
 const leaderboardBtn = document.getElementById('leaderboardBtn');
 const leaderboardModal = document.getElementById('leaderboardModal');
 const closeLeaderboard = document.getElementById('closeLeaderboard');
 const leaderboardTitle = document.getElementById('leaderboardTitle');
 const leaderboardList = document.getElementById('leaderboardList');
 const leaderboardLoading = document.getElementById('leaderboardLoading');
-// ▲▲▲ 新增結束 ▲▲▲
+// ▲▲▲ 確認結束 ▲▲▲
              // ▼▼▼ 新增通知視窗的 DOM 元素 ▼▼▼
             const notificationModal = document.getElementById('notificationModal');
             const notificationIcon = document.getElementById('notificationIcon');
@@ -5420,7 +5421,7 @@ nextBtn.addEventListener('click', () => {
             closeUnlock.addEventListener('click', () => unlockModal.classList.remove('active'));
 
 
-// 【新增】排行榜 Modal 的事件監聽
+// 排行榜 Modal 的事件監聽
 leaderboardBtn.addEventListener('click', () => {
     const selectedSong = musicSelect.value;
     const selectedDifficulty = difficultySelect.value;
@@ -5434,29 +5435,31 @@ leaderboardBtn.addEventListener('click', () => {
 
 closeLeaderboard.addEventListener('click', () => leaderboardModal.classList.remove('active'));
 
+// 統一處理點擊 Modal 外部關閉的事件
 window.addEventListener('click', (e) => {
     if (e.target === settingsModal) settingsModal.classList.remove('active');
     if (e.target === personalHighScoreModal) personalHighScoreModal.classList.remove('active');
     if (e.target === unlockModal) unlockModal.classList.remove('active');
-    // 【新增】點擊背景關閉排行榜
     if (e.target === leaderboardModal) leaderboardModal.classList.remove('active');
+    if (e.target === disclaimerModal) disclaimerModal.classList.remove('active');
 });
 
 musicSelect.addEventListener('change', () => {
-    // ... (您原本的 musicSelect 監聽器)
+    const selectedSong = musicSelect.value;
+    updateDifficultyOptions(selectedSong);
+    populatePersonalHighScoreList(selectedSong); // 更新個人分數列表
+
     // 當排行榜開啟時，如果切換歌曲，也同步更新排行榜內容
     if (leaderboardModal.classList.contains('active')) {
-        const selectedSong = musicSelect.value;
         const selectedDifficulty = difficultySelect.value;
         const songName = musicSelect.options[musicSelect.selectedIndex].text;
-        const difficultyName = difficultySelect.options[difficultySelect.selectedIndex].text.replace(' (未解鎖)', '');
+        const difficultyName = difficultySelect.options[difficultySelect.selectedIndex].text.replace(' (未解-鎖)', '');
         leaderboardTitle.textContent = `${songName} - ${difficultyName}`;
         fetchAndDisplayLeaderboard(selectedSong, selectedDifficulty);
     }
 });
 
 difficultySelect.addEventListener('change', () => {
-    // ... (您原本的 difficultySelect 監聽器)
     // 當排行榜開啟時，如果切換難度，也同步更新排行榜內容
     if (leaderboardModal.classList.contains('active')) {
         const selectedSong = musicSelect.value;
