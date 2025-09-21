@@ -96,9 +96,27 @@
             background: #F96666; /* 亮紅色，代表挑戰更高難度 */
             box-shadow: 0 0 8px #F96666;
         }
-        /* ▲▲▲ 新增結束 ▲▲▲ */
+        /* ▲▲▲ 新增結束 ▲▲▲ *
         
-       
+        .unlock-progress-label {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+             /* ▼▼▼ 已將字體系列更新為您指定的字體 ▼▼▼ */
+       font-family: 'Noto Serif TC', 'cwTeXHei', 'cwTeXFangSong', 'cwTeXKai', 'cwTeXMing', 'PingFang TC', 'Microsoft JhengHei', serif;
+            touch-action: manipulation; /* Prevent default touch actions like double-tap zoom */
+        }
         body {
      
             background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
