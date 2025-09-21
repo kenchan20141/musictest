@@ -5043,111 +5043,6 @@ function updateUnlockMeter() {
                 return difficultySettings[difficultySelect.value] || difficultySettings.normal;
             }
 
-// ====================================================================
-// ====== 【決定版】強制導向【排行榜視窗】設定名稱的 startGame 函數 ======
-// ====================================================================
-async function startGame() {
-    // 【除錯日誌】請按 F12 打開主控台，這行訊息能幫助我們確認變數狀態
-    console.log(`[startGame] 檢查開始。目前 playerName: "${playerName}" (類型: ${typeof playerName})`);
-
-    // 【強化版守門員】這個檢查會攔截所有無效的名稱狀態
-    // 它會檢查 playerName 是否為空字串、null、undefined 或僅由空白組成
-    if (!playerName || playerName.trim() === '' || playerName === 'null' || playerName === 'undefined') {
-        
-        console.log('[startGame] 檢查失敗：玩家名稱無效。已阻止遊戲開始，並強制打開排行榜視窗。');
-
-        // 1. 顯示一個清晰的引導通知，告訴玩家該做什麼
-        showNotification(
-            'info', // 通知類型
-            '請先設定玩家名稱', // 標題
-            '為了開始遊戲並記錄您的成績，請先在此視窗中設定您的顯示名稱。', // 訊息內容
-            7000 // 持續時間 (7秒)
-        );
-        
-        // 2. 【核心修正】強制彈出【排行榜視窗】
-        leaderboardModal.classList.add('active');
-        
-        // 3. 將游標自動聚焦在排行榜視窗內的名稱輸入框，提升使用者體驗
-        const playerNameInput = document.getElementById('playerNameInput');
-        if (playerNameInput) {
-            playerNameInput.focus();
-        }
-
-        // 4. 【最重要】使用 return 立即中止函數，不執行後續任何遊戲啟動的程式碼
-        return; 
-    }
-    
-    // --- 只有在通過名稱檢查後，才會執行以下的遊戲邏輯 ---
-    console.log('[startGame] 名稱檢查通過，遊戲正常啟動。');
-    
-    const selectedSong = musicSelect.value;
-    const selectedDifficulty = difficultySelect.value;
-
-    if (!isSongUnlocked(selectedSong)) {
-        showUnlockModal(`此歌曲尚未解鎖。`); // 簡化訊息
-        return;
-    }
-    if (!isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
-        showUnlockModal(`此難度尚未解鎖。`); // 簡化訊息
-        return;
-    }
-
-    if (gameActive) return;
-    gameActive = true;
-    startBtn.disabled = true;
-    musicSelect.disabled = true;
-    difficultySelect.disabled = true;
-
-    mainGameContainer.classList.add('game-running'); 
-    unlockProgressBar.style.height = '100%';
-    unlockProgressBar.style.width = '0%';
-    unlockProgressBar.classList.remove('glowing');
-    
-    songUnlockMarker.style.left = `${SONG_UNLOCK_PERCENTAGE * 100}%`;
-    difficultyUnlockMarker.style.left = `${DIFFICULTY_UNLOCK_PERCENTAGE * 100}%`;
-    
-    startBtn.innerHTML = `<svg class="start-button-svg" viewBox="0 0 40 40" style="width:40px;height:40px;">
-        <circle cx="20" cy="20" r="18" stroke="#ff8a00" stroke-width="3" fill="none" stroke-dasharray="89" stroke-dashoffset="20">
-            <animateTransform attributeName="transform" type="rotate" from="0 20 20" to="360 20 20" dur="1s" repeatCount="indefinite" />
-        </circle>
-    </svg>`;
-    
-    const difficulty = getCurrentDifficulty();
-    const beatTimestamps = await analyzeAudioForBeats(selectedSong);
-    startBtn.innerHTML = originalStartButtonSVG;
- 
-    progressContainerDiv.style.display = 'block';
-    trackCooldownUntil.fill(0); 
-    audio.src = selectedSong;
-    audio.volume = volumeControlModal.value;
-    currentSongDuration = await getAudioDuration(selectedSong);
-    noteSpeed = Math.floor(4000 / difficulty.speedMultiplier);
-
-    const songAndDifficultyString = selectedSong + selectedDifficulty;
-    let seed = 0;
-    for (let i = 0; i < songAndDifficultyString.length; i++) {
-        const char = songAndDifficultyString.charCodeAt(i);
-        seed = ((seed << 5) - seed) + char;
-        seed |= 0;
-    }
-    seed = Math.abs(seed) || 1;
-    
-    noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed);
-
-    const maxBaseScorePerNote = 100;
-    maxScoreForCurrentLevel = noteQueue.length * maxBaseScorePerNote;
-
-    if (maxScoreForCurrentLevel === 0) {
-        maxScoreForCurrentLevel = 300000;
-    }
-
-    await audio.play().catch(e => console.log("音訊播放失敗:", e));
-    gameStartTime = Date.now();
-    generateNotesContinuously();
-    gameLoop();
-    progressInterval = setInterval(updateProgress, 100);
-    setTimeout(() => { if (gameActive) endGame(); }, currentSongDuration * 1000 + 2000);
-}
 
 // 新增輔助函數：分析節拍間隔，估算基本時間單位（如十六分音符長度）
 function analyzeBeatIntervals(beatTimestamps) {
@@ -5544,28 +5439,54 @@ function updateGameLyrics(currentTime) {
     // 將找到的歌詞文字，更新到我們的垂直歌詞元素中
     verticalLyricElement.textContent = currentLyricText;
 }
-// ▲▲▲ 替換結束 ▲▲▲
-// ▲▲▲ 替換結束 ▲▲▲
-// 修訂：startGame（顯示新背景容器）
+// ====================================================================
+// ====== 【最終修正版】確保在點擊開始時，直接檢查儲存的最新名稱 ======
+// ====================================================================
 async function startGame() {
+    console.log("--- startGame function initiated ---");
+    
+    // 【核心修正】在點擊開始的瞬間，直接從 localStorage 獲取最新的玩家名稱
+    // 這能確保我們使用的是最準確的資料，而不是頁面剛載入時的舊資料
+    const currentName = localStorage.getItem('musicGamePlayerName');
+    console.log(`檢查 localStorage 中的名稱: "${currentName}"`);
+
+    // 【強化版守門員】這個檢查現在更加直接且可靠
+    if (!currentName || currentName.trim() === '') {
+        console.error("錯誤：玩家名稱未設定。已阻止遊戲開始。");
+
+        // 1. 顯示一個清晰的引導通知
+        showNotification(
+            'info',
+            '請先設定玩家名稱',
+            '為了開始遊戲並記錄您的成績，請先在排行榜中設定您的顯示名稱。',
+            7000
+        );
+        
+        // 2. 強制彈出【排行榜視窗】
+        leaderboardModal.classList.add('active');
+        
+        // 3. 自動聚焦到輸入框
+        const playerNameInput = document.getElementById('playerNameInput');
+        if (playerNameInput) {
+            playerNameInput.focus();
+        }
+
+        // 4. 【最重要】立即中止函數，不執行後續任何遊戲啟動程式碼
+        return; 
+    }
+
+    // --- 只有在通過名稱檢查後，才會執行以下的遊戲邏輯 ---
+    console.log("名稱檢查通過，遊戲正常啟動。");
+    
     const selectedSong = musicSelect.value;
     const selectedDifficulty = difficultySelect.value;
 
     if (!isSongUnlocked(selectedSong)) {
-        showUnlockModal(`在普通模式下達到 ${SONG_UNLOCK_SCORE} 分以解鎖下一首歌曲。`);
+        showNotification('info', '歌曲未解鎖', '此歌曲尚未解鎖。');
         return;
     }
     if (!isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
-        let reqScore = 0;
-        let reqDiff = '';
-        if (selectedDifficulty === 'hard') {
-            reqScore = DIFFICULTY_UNLOCK_SCORE_NORMAL_TO_HARD;
-            reqDiff = '普通';
-        } else if (selectedDifficulty === 'hell') {
-            reqScore = DIFFICULTY_UNLOCK_SCORE_HARD_TO_HELL;
-            reqDiff = '困難';
-        }
-        showUnlockModal(`在 ${reqDiff} 模式下達到 ${reqScore} 分以解鎖此難度。`);
+        showNotification('info', '難度未解鎖', '此難度尚未解鎖。');
         return;
     }
 
@@ -5575,17 +5496,13 @@ async function startGame() {
     musicSelect.disabled = true;
     difficultySelect.disabled = true;
 
-    // ▼▼▼ 【核心修訂】無條件設定兩條合格線的位置 ▼▼▼
     mainGameContainer.classList.add('game-running'); 
-    // 初始化進度條高度和寬度，確保顯示正常
-unlockProgressBar.style.height = '100%';
-unlockProgressBar.style.width = '0%';
-unlockProgressBar.classList.remove('glowing');
+    unlockProgressBar.style.height = '100%';
+    unlockProgressBar.style.width = '0%';
+    unlockProgressBar.classList.remove('glowing');
     
-    // 根據預設的百分比常數，設定兩條線的 left 屬性
     songUnlockMarker.style.left = `${SONG_UNLOCK_PERCENTAGE * 100}%`;
     difficultyUnlockMarker.style.left = `${DIFFICULTY_UNLOCK_PERCENTAGE * 100}%`;
-    // ▲▲▲ 修訂結束 ▲▲▲
     
     startBtn.innerHTML = `<svg class="start-button-svg" viewBox="0 0 40 40" style="width:40px;height:40px;">
         <circle cx="20" cy="20" r="18" stroke="#ff8a00" stroke-width="3" fill="none" stroke-dasharray="89" stroke-dashoffset="20">
@@ -5603,33 +5520,24 @@ unlockProgressBar.classList.remove('glowing');
     audio.volume = volumeControlModal.value;
     currentSongDuration = await getAudioDuration(selectedSong);
     noteSpeed = Math.floor(4000 / difficulty.speedMultiplier);
-    // ▼▼▼ [修訂] 生成基於歌曲和難度的固定種子 ▼▼▼
-const songAndDifficultyString = selectedSong + selectedDifficulty;
-let seed = 0;
-for (let i = 0; i < songAndDifficultyString.length; i++) {
-    const char = songAndDifficultyString.charCodeAt(i);
-    seed = ((seed << 5) - seed) + char;
-    seed |= 0; // Convert to 32bit integer
-}
-// 確保種子為正數
-seed = Math.abs(seed) || 1; // 避免種子為 0
-console.log(`Generating notes for ${selectedSong} (${selectedDifficulty}) with seed: ${seed}`);
-// ▲▲▲ [修訂結束] ▲▲▲
 
-// ▼▼▼ [修訂] 傳入種子 ▼▼▼
-noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed); // 傳入 noteSpeed
-// ▲▲▲ [修訂結束] ▲▲▲
+    const songAndDifficultyString = selectedSong + selectedDifficulty;
+    let seed = 0;
+    for (let i = 0; i < songAndDifficultyString.length; i++) {
+        const char = songAndDifficultyString.charCodeAt(i);
+        seed = ((seed << 5) - seed) + char;
+        seed |= 0;
+    }
+    seed = Math.abs(seed) || 1;
+    
+    noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed);
 
-    // ▼▼▼ 【修訂後的核心邏輯】 ▼▼▼
-    // 在生成音符後，動態計算不含連擊獎勵的理論最高分
-    const maxBaseScorePerNote = 100; // "Perfect" 的基礎分數是 100
+    const maxBaseScorePerNote = 100;
     maxScoreForCurrentLevel = noteQueue.length * maxBaseScorePerNote;
 
-    // 如果計算結果為 0 (例如歌曲沒有音符)，則提供一個預設值以避免錯誤
     if (maxScoreForCurrentLevel === 0) {
-        maxScoreForCurrentLevel = 300000; // 設置一個後備值
+        maxScoreForCurrentLevel = 300000;
     }
-    // ▲▲▲ 【修訂結束】 ▲▲▲
 
     await audio.play().catch(e => console.log("音訊播放失敗:", e));
     gameStartTime = Date.now();
@@ -5637,8 +5545,6 @@ noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, se
     gameLoop();
     progressInterval = setInterval(updateProgress, 100);
     setTimeout(() => { if (gameActive) endGame(); }, currentSongDuration * 1000 + 2000);
-
- 
 }
 
 
