@@ -3358,37 +3358,6 @@
     }
 }
 
-
-#battleModeContainer {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    padding: 20px;
-    margin-top: 20px;
-}
-
-.progress-bar-container {
-    width: 100%;
-    height: 10px;
-    background-color: #333;
-    border-radius: 5px;
-    overflow: hidden;
-    margin-top: 5px;
-}
-
-.progress-bar-fill {
-    height: 100%;
-    width: 0%;
-    background-color: #4CAF50;
-    transition: width 0.3s ease;
-}
-
-.player-stats, .opponent-stats {
-    margin-bottom: 20px;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-}
-        
         
         
     </style>
@@ -3411,52 +3380,6 @@
                             <div class="stat-value" id="score">0</div>
                             <div class="stat-label">分數</div>
                         </div>
-
-                        <!-- 新增對戰模式容器 -->
-<div id="battleModeContainer" style="display: none; padding: 20px; text-align: center;">
-    <h2>多人對戰模式</h2>
-
-    <!-- 匹配控制區域 -->
-    <div id="battleLobby">
-        <h3>加入或創建戰場</h3>
-        <input type="text" id="roomIdInput" placeholder="輸入4位戰場編號 (選填)" maxlength="4">
-        <br><br>
-        <button id="createOrJoinRoomBtn">隨機匹配 / 加入戰場</button>
-        <button id="backToMainMenuBtn">返回主選單</button>
-    </div>
-
-    <!-- 等待區域 -->
-    <div id="waitingArea" style="display: none;">
-        <p>戰場編號: <span id="displayRoomId"></span></p>
-        <p id="waitingMessage">等待對手加入...</p>
-        <button id="cancelBattleBtn">取消</button>
-    </div>
-
-    <!-- 對戰遊戲區域 (可以複用或修改現有遊戲區域) -->
-    <div id="battleGameArea" style="display: none;">
-        <!-- 這裡可以放置玩家血條、分數、對手血條、分數等 -->
-        <div class="player-stats">
-            <div>我方: <span id="myHealth">100</span></div>
-            <div>分數: <span id="myScore">0</span></div>
-            <!-- 進度條 -->
-            <div class="progress-bar-container">
-                <div class="progress-bar-fill" id="myScoreProgress"></div>
-            </div>
-        </div>
-        <div class="opponent-stats">
-            <div>敵方: <span id="opponentHealth">100</span></div>
-            <div>分數: <span id="opponentScore">0</span></div>
-             <!-- 進度條 -->
-            <div class="progress-bar-container">
-                <div class="progress-bar-fill" id="opponentScoreProgress"></div>
-            </div>
-        </div>
-        <!-- 這裡可以嵌入或複用音符軌道等遊戲核心元素 -->
-        <div class="tracks"> <!-- 你的遊戲軌道 --></div>
-        <!-- 控制按鈕等 -->
-        <button id="leaveBattleBtn">離開對戰</button>
-    </div>
-</div>
 
 
 <!-- ▼▼▼ 【修訂】將原有的單一標記線改為兩個獨立的標記線 ▼▼▼ -->
@@ -3490,17 +3413,6 @@
                                 <path d="M30 12 L30 28 L50 20 Z" fill="white"/>
                             </svg>
                         </button>
-
-<!-- 新增對戰模式按鈕 -->
-<button class="svg-button" id="battleModeBtn" title="進入對戰模式">
-  <svg class="start-button-svg" viewBox="0 0 80 40"> <!-- 可以複用開始按鈕的樣式 -->
-    <rect width="80" height="40" rx="10" fill="url(#startButtonGradient)" />
-    <text x="50%" y="55%" text-anchor="middle" fill="white" font-family="Arial" font-size="16">對戰</text>
-  </svg>
-</button>
-
-
-                        
                         <button class="settings-btn" id="settingsBtn" title="設定">
                             <svg class="settings-icon" viewBox="0 0 24 24">
                                 <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" />
@@ -4043,22 +3955,6 @@ const songCovers = {
             const tracksContainer = document.getElementById('tracksContainer');
             const scoreDisplay = document.getElementById('score');
             const startBtn = document.getElementById('startBtn');
-            // 新增對戰模式按鈕事件監聽器
-const battleModeBtn = document.getElementById('battleModeBtn');
-if (battleModeBtn) {
-    battleModeBtn.addEventListener('click', function() {
-        console.log("對戰模式按鈕被點擊");
-        // 隱藏主遊戲界面，顯示對戰模式相關UI
-        document.getElementById('mainGameContainer').style.display = 'none';
-        // 假設你有一個對戰模式的容器，ID為 'battleModeContainer'
-        const battleContainer = document.getElementById('battleModeContainer');
-        if (battleContainer) {
-            battleContainer.style.display = 'block';
-        }
-        // 初始化對戰模式UI邏輯
-        initBattleMode();
-    });
-}
             const musicSelect = document.getElementById('musicSelect');
             const progressBar = document.getElementById('progressBar');
             const gameOverModal = document.getElementById('gameOverModal');
@@ -5056,7 +4952,6 @@ else if (type === 'good') baseScore = 40;
             }
 
           function addScore(baseScore) {
-              score += points; // 更新本地分數
                 combo++;
                 if (combo > maxCombo) maxCombo = combo;
                 
@@ -5086,15 +4981,6 @@ else if (type === 'good') baseScore = 40;
                 else if (combo >= 50) trackComboClass = 'combo-blue';
                 tracksContainer.className = 'tracks';
                 if (trackComboClass) tracksContainer.classList.add(trackComboClass);
-
-               // 如果在對戰模式中，上報分數
-    if (isInBattle && currentRoomId) {
-        const playerPath = isHost ? 'player1' : 'player2';
-        const updates = {};
-        updates[`rooms/${currentRoomId}/${playerPath}/score`] = score;
-        database.ref().update(updates).catch((error) => {
-            console.error("更新分數到Firebase失敗:", error);
-        });
                 
                 updateUnlockMeter(); // 在分數更新後，同步更新解鎖進度條
             }
@@ -6577,261 +6463,6 @@ disclaimerModal.addEventListener('click', (e) => {
     }
 });
 });
-
-// --- 新增對戰模式相關變量 ---
-let currentRoomId = null;
-let isHost = false;
-let isInBattle = false; // 新增標誌位，標記是否處於對戰遊戲中
-
-// --- 新增對戰模式初始化函數 ---
-function initBattleMode() {
-    console.log("初始化對戰模式...");
-    isInBattle = true; // 設置標誌位
-
-    // 獲取UI元素
-    const battleLobby = document.getElementById('battleLobby');
-    const waitingArea = document.getElementById('waitingArea');
-    const battleGameArea = document.getElementById('battleGameArea');
-    const roomIdInput = document.getElementById('roomIdInput');
-    const displayRoomId = document.getElementById('displayRoomId');
-    const waitingMessage = document.getElementById('waitingMessage');
-
-    // 顯示大廳，隱藏其他
-    battleLobby.style.display = 'block';
-    waitingArea.style.display = 'none';
-    battleGameArea.style.display = 'none';
-
-    // 綁定按鈕事件
-    document.getElementById('createOrJoinRoomBtn').onclick = async function () {
-        const roomId = roomIdInput.value.trim();
-
-        if (roomId === '') {
-            // 隨機匹配
-            await joinOrCreateWaitingRoom();
-        } else if (roomId.length === 4) {
-            // 按ID加入
-            await joinRoomWithId(roomId);
-        } else {
-            alert('請輸入正確的4位戰場編號，或留空進行隨機匹配。');
-        }
-    };
-
-    document.getElementById('backToMainMenuBtn').onclick = function () {
-        // 返回主菜單
-        document.getElementById('battleModeContainer').style.display = 'none';
-        document.getElementById('mainGameContainer').style.display = 'block';
-        isInBattle = false; // 重置標誌位
-        // 可以在這裡添加離開房間的邏輯（如果已經在等待中）
-        if (currentRoomId) {
-             database.ref('rooms/' + currentRoomId).off(); // 移除監聽
-             // database.ref('rooms/' + currentRoomId).remove(); // 選擇性：離開時刪除房間
-             currentRoomId = null;
-        }
-    };
-
-    document.getElementById('cancelBattleBtn').onclick = function () {
-        // 取消匹配/離開等待
-        if (currentRoomId) {
-             database.ref('rooms/' + currentRoomId).off(); // 移除監聽
-             database.ref('rooms/' + currentRoomId).remove(); // 刪除房間
-             currentRoomId = null;
-        }
-        // 重置UI
-        battleLobby.style.display = 'block';
-        waitingArea.style.display = 'none';
-        battleGameArea.style.display = 'none';
-        roomIdInput.value = '';
-    };
-}
-
-// --- 複用或修改你已有的匹配函數 ---
-// 你需要確保這些函數能與上面創建的UI互動，並在匹配成功後調用 startBattleGame
-
-async function joinOrCreateWaitingRoom() {
-    // ... (你的隨機匹配邏輯)
-    // 在匹配成功並設置了 currentRoomId 和 isHost 後
-    // 調用
-    showWaitingArea();
-    listenToRoomChanges(); // 開始監聽房間變化
-}
-
-async function joinRoomWithId(roomId) {
-    // ... (你的按ID加入邏輯)
-     // 在加入成功並設置了 currentRoomId 和 isHost 後
-    // 調用
-    showWaitingArea(roomId);
-    listenToRoomChanges(); // 開始監聽房間變化
-}
-
-function showWaitingArea(roomIdToShow = null) {
-     document.getElementById('battleLobby').style.display = 'none';
-     document.getElementById('waitingArea').style.display = 'block';
-     document.getElementById('battleGameArea').style.display = 'none';
-     if (roomIdToShow) {
-         document.getElementById('displayRoomId').textContent = roomIdToShow;
-     } else if (currentRoomId) {
-         document.getElementById('displayRoomId').textContent = currentRoomId;
-     }
-}
-
-// --- 關鍵：監聽房間變化並啟動遊戲 ---
-function listenToRoomChanges() {
-    if (!currentRoomId) return;
-
-    const roomRef = database.ref('rooms/' + currentRoomId);
-    roomRef.off(); // 確保之前沒有監聽器
-    roomRef.on('value', (snapshot) => {
-        const room = snapshot.val();
-        if (!room) {
-            console.log("房間不存在或已被刪除");
-            // 處理房間被刪除的情況，例如返回大廳
-            if (isInBattle) { // 只在對戰模式下處理
-                 alert("房間已解散。");
-                 document.getElementById('battleLobby').style.display = 'block';
-                 document.getElementById('waitingArea').style.display = 'none';
-                 document.getElementById('battleGameArea').style.display = 'none';
-                 currentRoomId = null;
-            }
-            return;
-        }
-
-        // 檢查遊戲是否開始
-        if (room.gameStarted && !gameActive) { // 假設 gameActive 是遊戲運行的全局標誌
-             console.log("遊戲開始信號收到！");
-             startBattleGame(room); // 啟動對戰遊戲
-        }
-
-        // 檢查遊戲是否結束
-        if (room.gameEnded) {
-             console.log("遊戲結束信號收到！");
-             handleBattleGameOver(room);
-             roomRef.off(); // 遊戲結束後停止監聽
-        }
-
-        // 實時更新分數和血量 (在遊戲進行中)
-        if (gameActive && isInBattle) {
-            updateBattleUI(room);
-        }
-
-        // ... 其他你已有的房間監聽邏輯，例如 opponentDefense 更新 ...
-    });
-}
-
-// --- 啟動對戰遊戲 ---
-function startBattleGame(roomData) {
-    console.log("啟動對戰遊戲...");
-    gameActive = true; // 設置遊戲運行標誌
-
-    document.getElementById('waitingArea').style.display = 'none';
-    document.getElementById('battleGameArea').style.display = 'block';
-
-    // 初始化遊戲狀態 (血量, 分數等)
-    // resetGame(); // 如果你有一個通用的遊戲重置函數
-    score = 0; // 重置本地分數
-    combo = 0;
-    maxCombo = 0;
-    pureHitScore = 0; // 重置純分數
-    // 重置血量顯示等
-
-    // 開始你的音符生成邏輯
-    // startGame(); // 或者你啟動遊戲的函數
-
-    // 初始UI更新
-    updateBattleUI(roomData);
-}
-
-// --- 實時更新對戰UI (分數, 血量) ---
-function updateBattleUI(room) {
-    if (!room) return;
-    const playerPath = isHost ? 'player1' : 'player2';
-    const opponentPath = isHost ? 'player2' : 'player1';
-
-    const myHealth = room[playerPath]?.health ?? 100;
-    const opponentHealth = room[opponentPath]?.health ?? 100;
-    const myScore = room[playerPath]?.score ?? 0;
-    const opponentScore = room[opponentPath]?.score ?? 0;
-
-    // 更新UI元素
-    document.getElementById('myHealth').textContent = myHealth;
-    document.getElementById('opponentHealth').textContent = opponentHealth;
-    document.getElementById('myScore').textContent = myScore;
-    document.getElementById('opponentScore').textContent = opponentScore;
-
-    // 更新進度條 (假設最大分數是 10000，請根據實際調整)
-    const maxScoreForProgressBar = 10000;
-    const myScorePercent = Math.min(100, (myScore / maxScoreForProgressBar) * 100);
-    const opponentScorePercent = Math.min(100, (opponentScore / maxScoreForProgressBar) * 100);
-
-    document.getElementById('myScoreProgress').style.width = myScorePercent + '%';
-    document.getElementById('opponentScoreProgress').style.width = opponentScorePercent + '%';
-
-    // 如果你有全局的解鎖進度條，也可以在這裡更新它，基於 myScore
-    // updateUnlockMeter(); // 如果這個函數是基於全局 score 變量的
-}
-
-// --- 處理遊戲結束 ---
-function handleBattleGameOver(room) {
-    gameActive = false; // 停止遊戲循環
-    console.log("處理對戰遊戲結束...");
-
-    const playerPath = isHost ? 'player1' : 'player2';
-    const opponentPath = isHost ? 'player2' : 'player1';
-    const isWinner = room.winner === playerPath;
-
-    // 顯示遊戲結束UI (可以複用或修改現有的 gameOverModal)
-    // 或者在 battleGameArea 內顯示結果
-    const battleGameArea = document.getElementById('battleGameArea');
-    if (battleGameArea) {
-        const resultText = isWinner ? "恭喜你獲勝！" : "很遺憾，你輸了。";
-        battleGameArea.innerHTML += `<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 10px; z-index: 1000;"><h2>${resultText}</h2><button id="rematchBtn">再來一局</button><button id="backToBattleLobbyBtn">返回大廳</button></div>`;
-
-        // 綁定重新開始和返回按鈕事件
-        document.getElementById('rematchBtn').onclick = function() {
-             // 清理臨時結果顯示
-             const resultDiv = this.parentElement;
-             if (resultDiv) resultDiv.remove();
-
-             // 請求重賽 (更新Firebase房間狀態)
-             if (isHost && currentRoomId) {
-                 database.ref('rooms/' + currentRoomId).update({
-                     gameStarted: false,
-                     gameEnded: false,
-                     winner: null,
-                     // 重置玩家狀態
-                     player1: { ...room.player1, health: 100, score: 0, currentQuestion: null },
-                     player2: { ...room.player2, health: 100, score: 0, currentQuestion: null }
-                 }).then(() => {
-                     console.log("房間狀態已重置，等待對手確認...");
-                     // 可以顯示一個消息告訴玩家等待對手點擊重賽
-                 }).catch((error) => {
-                     console.error("重置房間失敗:", error);
-                 });
-             } else {
-                 // 非房主等待房主操作或也可以發送一個 'readyForRematch' 標誌到數據庫
-                 alert("請等待房主發起重賽...");
-             }
-        };
-
-        document.getElementById('backToBattleLobbyBtn').onclick = function() {
-            // 清理臨時結果顯示
-            const resultDiv = this.parentElement;
-            if (resultDiv) resultDiv.remove();
-
-            // 離開房間，返回對戰大廳
-            if (currentRoomId) {
-                 database.ref('rooms/' + currentRoomId).off(); // 移除監聽
-                 // database.ref('rooms/' + currentRoomId).remove(); // 選擇性：離開時刪除房間
-                 currentRoomId = null;
-            }
-            document.getElementById('battleLobby').style.display = 'block';
-            document.getElementById('battleGameArea').style.display = 'none';
-        };
-    }
-}
-
-
-
-        
     </script>
 
 
