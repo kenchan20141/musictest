@@ -2023,50 +2023,59 @@
     flex-direction: row;
 }
 
-/* 【修訂】遊戲中歌詞顯示容器 */
+/* 【全面修訂】遊戲中歌詞顯示容器 */
 .game-lyrics-container {
-    /* 核心定位：將容器置於軌道區域正中央 */
+    /* 核心定位：保持精確的水平垂直置中，這部分是正確的 */
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%); /* 使用 transform 達成精確的水平垂直置中 */
+    transform: translate(-50%, -50%);
 
-    /* 尺寸與佈局：確保歌詞完整顯示且不超出範圍 */
-    width: 90%; /* 寬度為軌道區域的90%，適應不同螢幕 */
-    max-height: 100%; /* 高度不超過父容器(軌道區域) */
-    display: flex; /* 使用 flexbox 方便內部文字對齊 */
-    justify-content: center; /* 垂直置中歌詞 */
-    align-items: center; /* 水平置中歌詞 */
-    padding: 10px; /* 增加內邊距，避免文字貼邊 */
-    box-sizing: border-box; /* 確保 padding 不會影響寬度計算 */
-    
-    /* 視覺效果：維持背景設定並提升可讀性 */
+    /* 尺寸與佈局：確保容器行為符合預期 */
+    width: 90%;          /* 容器寬度為軌道的 90%，留出邊距 */
+    max-height: 100%;    /* 【關鍵】嚴格限制容器高度不能超過軌道區域 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 15px;       /* 增加一些內邊距，讓文字有呼吸空間 */
+    box-sizing: border-box;
+
+    /* 視覺效果與互動性 */
     color: white;
     text-align: center;
-    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.8); /* 加深陰影，在複雜背景下更清晰 */
-    pointer-events: none; /* 讓滑鼠點擊可以穿透歌詞，不會影響遊戲操作 */
-    z-index: 4; /* 將歌詞放在音符(z-index: 5)的下一層，避免遮擋 */
-    
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9); /* 再次加深陰影，確保在任何背景下都清晰 */
+    pointer-events: none;
+    z-index: 4;
+
     /* 動畫與預設狀態 */
-    opacity: 0; /* 預設為透明，遊戲開始時才會淡入 */
+    opacity: 0;
     transition: opacity 0.5s ease;
 }
+
+/* 當遊戲進行時，顯示歌詞容器 */
+.game-running .game-lyrics-container {
+    opacity: 0.85;
+}
+
 
 /* 當遊戲進行時 (main-game-container 有 .game-running class)，顯示歌詞容器 */
 .game-running .game-lyrics-container {
     opacity: 0.85; /* 遊戲中歌詞的透明度，可依喜好調整 */
 }
 
-/* 【修訂】單行歌詞樣式 */
+/* 【全面修訂】單行歌詞樣式 */
 .game-lyric-line {
-    /* 核心響應式字體：確保文字在不同螢幕尺寸下都能完整顯示 */
-    font-size: clamp(1.5rem, 4vw, 2.5rem); /* 字體大小在 1.5rem 到 2.5rem 之間根據視窗寬度(vw)動態縮放 */
+    /* 【解決方案 2 & 3】全新的響應式字體與換行設定 */
+    /* 使用 min() 結合 vw 和 vh，讓字體大小同時考慮螢幕的寬度和高度，避免在寬螢幕上字體過高 */
+    font-size: clamp(1.2rem, min(4vw, 7vh), 3rem); 
     font-weight: bold;
-    line-height: 1.4; /* 設定合適的行高 */
+    line-height: 1.5;     /* 稍微增加行高，讓換行後的文字更易讀 */
     margin: 0;
-    color: #fff; /* 統一歌詞顏色 */
-
-    /* 原有的 .active 樣式在此設計中不再需要，因為容器只顯示當前一句歌詞 */
+    
+    /* 【解決方案 3】強制啟用正常的換行行為 */
+    white-space: normal;      /* 確保文字能自動換行 */
+    overflow-wrap: break-word; /* 強制長單詞或連續字符斷開換行 */
+    width: 100%;          /* 確保文字元素能利用容器的全部寬度 */
 }
 
 /* 遊戲運行中隱藏選擇器，避免重疊 */
