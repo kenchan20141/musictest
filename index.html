@@ -2184,7 +2184,7 @@
     }
 }
 
-        /* ====== 【新增】歌詞填充測驗視窗樣式 ====== */
+/* ====== 【修訂】歌詞填充測驗視窗樣式 (美化版) ====== */
 .lyrics-quiz-modal {
     position: fixed;
     top: 0;
@@ -2195,7 +2195,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 2500; /* 確保在最頂層 */
+    z-index: 2500;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.4s ease;
@@ -2266,7 +2266,7 @@
     font-size: 1.5rem;
     color: #e0e0e0;
     line-height: 1.6;
-    letter-spacing: 2px; /* 增加文字間距以提升可讀性 */
+    letter-spacing: 2px;
 }
 
 .quiz-answer-input {
@@ -2287,7 +2287,6 @@
     box-shadow: 0 0 15px rgba(0, 201, 255, 0.5);
 }
 
-/* 答題回饋樣式 */
 .quiz-answer-input.correct {
     border-color: #93F9B9;
     box-shadow: 0 0 15px rgba(147, 249, 185, 0.6);
@@ -2316,12 +2315,21 @@
     border-radius: 10px;
     cursor: pointer;
     margin-top: 20px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
 }
 
 .quiz-submit-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(0, 201, 255, 0.4);
+    filter: brightness(1.1);
+}
+
+.quiz-submit-btn:disabled {
+    background: #555;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+    filter: grayscale(0.5);
 }
 
 .quiz-close-btn {
@@ -2341,7 +2349,6 @@
     transform: rotate(90deg);
 }
 
-/* 響應式設計 */
 @media (max-width: 480px) {
     .quiz-content {
         padding: 20px;
@@ -2733,157 +2740,41 @@ const difficultySettings = {
             };
 
             // Sample Lyrics Data
+                        // Sample Lyrics Data
             const songLyrics = {
-                "等待.mp3": [
-        { "time": 9, "text": "月亮高掛在夜空之上" },
-        { "time": 13, "text": "宛如不眠的眼睛一樣" },
-        { "time": 17, "text": "靜靜注視著喧囂的人間" },
-        { "time": 21, "text": "有多少悲歡離合在上演" },
-        { "time": 27, "text": "它守望著夜的蒼茫" },
-        { "time": 29, "text": "也守望著黎明的曙光" },
-        { "time": 33, "text": "在漫長歲月裡等待著" },
-        { "time": 36, "text": "等待著某個人的出現" },
-        { "time": 49, "text": "她已經記不清你的模樣" },
-        { "time": 54, "text": "卻依然在原地默默守望" },
-        { "time": 58, "text": "那是一種怎樣的深情" },
-        { "time": 61, "text": "才能如此執著又漫長" },
-        { "time": 67, "text": "也許你早已把它遺忘" },
-        { "time": 72, "text": "而她卻還在為你照亮" },
-        { "time": 76, "text": "在這城市的喧囂之中" },
-        { "time": 80, "text": "還有多少人在等待著" }
-    ],
-                "白影.mp3": [
-    {
-      "time": 12,
-      "text": "他走進了一個荒誕的夢境"
-    },
-    {
-      "time": 18,
-      "text": "夢裡有個重複出現的白影"
-    },
-    {
-      "time": 24,
-      "text": "白影微笑著準備登上"
-    },
-    {
-      "time": 30,
-      "text": "有獠牙的火車廂頂"
-    },
-    {
-      "time": 35,
-      "text": "黃昏一次次的把白影擄走"
-    },
-    {
-      "time": 41,
-      "text": "他一次次的站在原地目送"
-    },
-    {
-      "time": 47,
-      "text": "他沒有辦法挽留"
-    },
-    {
-      "time": 51,
-      "text": "他沒有辦法伸出手"
-    },
-    {
-      "time": 71,
-      "text": "多年後他還是會常常驚醒"
-    },
-    {
-      "time": 77,
-      "text": "枕邊總是濕潤的一片狼藉"
-    },
-    {
-      "time": 83,
-      "text": "白影像餃子皮一樣包裹著他"
-    },
-    {
-      "time": 90,
-      "text": "越掙扎越陷進去"
-    },
-    {
-      "time": 95,
-      "text": "黃昏一次次的把白影擄走"
-    },
-    {
-      "time": 101,
-      "text": "他一次次的站在原地目送"
-    },
-    {
-      "time": 107,
-      "text": "他只能默默地看"
-    },
-    {
-      "time": 112,
-      "text": "他只能默默地吐"
-    }
-  ],
+                // ▼▼▼ 【修訂】為「老屋回憶」套用新的資料結構 ▼▼▼
+                "老屋回憶.mp3": {
+                    lyrics: [
+                        { "time": 16, "text": "老屋的木門常年虛掩" }, { "time": 22, "text": "門外種着一棵桂花樹" }, { "time": 28, "text": "秋深時節 花瓣零散一地" }, { "time": 35, "text": "我與爺爺用竹箕收集" }, { "time": 42, "text": "回憶的碎片" }, { "time": 44, "text": "那時的快樂" }, { "time": 46, "text": "是被捕捉後又放生的小魚" }, { "time": 55, "text": "是桂花糕出鍋時的蒸汽" }, { "time": 62, "text": "是一串串銀鈴般的蟲鳴鳥囀" }, { "time": 69, "text": "然而後來" }, { "time": 71, "text": "鈴聲中斷了我所邂逅的花鳥蟲魚" }, { "time": 79, "text": "已是活生生的標本" }
+                    ],
+                    quiz: [
+                        { "line": "老屋的木門常年__", "answer": "虛掩" }, { "line": "門外種着一棵__樹", "answer": "桂花" }, { "line": "我與爺爺用__收集", "answer": "竹箕" }, { "line": "是__出鍋時的蒸汽", "answer": "桂花糕" }, { "line": "已是活生生的__", "answer": "標本" }
+                    ]
+                },
+                // ▲▲▲ 修訂結束 ▲▲▲
 
-"下一枝的惆悵.mp3":    [
-{ "time": 16, "text": "北京的雨是" },
-{ "time": 18, "text": "四月未停歇的傾訴" },
-{ "time": 23, "text": "胡同的路是我" },
-{ "time": 26, "text": "無法忘卻的孤獨" },
-{ "time": 31, "text": "拆遷的通知" },
-{ "time": 34, "text": "是我還未收拾的包袱" },
-{ "time": 39, "text": "騎行的外賣" },
-{ "time": 42, "text": "是我唯一能做的救贖" },
-{ "time": 46, "text": "有那麼一刻我以為我" },
-{ "time": 50, "text": "忘記了哭" },
-{ "time": 53, "text": "直到又聞到中華牌香菸的溫度" },
-{ "time": 59, "text": "有那麼一刻我以為我" },
-{ "time": 62, "text": "習慣了哭" },
-{ "time": 65, "text": "直到又看到中華牌香菸的閃爍" },
-{ "time": 82, "text": "你說歲月漫長" },
-{ "time": 86, "text": "八年風塵僕僕卻也轉眼一晃" },
-{ "time": 89, "text": "我說光陰匆忙" },
-{ "time": 91, "text": "我只是忘了我是誰的兒郎" },
-{ "time": 97, "text": "你說未來長河" },
-{ "time": 101, "text": "你又點起了下一支的惆悵" },
-{ "time": 104, "text": "我說人生匆忙" },
-{ "time": 106, "text": "可我又躲不過" },
-{ "time": 108, "text": "歲月的蒼茫" }
-],
-
-                "餘燼落入虛無.mp3": [
-  { "time": 11, "text": "火焰跳著靈動的舞蹈" },
-  { "time": 16, "text": "灰燼飄落最後一遭" },
-  { "time": 20, "text": "燒化的紙錢開始飛向雲霄" },
-  { "time": 25, "text": "地獄的大門即將來到" },
-  { "time": 30, "text": "就像那風中飄零的草" },
-  { "time": 34, "text": "沒有根基只能隨風起" },
-  { "time": 39, "text": "落飄搖你看那天空中瀰漫的煙" },
-  { "time": 44, "text": "那是你我生命最終的樣貌" },
-  { "time": 58, "text": "火焰跳著靈動的舞蹈" },
-  { "time": 102, "text": "灰燼飄落最後一早" },
-  { "time": 107, "text": "燒化的紙錢開始飛向雲霄" },
-  { "time": 111, "text": "一切似乎就要結束了" },
-  { "time": 116, "text": "就像那風中飄零的草" },
-  { "time": 121, "text": "沒有根基只能隨風起" },
-  { "time": 126, "text": "若飄搖你看那天空中瀰漫的煙" },
-  { "time": 131, "text": "那是你我生命最終的樣貌" }
-],
-
-          "老屋回憶.mp3":    [
-  { "time": 16, "text": "老屋的木門常年虛掩" },
-  { "time": 22, "text": "門外種着一棵桂花樹" },
-  { "time": 28, "text": "秋深時節 花瓣零散一地" },
-  { "time": 35, "text": "我與爺爺用竹箕收集" },
-  { "time": 42, "text": "回憶的碎片" },
-  { "time": 44, "text": "那時的快樂" },
-  { "time": 46, "text": "是被捕捉後又放生的小魚" },
-  { "time": 55, "text": "是桂花糕出鍋時的蒸汽" },
-  { "time": 62, "text": "是一串串銀鈴般的蟲鳴鳥囀" },
-  { "time": 69, "text": "然而後來" },
-  { "time": 71, "text": "鈴聲中斷了我所邂逅的花鳥蟲魚" },
-  { "time": 79, "text": "已是活生生的標本" }
-]
-
-                
-
-
-                
-                // Add lyrics for more songs here
+                // ▼▼▼ 【修訂】將其他歌曲的歌詞放入 .lyrics 屬性 ▼▼▼
+                "等待.mp3": {
+                    lyrics: [
+                        { "time": 9, "text": "月亮高掛在夜空之上" }, { "time": 13, "text": "宛如不眠的眼睛一樣" }, { "time": 17, "text": "靜靜注視著喧囂的人間" }, { "time": 21, "text": "有多少悲歡離合在上演" }, { "time": 27, "text": "它守望著夜的蒼茫" }, { "time": 29, "text": "也守望著黎明的曙光" }, { "time": 33, "text": "在漫長歲月裡等待著" }, { "time": 36, "text": "等待著某個人的出現" }, { "time": 49, "text": "她已經記不清你的模樣" }, { "time": 54, "text": "卻依然在原地默默守望" }, { "time": 58, "text": "那是一種怎樣的深情" }, { "time": 61, "text": "才能如此執著又漫長" }, { "time": 67, "text": "也許你早已把它遺忘" }, { "time": 72, "text": "而她卻還在為你照亮" }, { "time": 76, "text": "在這城市的喧囂之中" }, { "time": 80, "text": "還有多少人在等待著" }
+                    ]
+                },
+                "白影.mp3": {
+                    lyrics: [
+                        { "time": 12, "text": "他走進了一個荒誕的夢境" }, { "time": 18, "text": "夢裡有個重複出現的白影" }, { "time": 24, "text": "白影微笑著準備登上" }, { "time": 30, "text": "有獠牙的火車廂頂" }, { "time": 35, "text": "黃昏一次次的把白影擄走" }, { "time": 41, "text": "他一次次的站在原地目送" }, { "time": 47, "text": "他沒有辦法挽留" }, { "time": 51, "text": "他沒有辦法伸出手" }, { "time": 71, "text": "多年後他還是會常常驚醒" }, { "time": 77, "text": "枕邊總是濕潤的一片狼藉" }, { "time": 83, "text": "白影像餃子皮一樣包裹著他" }, { "time": 90, "text": "越掙扎越陷進去" }, { "time": 95, "text": "黃昏一次次的把白影擄走" }, { "time": 101, "text": "他一次次的站在原地目送" }, { "time": 107, "text": "他只能默默地看" }, { "time": 112, "text": "他只能默默地吐" }
+                    ]
+                },
+                "下一枝的惆悵.mp3": {
+                    lyrics: [
+                        { "time": 16, "text": "北京的雨是" }, { "time": 18, "text": "四月未停歇的傾訴" }, { "time": 23, "text": "胡同的路是我" }, { "time": 26, "text": "無法忘卻的孤獨" }, { "time": 31, "text": "拆遷的通知" }, { "time": 34, "text": "是我還未收拾的包袱" }, { "time": 39, "text": "騎行的外賣" }, { "time": 42, "text": "是我唯一能做的救贖" }, { "time": 46, "text": "有那麼一刻我以為我" }, { "time": 50, "text": "忘記了哭" }, { "time": 53, "text": "直到又聞到中華牌香菸的溫度" }, { "time": 59, "text": "有那麼一刻我以為我" }, { "time": 62, "text": "習慣了哭" }, { "time": 65, "text": "直到又看到中華牌香菸的閃爍" }, { "time": 82, "text": "你說歲月漫長" }, { "time": 86, "text": "八年風塵僕僕卻也轉眼一晃" }, { "time": 89, "text": "我說光陰匆忙" }, { "time": 91, "text": "我只是忘了我是誰的兒郎" }, { "time": 97, "text": "你說未來長河" }, { "time": 101, "text": "你又點起了下一支的惆悵" }, { "time": 104, "text": "我說人生匆忙" }, { "time": 106, "text": "可我又躲不過" }, { "time": 108, "text": "歲月的蒼茫" }
+                    ]
+                },
+                "餘燼落入虛無.mp3": {
+                    lyrics: [
+                        { "time": 11, "text": "火焰跳著靈動的舞蹈" }, { "time": 16, "text": "灰燼飄落最後一遭" }, { "time": 20, "text": "燒化的紙錢開始飛向雲霄" }, { "time": 25, "text": "地獄的大門即將來到" }, { "time": 30, "text": "就像那風中飄零的草" }, { "time": 34, "text": "沒有根基只能隨風起" }, { "time": 39, "text": "落飄搖你看那天空中瀰漫的煙" }, { "time": 44, "text": "那是你我生命最終的樣貌" }, { "time": 58, "text": "火焰跳著靈動的舞蹈" }, { "time": 102, "text": "灰燼飄落最後一早" }, { "time": 107, "text": "燒化的紙錢開始飛向雲霄" }, { "time": 111, "text": "一切似乎就要結束了" }, { "time": 116, "text": "就像那風中飄零的草" }, { "time": 121, "text": "沒有根基只能隨風起" }, { "time": 126, "text": "若飄搖你看那天空中瀰漫的煙" }, { "time": 131, "text": "那是你我生命最終的樣貌" }
+                    ]
+                }
+                // ▲▲▲ 修訂結束 ▲▲▲
             };
 
 
@@ -4055,22 +3946,17 @@ function generateQuizQuestions(songUrl) {
 
 /**
  * 開始歌詞填充測驗
- * @param {string} unlockType - 'song' 或 'difficulty'
- * @param {any} unlockValue - 要解鎖的目標值
- * @param {string} songUrlForQuiz - 用於生成測驗題目的歌曲 URL
- */
-/**
- * 開始歌詞填充測驗
  * @param {string} unlockType - 解鎖類型 ('song' 或 'difficulty')
  * @param {any} unlockValue - 要解鎖的目標值
  * @param {string} songUrlForQuiz - 用於生成測驗題目的歌曲 URL
  */
 function startLyricsQuiz(unlockType, unlockValue, songUrlForQuiz) {
-    quizQuestions = generateQuizQuestions(songUrlForQuiz);
+    // ▼▼▼ 【修訂】從新的資料結構中直接讀取預設的 quiz 題目 ▼▼▼
+    const questions = songLyrics[songUrlForQuiz]?.quiz;
 
-    // 如果歌曲沒有歌詞或無法生成任何題目，則直接解鎖，並給出提示
-    if (quizQuestions.length === 0) {
-        console.warn(`歌曲 ${songUrlForQuiz} 沒有歌詞或無法生成題目，自動授予解鎖。`);
+    // 如果歌曲沒有 .quiz 屬性或題目陣列為空，則直接解鎖並提示
+    if (!questions || questions.length === 0) {
+        console.warn(`歌曲 ${songUrlForQuiz} 沒有預設的測驗題目，自動授予解鎖。`);
         showNotification('info', '自動解鎖', '由於此歌曲無歌詞可供測驗，已為您直接解鎖新內容！');
         if (unlockType === 'song') {
             unlockNextSong(unlockValue);
@@ -4079,6 +3965,10 @@ function startLyricsQuiz(unlockType, unlockValue, songUrlForQuiz) {
         }
         return;
     }
+
+    // 將題目複製一份並打亂順序，用於本次測驗
+    quizQuestions = [...questions].sort(() => Math.random() - 0.5);
+    // ▲▲▲ 修訂結束 ▲▲▲
 
     isQuizActive = true;
     quizUnlockTarget = { type: unlockType, value: unlockValue };
@@ -4089,16 +3979,169 @@ function startLyricsQuiz(unlockType, unlockValue, songUrlForQuiz) {
 }
 
 /**
- * 顯示下一個測驗問題
+ * 檢查解鎖條件並觸發測驗或顯示提示 (核心邏輯函數)
+ * @param {string} songUrl - 當前歌曲 URL
+ * @param {string} difficulty - 當前難度
+ * @param {number} pureHitScore - 純粹的擊打分數 (不含 Combo 加成)
  */
-function displayNextQuizQuestion() {
-    if (quizQuestions.length === 0 || !isQuizActive) {
-        endQuiz(false); // 沒有問題了或測驗已終止，視為失敗
+function checkAndShowQuizOrInfo(songUrl, difficulty, pureHitScore) {
+    // ▼▼▼ 【修訂】檢查歌曲是否包含 .quiz 屬性，而不是 .lyrics ▼▼▼
+    const hasQuiz = songLyrics[songUrl]?.quiz && songLyrics[songUrl].quiz.length > 0;
+    // ▲▲▲ 修訂結束 ▲▲▲
+    let potentialUnlock = null;
+
+    // 檢查1: 是否滿足解鎖【新歌曲】的條件 (僅在普通難度下)
+    if (difficulty === 'normal') {
+        const allSongs = Array.from(musicSelect.options).map(opt => opt.value);
+        const lastUnlockedSong = saveData.unlockedSongs[saveData.unlockedSongs.length - 1];
+        
+        if (songUrl === lastUnlockedSong) {
+            const currentIndex = allSongs.indexOf(lastUnlockedSong);
+            if (currentIndex >= 0 && currentIndex < allSongs.length - 1) {
+                const nextSong = allSongs[currentIndex + 1];
+                if (!isSongUnlocked(nextSong)) {
+                    const requiredScore = maxScoreForCurrentLevel * SONG_UNLOCK_PERCENTAGE;
+                    if (pureHitScore >= requiredScore) {
+                        potentialUnlock = { type: 'song', value: songUrl, songForQuiz: songUrl };
+                    } else {
+                        const remainingScore = Math.ceil(requiredScore - pureHitScore);
+                        showNotification('info', '目標差一點！', `您在「普通」難度下還差 <strong>${remainingScore.toLocaleString()}</strong> 分就能挑戰解鎖下一首歌曲了。再加把勁！`, 6000);
+                    }
+                }
+            }
+        }
+    }
+
+    if (potentialUnlock) {
+        // ▼▼▼ 【修訂】根據 hasQuiz 決定是否啟動測驗 ▼▼▼
+        if (hasQuiz) {
+            startLyricsQuiz(potentialUnlock.type, potentialUnlock.value, potentialUnlock.songForQuiz);
+        } else {
+            console.warn(`歌曲 ${potentialUnlock.songForQuiz} 無法觸發測驗，因為沒有 quiz 數據。將直接解鎖。`);
+            unlockNextSong(potentialUnlock.value);
+        }
+        // ▲▲▲ 修訂結束 ▲▲▲
+        return; 
+    }
+
+    // 檢查2: 是否滿足解鎖【困難】難度的條件 (從普通難度挑戰)
+    if (difficulty === 'normal' && !isDifficultyUnlocked(songUrl, 'hard')) {
+        const requiredScore = maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE;
+        if (pureHitScore >= requiredScore) {
+            potentialUnlock = { type: 'difficulty', value: { song: songUrl, difficulty: 'hard' }, songForQuiz: songUrl };
+        }
+    }
+
+    // 檢查3: 是否滿足解鎖【地獄】難度的條件 (從困難難度挑戰)
+    if (difficulty === 'hard' && !isDifficultyUnlocked(songUrl, 'hell')) {
+        const requiredScore = maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE;
+        if (pureHitScore >= requiredScore) {
+            potentialUnlock = { type: 'difficulty', value: { song: songUrl, difficulty: 'hell' }, songForQuiz: songUrl };
+        }
+    }
+    
+    if (potentialUnlock) {
+        // ▼▼▼ 【修訂】根據 hasQuiz 決定是否啟動測驗 ▼▼▼
+         if (hasQuiz) {
+            startLyricsQuiz(potentialUnlock.type, potentialUnlock.value, potentialUnlock.songForQuiz);
+         } else {
+            console.warn(`歌曲 ${potentialUnlock.songForQuiz} 無法觸發測驗，因為沒有 quiz 數據。將直接解鎖。`);
+            unlockDifficulty(potentialUnlock.value.song, potentialUnlock.value.difficulty);
+         }
+        // ▲▲▲ 修訂結束 ▲▲▲
+    }
+}
+
+function updateGameLyrics(currentTime) {
+    const selectedSong = musicSelect.value;
+    // ▼▼▼ 【修訂】從 songLyrics[selectedSong].lyrics 讀取歌詞 ▼▼▼
+    const lyrics = songLyrics[selectedSong]?.lyrics || [];
+    // ▲▲▲ 修訂結束 ▲▲▲
+    if (lyrics.length === 0) return; 
+
+    let currentIndex = -1;
+    for (let i = 0; i < lyrics.length; i++) {
+        if (lyrics[i].time <= currentTime) {
+            currentIndex = i;
+        } else {
+            break;
+        }
+    }
+
+    const lyricsBackground = document.getElementById('lyricsBackground');
+    if (lyricsBackground) {
+        lyricsBackground.innerHTML = '';
+        const currentLyric = (currentIndex >= 0 && lyrics[currentIndex]) ? lyrics[currentIndex].text : '';
+        if (currentLyric) {
+            const fontSize = parseFloat(getComputedStyle(lyricsBackground).fontSize);
+            const approxCharWidth = fontSize * 0.6;
+            const lineHeight = fontSize * 1.2;
+            const lyricWidth = currentLyric.length * approxCharWidth;
+            const spanWidth = Math.max(lyricWidth, window.innerWidth * 0.1);
+            const spanHeight = lineHeight;
+            const horizontalCount = Math.ceil(window.innerWidth / spanWidth);
+            const verticalCount = Math.ceil(window.innerHeight / spanHeight);
+            const densityFactor = 1.2;
+            const totalSpans = Math.ceil(horizontalCount * verticalCount * densityFactor);
+            
+            for (let i = 0; i < totalSpans; i++) {
+                const span = document.createElement('span');
+                span.textContent = currentLyric;
+                lyricsBackground.appendChild(span);
+            }
+        }
+    }
+}
+
+function playSong(index) {
+    if (index < 0 || index >= playlistItems.length) return;
+    
+    const playlistItem = playlist.children[index];
+    if (playlistItem && playlistItem.dataset.enabled === 'false') {
+        console.log('歌曲已被停用，跳過播放');
         return;
     }
     
-    const questionIndex = Math.floor(Math.random() * quizQuestions.length);
-    currentQuizQuestion = quizQuestions[questionIndex];
+    const songToPlay = playlistItems[index];
+    if (!isSongUnlocked(songToPlay.url)) {
+        console.warn(`嘗試播放未解鎖的歌曲: ${songToPlay.title}`);
+        return;
+    }
+
+    currentPlaylistIndex = index;
+    const song = playlistItems[index];
+    playerAudio.src = song.url;
+    playerAudio.volume = volumeSliderPlayer.value;
+    nowPlaying.textContent = `正在播放: ${song.title}`;
+    updateCdCover(song.url);
+    // ▼▼▼ 【修訂】從 song.url.lyrics 讀取歌詞 ▼▼▼
+    lyrics = songLyrics[song.url]?.lyrics || [];
+    // ▲▲▲ 修訂結束 ▲▲▲
+    updateLyricsContainer();
+    updatePlayerUI();
+    document.getElementById('cdCoverImage').classList.add('playing');
+    playerAudio.play().catch(e => console.error("播放器播放失敗:", e));
+    savePlayerSettings();
+}
+
+/**
+ * 顯示下一個測驗問題
+ */
+function displayNextQuizQuestion() {
+    // ▼▼▼ 【修訂】不再從總題庫隨機抽題，而是從本次測驗的題庫中取一題 ▼▼▼
+    if (quizQuestions.length === 0 || !isQuizActive) {
+        // 如果沒有題目了（例如全部答對），也算成功
+        if (consecutiveCorrectAnswers >= QUIZ_SUCCESS_THRESHOLD) {
+             endQuiz(true);
+        } else {
+             endQuiz(false); // 題目用完但未達標，算失敗
+        }
+        return;
+    }
+    
+    // 從打亂的題庫中彈出一個問題
+    currentQuizQuestion = quizQuestions.pop();
+    // ▲▲▲ 修訂結束 ▲▲▲
 
     quizQuestionText.textContent = currentQuizQuestion.question;
     quizProgress.textContent = `連續答對: ${consecutiveCorrectAnswers} / ${QUIZ_SUCCESS_THRESHOLD}`;
@@ -4121,24 +4164,35 @@ function checkQuizAnswer() {
         consecutiveCorrectAnswers++;
         quizAnswerInput.classList.add('correct');
         
+        // 短暫顯示正確回饋後，檢查是否通關或進入下一題
         setTimeout(() => {
             if (consecutiveCorrectAnswers >= QUIZ_SUCCESS_THRESHOLD) {
-                endQuiz(true); // 達到目標，成功
+                endQuiz(true); // 達到目標，成功通關
             } else {
                 displayNextQuizQuestion(); // 繼續下一題
             }
-        }, 800);
+        }, 800); // 0.8秒延遲
     } else {
-        consecutiveCorrectAnswers = 0; // 答錯，歸零
+        // ▼▼▼ 【核心修訂】答錯時的處理邏輯 ▼▼▼
         quizAnswerInput.classList.add('incorrect');
         
+        // 禁用輸入框和按鈕，防止玩家在結束前繼續操作
+        quizAnswerInput.disabled = true;
+        quizSubmitBtn.disabled = true;
+
+        // 短暫顯示錯誤回饋（例如搖頭動畫），然後直接結束測驗
         setTimeout(() => {
-            displayNextQuizQuestion();
-        }, 1200);
+            endQuiz(false); // 測驗失敗
+
+            // 重新啟用輸入框和按鈕，以備下次測驗
+            quizAnswerInput.disabled = false;
+            quizSubmitBtn.disabled = false;
+        }, 1200); // 1.2秒延遲，讓玩家看到錯誤提示
+        // ▲▲▲ 修訂結束 ▲▲▲
     }
+    // 更新進度顯示
     quizProgress.textContent = `連續答對: ${consecutiveCorrectAnswers} / ${QUIZ_SUCCESS_THRESHOLD}`;
 }
-
 /**
  * 結束測驗，並根據結果執行最終操作
  * @param {boolean} success - 測驗是否成功
