@@ -2173,13 +2173,28 @@
     transform: rotate(var(--rot, 0deg)); /* 新增：隨機旋轉 */
 }
 
+/* 檢查並確保這兩個 @keyframes 存在 */
+
+/* 擊中粒子動畫 */
 @keyframes particleBurst {
     0% {
         transform: translateY(0) scale(1) rotate(0deg);
         opacity: 1;
     }
     100% {
-        transform: translateY(var(--y)) translateX(var(--x)) scale(0) rotate(var(--rot-end, 360deg)); /* 新增：結束時旋轉 */
+        transform: translateY(var(--y)) translateX(var(--x)) scale(0) rotate(var(--rot-end, 360deg));
+        opacity: 0;
+    }
+}
+
+/* 音符分解動畫 */
+@keyframes noteDecompose {
+    0% {
+        transform: translate(0, 0) scale(1) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--x), var(--y)) scale(0.2) rotate(var(--rot-end, 360deg));
         opacity: 0;
     }
 }
@@ -2981,6 +2996,16 @@ const quizSubmitBtn = document.getElementById('quizSubmitBtn');
 const quizCloseBtn = document.getElementById('quizCloseBtn');
             
             // --- Game State Variables ---
+
+// ▼▼▼ 【新增】特效物件池 ▼▼▼
+let particlePool = [];
+let judgmentElementPool = []; // 為判定文字也建立一個池
+let comboElement = null; // Combo 文字不需要池，一個就夠了
+const PARTICLE_POOL_SIZE = 100; // 預先創建 100 個粒子，足以應對密集場景
+const JUDGMENT_POOL_SIZE = 5;   // 同時最多顯示 5 個判定文字
+// ▲▲▲ 新增結束 ▲▲▲
+
+            
             let gameActive = false;
 let maxScoreForCurrentLevel = 0; // ▼▼▼ 新增狀態變數
             let unlockThresholdPercentage = 0; // ▼▼▼ 新增狀態變數
@@ -3031,6 +3056,47 @@ let isNotificationActive = false; // 一個旗標，用來判斷是否已有通�
             document.body.addEventListener('click', startAudioContext, { once: true });
             document.body.addEventListener('touchstart', startAudioContext, { once: true });
 
+
+// ▼▼▼ 【新增】初始化特效物件池的函數 ▼▼▼
+function initEffectPools() {
+    // 1. 創建粒子池
+    for (let i = 0; i < PARTICLE_POOL_SIZE; i++) {
+        const particle = document.createElement('div');
+        particle.style.position = 'absolute'; // 確保粒子可以自由定位
+        particle.style.display = 'none'; // 預設隱藏
+        particle.style.pointerEvents = 'none'; // 避免攔截滑鼠事件
+        tracksContainer.appendChild(particle); // 先加到DOM中
+        particlePool.push({
+            element: particle,
+            inUse: false
+        });
+    }
+
+    // 2. 創建判定文字池
+    for (let i = 0; i < JUDGMENT_POOL_SIZE; i++) {
+        const judgment = document.createElement('div');
+        judgment.style.position = 'absolute';
+        judgment.style.left = '0';
+        judgment.style.width = '100%';
+        judgment.style.textAlign = 'center';
+        judgment.style.display = 'none';
+        judgment.style.pointerEvents = 'none';
+        tracksContainer.appendChild(judgment); // 注意：這裡加到 tracksContainer 才能正確定位相對位置
+        judgmentElementPool.push({
+            element: judgment,
+            inUse: false
+        });
+    }
+
+    // 3. 創建唯一的 Combo 文字元素
+    comboElement = document.createElement('div');
+    comboElement.className = 'combo-display'; // 預先設定好 class
+    comboElement.style.display = 'none';
+    tracksContainer.appendChild(comboElement);
+}
+// ▲▲▲ 新增結束 ▲▲▲
+
+            
             function createSound(frequency, type = 'sine', duration = 0.1, baseVolume = 0.2) {
                 return function() {
                     if (!isAudioContextStarted) return;
@@ -3433,211 +3499,221 @@ closeNotification.addEventListener('click', () => {
                 notes.push(noteObj);
             }
 
-           function createHitParticles(trackIndex, judgment) {
+          // ▼▼▼ 【性能優化版】取代舊的 createHitParticles 函數 ▼▼▼
+function createHitParticles(trackIndex, judgment) {
     const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
     if (!track) return;
     
-    // 根據等級調整粒子數和範圍
-    const particleCount = (judgment === 'perfect') ? 20 : (judgment === 'great' ? 15 : 10);
-    const maxOffset = (judgment === 'perfect') ? 100 : (judgment === 'great' ? 80 : 60); // 更大範圍
+    const particleCount = { perfect: 20, great: 15, good: 10 }[judgment] || 5;
+    const maxOffset = { perfect: 100, great: 80, good: 60 }[judgment] || 40;
+    const colors = { perfect: '#ffcc00', great: '#00ccff', good: '#00ff99' };
     
-    const colors = {
-        perfect: '#ffcc00',
-        great: '#00ccff',
-        good: '#00ff99'
-    };
-    
-    for (let i = 0; i < particleCount; i++) {
-        const particle = document.createElement('div');
-        particle.className = 'hit-particle';
-        particle.style.background = colors[judgment] || '#fff';
-        
-        // 隨機尺寸（8-15px）
-        const size = Math.floor(8 + Math.random() * 8);
-        particle.style.setProperty('--size', `${size}px`);
-        
-        // 隨機位置（更大範圍）
-        const x = (Math.random() - 0.5) * maxOffset * 2;
-        const y = (Math.random() * -maxOffset) - 20;
-        particle.style.setProperty('--x', `${x}px`);
-        particle.style.setProperty('--y', `${y}px`);
-        
-        // 隨機旋轉（開始和結束）
-        const rot = Math.random() * 360;
-        const rotEnd = rot + (Math.random() * 720 - 360); // 隨機轉1-2圈
-        particle.style.setProperty('--rot', `${rot}deg`);
-        particle.style.setProperty('--rot-end', `${rotEnd}deg`);
-        
-        particle.style.left = `calc(50% - ${size / 2}px)`;
-        track.appendChild(particle);
-        setTimeout(() => particle.remove(), 600); // 匹配動畫時間
+    let particlesCreated = 0;
+    for (const poolObject of particlePool) {
+        if (!poolObject.inUse) {
+            poolObject.inUse = true;
+            const particle = poolObject.element;
+
+            // --- 重置並應用樣式 ---
+            particle.className = 'hit-particle'; // 賦予動畫 class
+            particle.style.background = colors[judgment] || '#fff';
+            
+            const size = Math.floor(8 + Math.random() * 8);
+            particle.style.setProperty('--size', `${size}px`);
+            
+            const x = (Math.random() - 0.5) * maxOffset * 2;
+            const y = (Math.random() * -maxOffset) - 20;
+            particle.style.setProperty('--x', `${x}px`);
+            particle.style.setProperty('--y', `${y}px`);
+            
+            const rot = Math.random() * 360;
+            const rotEnd = rot + (Math.random() * 720 - 360);
+            particle.style.setProperty('--rot', `${rot}deg`);
+            particle.style.setProperty('--rot-end', `${rotEnd}deg`);
+            
+            particle.style.left = `calc(${track.offsetLeft}px + 50% - ${size / 2}px)`;
+            particle.style.top = null; // 清除 top 定位，讓 bottom 生效
+            particle.style.bottom = '100px'; // 確保從擊打線開始
+            particle.style.display = 'block';
+
+            particle.addEventListener('animationend', () => {
+                particle.style.display = 'none';
+                poolObject.inUse = false;
+            }, { once: true });
+            
+            particlesCreated++;
+            if (particlesCreated >= particleCount) break; // 達到所需數量就停止
+        }
     }
 }
+// ▲▲▲ 結束取代 ▲▲▲
 
+            
+// ▼▼▼ 【性能優化版】取代舊的 explodeNote 函數 ▼▼▼
 function explodeNote(noteElement, judgment) {
     if (!noteElement) return;
-    
-    // 獲取音符當前位置（rect）
+
     const rect = noteElement.getBoundingClientRect();
     const trackRect = tracksContainer.getBoundingClientRect();
-    const particleCount = (judgment === 'perfect') ? 20 : (judgment === 'great' ? 15 : 10); // 分解粒子數
-    const maxOffset = 80; // 分解範圍
+    const particleCount = { perfect: 20, great: 15, good: 10 }[judgment] || 5;
+    const maxOffset = 80;
+    const colors = { perfect: '#ffcc00', great: '#00ccff', good: '#00ff99' };
     
-    const colors = {
-        perfect: '#ffcc00',
-        great: '#00ccff',
-        good: '#00ff99'
-    };
-    
-    for (let i = 0; i < particleCount; i++) {
-        const particle = document.createElement('div');
-        particle.className = 'note-particle';
-        particle.style.background = colors[judgment] || '#fff';
-        
-        // 隨機尺寸（4-12px，較小以模擬碎片）
-        const size = Math.floor(4 + Math.random() * 9);
-        particle.style.setProperty('--size', `${size}px`);
-        
-        // 隨機飛散位置（從音符中心）
-        const x = (Math.random() - 0.5) * maxOffset * 2;
-        const y = (Math.random() - 0.5) * maxOffset * 2; // 上下左右飛散
-        particle.style.setProperty('--x', `${x}px`);
-        particle.style.setProperty('--y', `${y}px`);
-        
-        // 隨機旋轉
-        const rot = Math.random() * 360;
-        const rotEnd = rot + (Math.random() * 720 - 360);
-        particle.style.setProperty('--rot', `${rot}deg`);
-        particle.style.setProperty('--rot-end', `${rotEnd}deg`);
-        
-        // 定位到音符中心
-        particle.style.left = `${rect.left - trackRect.left + rect.width / 2 - size / 2}px`;
-        particle.style.top = `${rect.top - trackRect.top + rect.height / 2 - size / 2}px`;
-        
-        tracksContainer.appendChild(particle); // 加到 tracksContainer 以全域定位
-        setTimeout(() => particle.remove(), 500); // 匹配動畫時間
+    let particlesCreated = 0;
+    for (const poolObject of particlePool) {
+        if (!poolObject.inUse) {
+            poolObject.inUse = true;
+            const particle = poolObject.element;
+
+            // --- 重置並應用樣式 ---
+            particle.className = 'note-particle'; // 賦予分解動畫 class
+            particle.style.background = colors[judgment] || '#fff';
+
+            const size = Math.floor(4 + Math.random() * 9);
+            particle.style.setProperty('--size', `${size}px`);
+            
+            const x = (Math.random() - 0.5) * maxOffset * 2;
+            const y = (Math.random() - 0.5) * maxOffset * 2;
+            particle.style.setProperty('--x', `${x}px`);
+            particle.style.setProperty('--y', `${y}px`);
+            
+            const rot = Math.random() * 360;
+            const rotEnd = rot + (Math.random() * 720 - 360);
+            particle.style.setProperty('--rot', `${rot}deg`);
+            particle.style.setProperty('--rot-end', `${rotEnd}deg`);
+            
+            particle.style.left = `${rect.left - trackRect.left + rect.width / 2 - size / 2}px`;
+            particle.style.top = `${rect.top - trackRect.top + rect.height / 2 - size / 2}px`;
+            particle.style.bottom = null; // 清除 bottom 定位
+            particle.style.display = 'block';
+
+            particle.addEventListener('animationend', () => {
+                particle.style.display = 'none';
+                poolObject.inUse = false;
+            }, { once: true });
+
+            particlesCreated++;
+            if (particlesCreated >= particleCount) break;
+        }
     }
 }
+// ▲▲▲ 結束取代 ▲▲▲
 
 
 
             
 
-     function judgeHit(trackIndex, type) {
-                const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
-                if (sounds[type]) {
-                    sounds[type]();
-                }
+    function judgeHit(trackIndex, type) {
+    const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
+    if (sounds[type]) {
+        sounds[type]();
+    }
 
-                // 創建並顯示判定文字 (Perfect, Great, etc.)
-                const judgment = document.createElement('div');
-                judgment.className = `judgment ${type}`;
-                judgment.textContent = `${type.toUpperCase()}!`;
-                if (track) {
-                    track.appendChild(judgment);
-                    judgment.style.left = '0';
-                    judgment.style.width = '100%';
-                    judgment.style.textAlign = 'center';
-                }
-                setTimeout(() => {
-                    if (judgment && judgment.parentNode) {
-                        judgment.remove();
-                    }
-                }, 1000);
+    // 從池中獲取一個可用的判定文字元素
+    const poolObject = judgmentElementPool.find(p => !p.inUse);
+    if (poolObject) {
+        poolObject.inUse = true;
+        const judgment = poolObject.element;
+        
+        // 重置並設定樣式
+        judgment.className = `judgment ${type}`; // 賦予動畫所需的 class
+        judgment.textContent = `${type.toUpperCase()}!`;
+        judgment.style.display = 'block'; // 顯示
 
-                // 處理非 'miss' 的成功打擊
-                if (type !== 'miss') {
-                    // 觸發粒子效果
-                    createHitParticles(trackIndex, type);
+        // 使用 animationend 事件監聽動畫結束，比 setTimeout 更精準
+        judgment.addEventListener('animationend', () => {
+            judgment.style.display = 'none'; // 隱藏
+            poolObject.inUse = false; // 放回池中
+        }, { once: true }); // { once: true } 確保監聽器執行一次後自動移除
+    }
 
-                    // 觸發打擊線的脈衝動畫
-                    const hitLine = track.querySelector('.hit-line');
-                    if (hitLine) {
-                        hitLine.classList.remove('pulse-effect');
-                        void hitLine.offsetWidth; // 強制瀏覽器重繪
-                        hitLine.classList.add('pulse-effect');
-                    }
+    if (type !== 'miss') {
+        createHitParticles(trackIndex, type); // 這個函數等下也會被優化
 
-                    // 根據判定等級觸發不同的軌道閃光效果
-                    if (track) {
-                        track.classList.remove('flash-perfect', 'flash-great', 'flash-good');
-                        void track.offsetWidth;
-                        if (type === 'perfect') {
-                            track.classList.add('flash-perfect');
-                        } else if (type === 'great') {
-                            track.classList.add('flash-great');
-                        } else if (type === 'good') {
-                            track.classList.add('flash-good');
-                        }
-                    }
+        const hitLine = track?.querySelector('.hit-line');
+        if (hitLine) {
+            hitLine.classList.remove('pulse-effect');
+            void hitLine.offsetWidth;
+            hitLine.classList.add('pulse-effect');
+        }
 
-                    // 觸發裝置震動回饋
-                    if (navigator.vibrate) {
-                        let vibrationPattern;
-                        if (type === 'perfect') {
-                            vibrationPattern = [50]; // 短促有力的震動
-                        } else if (type === 'great') {
-                            vibrationPattern = [50]; // 中等震動
-                        } else if (type === 'good') {
-                            vibrationPattern = [45]; // 輕微震動
-                        }
-                        if (vibrationPattern) {
-                            navigator.vibrate(vibrationPattern);
-                        }
-                    }
+        if (track) {
+            track.classList.remove('flash-perfect', 'flash-great', 'flash-good');
+            void track.offsetWidth;
+            if (type === 'perfect') track.classList.add('flash-perfect');
+            else if (type === 'great') track.classList.add('flash-great');
+            else if (type === 'good') track.classList.add('flash-good');
+        }
 
-                   // 【關鍵修復 1】在這裡根據判定類型，定義 baseScore 的值
-let baseScore = 0;
-if (type === 'perfect') baseScore = 100;
-else if (type === 'great') baseScore = 70;
-else if (type === 'good') baseScore = 40;
-                    
-                    // 【關鍵修復 2】將 addScore 移到這裡，確保無論裝置是否支援震動，都會計分
-                    addScore(baseScore);
+        if (navigator.vibrate) {
+            const pattern = { perfect: [50], great: [40], good: [30] }[type];
+            if (pattern) navigator.vibrate(pattern);
+        }
 
-                } else {
-                    // 處理 'miss' 的情況
-                    combo = 0;
-                    const difficulty = getCurrentDifficulty();
-                    trackCooldownUntil[trackIndex] = Date.now() + difficulty.cooldown;
-                }
+        let baseScore = 0;
+        if (type === 'perfect') baseScore = 100;
+        else if (type === 'great') baseScore = 70;
+        else if (type === 'good') baseScore = 40;
+        
+        addScore(baseScore);
+    } else {
+        combo = 0;
+        const difficulty = getCurrentDifficulty();
+        trackCooldownUntil[trackIndex] = Date.now() + difficulty.cooldown;
+    }
 
-                updateUI();
-            }
+    updateUI();
+}
+// ▲▲▲ 結束取代 ▲▲▲
+        // ▼▼▼ 【性能優化版】取代舊的 addScore 函數 ▼▼▼
+function addScore(baseScore) {
+    combo++;
+    if (combo > maxCombo) maxCombo = combo;
+    
+    pureHitScore += baseScore;
+    score += baseScore + Math.floor(baseScore * (Math.floor(combo / 10) * 0.1));
 
-          function addScore(baseScore) {
-                combo++;
-                if (combo > maxCombo) maxCombo = combo;
-                
-                // 核心修訂：分開計算總分與用於解鎖的純粹分數
-                pureHitScore += baseScore; // 純擊打分數，用於解鎖條件判斷
-                score += baseScore + Math.floor(baseScore * (Math.floor(combo / 10) * 0.1)); // 包含連擊獎勵的總分，用於顯示
+    if (combo > 5) {
+        // 重用唯一的 comboElement
+        comboElement.textContent = `${combo} COMBO!`;
+        
+        // 移除所有舊的顏色 class，再添加新的
+        comboElement.classList.remove('combo-base', 'combo-blue', 'combo-orange', 'combo-pink', 'combo-purple', 'combo-rainbow');
+        
+        let comboClass = 'combo-base';
+        if (combo >= 1000) comboClass = 'combo-rainbow';
+        else if (combo >= 500) comboClass = 'combo-purple';
+        else if (combo >= 200) comboClass = 'combo-pink';
+        else if (combo >= 100) comboClass = 'combo-orange';
+        else if (combo >= 50) comboClass = 'combo-blue';
+        comboElement.classList.add(comboClass);
 
-                if (combo > 5) {
-                    const comboEl = document.createElement('div');
-                    comboEl.className = 'combo-display';
-                    comboEl.textContent = `${combo} COMBO!`;
-                    if (combo >= 1000) comboEl.classList.add('combo-rainbow');
-                    else if (combo >= 500) comboEl.classList.add('combo-purple');
-                    else if (combo >= 200) comboEl.classList.add('combo-pink');
-                    else if (combo >= 100) comboEl.classList.add('combo-orange');
-                    else if (combo >= 50) comboEl.classList.add('combo-blue');
-                    else comboEl.classList.add('combo-base');
-                    tracksContainer.appendChild(comboEl);
-                    if (sounds.combo) sounds.combo();
-                    setTimeout(() => comboEl.remove(), 500);
-                }
-                let trackComboClass = '';
-                if (combo >= 1000) trackComboClass = 'combo-rainbow';
-                else if (combo >= 500) trackComboClass = 'combo-purple';
-                else if (combo >= 200) trackComboClass = 'combo-pink';
-                else if (combo >= 100) trackComboClass = 'combo-orange';
-                else if (combo >= 50) trackComboClass = 'combo-blue';
-                tracksContainer.className = 'tracks';
-                if (trackComboClass) tracksContainer.classList.add(trackComboClass);
-                
-                updateUnlockMeter(); // 在分數更新後，同步更新解鎖進度條
-            }
+        comboElement.style.display = 'block'; // 顯示
+        // 觸發重啟動畫
+        comboElement.style.animation = 'none';
+        void comboElement.offsetWidth; // 強制重排
+        comboElement.style.animation = ''; // 恢復 CSS 中定義的動畫
+        
+        if (sounds.combo) sounds.combo();
+        
+        // 動畫結束後隱藏
+        comboElement.addEventListener('animationend', () => {
+            comboElement.style.display = 'none';
+        }, { once: true });
+    }
+
+    let trackComboClass = '';
+    if (combo >= 1000) trackComboClass = 'combo-rainbow';
+    else if (combo >= 500) trackComboClass = 'combo-purple';
+    else if (combo >= 200) trackComboClass = 'combo-pink';
+    else if (combo >= 100) trackComboClass = 'combo-orange';
+    else if (combo >= 50) trackComboClass = 'combo-blue';
+    tracksContainer.className = 'tracks'; // 重置
+    if (trackComboClass) tracksContainer.classList.add(trackComboClass);
+    
+    updateUnlockMeter();
+}
+// ▲▲▲ 結束取代 ▲▲▲
 
  // ▼▼▼ 新增的函數 ▼▼▼
            // ▼▼▼ 修正後的函數 ▼▼▼
@@ -5047,11 +5123,15 @@ nextBtn.addEventListener('click', () => {
 
             // --- Initialization ---
             const originalStartButtonSVG = startBtn.innerHTML;
+             // ▼▼▼ 【就是加在這裡！】▼▼▼
+            initEffectPools(); 
+            // ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲ ▲▲▲
             updateSongOptions(); // Apply unlock status on load
             populatePersonalHighScoreList(musicSelect.value); // Show scores for initially selected song
             initGame();
 
             // 【新增】綁定測驗視窗的按鈕事件
+            
 quizSubmitBtn.addEventListener('click', checkQuizAnswer);
 quizAnswerInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
