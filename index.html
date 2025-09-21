@@ -5043,45 +5043,62 @@ function updateUnlockMeter() {
                 return difficultySettings[difficultySelect.value] || difficultySettings.normal;
             }
 
-        // ====================================================================
-// ====== 【最終修正版】強制名稱檢查的 startGame 函數 ======
+// ====================================================================
+// ====== 【強化版】強制名稱檢查的 startGame 函數 ======
 // ====================================================================
 async function startGame() {
-    // 【核心檢查】在函數的最頂部設立“守門員”
-    // 檢查全域變數 playerName 是否為空字串或 null
-    if (!playerName) {
-        // 1. 顯示一個清晰的引導通知
+    // 【第一步：除錯日誌】在主控台印出 playerName 的當前狀態
+    // 請按 F12 打開主控台查看此訊息
+    console.log('點擊開始按鈕。目前的 playerName 是:', playerName, '，其類型是:', typeof playerName);
+
+    // 【第二步：強化版的守門員檢查】
+    // 這個檢查會攔截 null, undefined, 空字串, 只包含空白的字串, 以及值為 "null" 或 "undefined" 的字串
+    if (!playerName || playerName.trim() === '' || playerName === 'null' || playerName === 'undefined') {
+        
+        console.log('檢查到 playerName 無效，已阻止遊戲開始。');
+
+        // 顯示一個清晰的引導通知
         showNotification(
-            'info',                      // 通知類型
-            '請先設定玩家名稱',          // 標題
-            '為了開始遊戲並記錄您的成績，請點擊右上角的齒輪圖示，或直接在此視窗中設定您的顯示名稱。', // 訊息
-            7000                         // 顯示7秒
+            'info',
+            '請先設定玩家名稱',
+            '為了開始遊戲並記錄您的成績，請先在設定中設置您的顯示名稱。',
+            7000
         );
         
-        // 2. 強制彈出設定視窗
+        // 強制彈出設定視窗
         settingsModal.classList.add('active');
         
-        // 3. 為了提供最佳體驗，自動將游標聚焦在名稱輸入框
+        // 自動將游標聚焦在名稱輸入框
         const playerNameInput = document.getElementById('playerNameInput');
         if (playerNameInput) {
             playerNameInput.focus();
         }
 
-        // 4. 【最重要的部分】立即中止 startGame 函數的執行
-        //    這樣一來，後續所有準備遊戲、播放音樂的程式碼都不會被執行。
+        // 【最重要】立即中止函數，不執行後續任何程式碼
         return; 
     }
+    
     // --- 只有在通過名稱檢查後，才會執行以下的遊戲邏輯 ---
-
+    console.log('名稱檢查通過，遊戲正常開始。');
+    
     const selectedSong = musicSelect.value;
     const selectedDifficulty = difficultySelect.value;
 
     if (!isSongUnlocked(selectedSong)) {
-        // 這裡的邏輯保持不變...
+        showUnlockModal(`在普通模式下達到 ${SONG_UNLOCK_SCORE} 分以解鎖下一首歌曲。`);
         return;
     }
     if (!isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
-        // 這裡的邏輯保持不變...
+        let reqScore = 0;
+        let reqDiff = '';
+        if (selectedDifficulty === 'hard') {
+            reqScore = DIFFICULTY_UNLOCK_SCORE_NORMAL_TO_HARD;
+            reqDiff = '普通';
+        } else if (selectedDifficulty === 'hell') {
+            reqScore = DIFFICULTY_UNLOCK_SCORE_HARD_TO_HELL;
+            reqDiff = '困難';
+        }
+        showUnlockModal(`在 ${reqDiff} 模式下達到 ${reqScore} 分以解鎖此難度。`);
         return;
     }
 
