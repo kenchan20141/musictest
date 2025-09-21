@@ -3743,74 +3743,119 @@ function displayLeaderboard(songUrl, difficulty) {
 }
 
 /**
- * 提交分數到 Firebase 排行榜
+ * 提交分數到 Firebase 排行榜（修訂後版本）
+ * - 支援前三名上榜
+ * - 阻止在同一榜單上使用重複的玩家名稱
  * @param {string} songUrl 
  * @param {string} difficulty 
  * @param {number} finalScore 
  */
 async function submitScoreToLeaderboard(songUrl, difficulty, finalScore) {
-    // 如果玩家沒有設定名稱，直接結束，不提交分數
+    // 步驟 1: 確認玩家已設定名稱，否則不執行任何操作
     if (!playerName) {
         console.log("玩家未設定名稱，不提交分數至排行榜。");
+        // 你也可以在這裡加上一個 showNotification() 來提醒玩家去設定名稱
         return;
     }
 
     const songId = sanitizeFirebaseKey(songUrl);
     const leaderboardRef = database.ref(`leaderboards/${songId}/${difficulty}`);
 
-    // 使用 Transaction 來處理併發讀寫，確保資料一致性
-    leaderboardRef.transaction((currentData) => {
-        // 如果資料庫中沒有資料，就初始化為一個空陣列
-        if (currentData === null) {
-            currentData = [];
-        }
-
-        // 檢查分數是否足以登上排行榜
-        const lowestScoreOnBoard = currentData.length < 3 ? 0 : currentData[currentData.length - 1].score;
-        if (finalScore <= lowestScoreOnBoard) {
-            // 分數太低，不需要更新，返回 undefined 來中止 transaction
-            return; 
-        }
-
-        // 標記玩家是否已在榜上
-        let playerIndex = -1;
-        for (let i = 0; i < currentData.length; i++) {
-            if (currentData[i].name === playerName) {
-                playerIndex = i;
-                break;
+    // 步驟 2: 使用 Firebase 的 Transaction（交易）功能
+    // 這是一個安全的操作，能防止多位玩家同時提交分數時造成資料錯亂。
+    // 我們將「讀取、修改、寫回」這三個動作綁在一起，確保其原子性。
+    try {
+        const { committed, snapshot } = await leaderboardRef.transaction((currentData) => {
+            // 如果資料庫中還沒有這個排行榜，就初始化為一個空陣列
+            if (currentData === null) {
+                currentData = [];
             }
-        }
-        
-        let madeItToLeaderboard = false;
 
-        if (playerIndex !== -1) {
-            // 玩家已在榜上，只在分數更高時更新
-            if (finalScore > currentData[playerIndex].score) {
-                currentData[playerIndex].score = finalScore;
-                madeItToLeaderboard = true;
+            // ==========================================================
+            // ====== 其二：避免玩家設定相同的名稱 (核心邏輯) ======
+            // ==========================================================
+            
+            // 檢查這個名字是否已經被榜上「其他人」使用
+            const isNameTakenByOther = currentData.some(entry => entry.name === playerName);
+
+            // 尋找「自己」是否已經在榜上
+            let selfIndex = -1;
+            for (let i = 0; i < currentData.length; i++) {
+                if (currentData[i].name === playerName) {
+                    selfIndex = i;
+                    break;
+                }
+            }
+
+            // 【規則】如果名字被佔用，而且佔用者不是自己 -> 提交失敗
+            if (isNameTakenByOther && selfIndex === -1) {
+                // 返回 undefined 會安全地中止這次的 transaction，不會寫入任何資料
+                console.warn(`提交失敗：名稱 "${playerName}" 已被此排行榜上的其他玩家使用。`);
+                return; 
+            }
+
+            // ========================================================
+            // ====== 其一：排行榜擴充至前三名 (核心邏輯) ======
+            // ========================================================
+            
+            // 找出榜單上的最低分 (如果榜單未滿三人，則最低分為 0)
+            const lowestScoreOnBoard = currentData.length < 3 ? 0 : currentData[currentData.length - 1].score;
+
+            if (selfIndex !== -1) {
+                // --- 情況 A: 我已經在榜上 ---
+                // 只有在新分數更高時，才更新我的分數
+                if (finalScore > currentData[selfIndex].score) {
+                    currentData[selfIndex].score = finalScore;
+                } else {
+                    // 分數沒有更高，不需要更新，中止 transaction
+                    return;
+                }
+            } else {
+                // --- 情況 B: 我還沒上榜 ---
+                // 如果分數不夠高 (且榜單已滿 3 人)，就無法上榜
+                if (finalScore <= lowestScoreOnBoard && currentData.length >= 3) {
+                    return; // 中止 transaction
+                }
+                // 分數夠高，將我的新紀錄加入陣列中
+                currentData.push({ name: playerName, score: finalScore });
+            }
+
+            // 【關鍵步驟】對所有紀錄依分數由高到低重新排序
+            currentData.sort((a, b) => b.score - a.score);
+            
+            // 【關鍵步驟】只保留排序後的前三名紀錄
+            const newData = currentData.slice(0, 3);
+            
+            // 返回最終要寫入資料庫的新排行榜資料
+            return newData;
+        });
+
+        // 步驟 3: 根據 transaction 的執行結果，給予玩家明確的回饋
+        if (committed) {
+            // Transaction 成功提交，代表資料已更新
+            const finalBoard = snapshot.val() || [];
+            // 再次確認自己是否真的在最終的榜單上
+            const onFinalBoard = finalBoard.some(entry => entry.name === playerName && entry.score === finalScore);
+            
+            if (onFinalBoard) {
+                // 只有成功上榜，才顯示成功通知
+                const difficultyText = difficultySelect.querySelector(`option[value="${difficulty}"]`).textContent;
+                showNotification('success', '登上排行榜！', `恭喜！你在「<strong>${difficultyText}</strong>」難度的分數已成功登上排行榜！`);
+            } else {
+                // 雖然提交成功，但因為分數不夠高而被擠出榜外
+                showNotification('info', '再接再厲', '你的分數已成功提交，但未達到目前排行榜前三名的標準。');
             }
         } else {
-            // 玩家不在榜上，新增紀錄
-            currentData.push({ name: playerName, score: finalScore });
-            madeItToLeaderboard = true;
+            // Transaction 被中止，通常是因為我們在前面手動中止了它（例如名稱重複）
+             showNotification('info', '提交失敗', '你的名稱可能已被此排行榜上的其他玩家使用，請更換名稱後再試一次。');
         }
 
-        // 排序、裁減並返回更新後的資料
-        currentData.sort((a, b) => b.score - a.score);
-        const newData = currentData.slice(0, 3);
-        
-        // 如果成功上榜，則觸發通知
-        if(madeItToLeaderboard) {
-            // 使用 setTimeout 將通知推遲到主線程之外，避免在 transaction 中觸發
-            setTimeout(() => {
-                showNotification('success', '登上排行榜！', `恭喜！你在「<strong>${difficulty}</strong>」難度的分數已成功登上排行榜！`);
-            }, 0);
-        }
-
-        return newData;
-    });
+    } catch (error) {
+        // 如果發生網路錯誤等問題
+        console.error("提交分數時發生錯誤: ", error);
+        showNotification('info', '提交錯誤', '與伺服器連線時發生問題，請稍後再試。');
+    }
 }
-
 // ==============================================================
 // ====== 【新增函數結束】 ======================================
 // ==============================================================
