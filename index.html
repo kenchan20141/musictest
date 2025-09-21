@@ -2276,15 +2276,17 @@
     font-weight: 500;
 }
 
-/* 【新增】處理填空底線的樣式 */
+/* 【修正】處理填空底線的樣式 */
 .quiz-blank {
     display: inline-block;
     width: 100px; /* 您可以依據平均答案長度調整此寬度 */
     border-bottom: 2px solid #6c757d;
     margin: 0 4px;
-    vertical-align: middle; /* 確保底線與文字垂直對齊 */
-    position: relative;
-    top: -4px; /* 微調垂直位置，使其看起來更舒適 */
+    /* 【核心修正】將 vertical-align 改為 baseline */
+    vertical-align: baseline; /* 這會將元素的基線與文字的基線對齊，使底線位於正確位置 */
+    /* 【核心修正】移除不再需要的微調屬性 */
+    /* position: relative; (移除) */
+    /* top: -4px; (移除) */
 }
 
 /* 【修訂】確保輸入框不會超出容器 */
