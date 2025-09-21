@@ -2185,6 +2185,7 @@
 }
 
 /* ====== 【修訂後】歌詞填充測驗視窗樣式 ====== */
+/* ====== 【再次修訂】歌詞填充測驗視窗樣式 ====== */
 .lyrics-quiz-modal {
     position: fixed;
     top: 0;
@@ -2207,20 +2208,22 @@
     pointer-events: all;
 }
 
+/* 【修訂】容器寬度已設為 90% */
 .quiz-content {
-    background: linear-gradient(145deg, #f8f9fa, #e9ecef); /* 改為明亮的淺灰漸變 */
-    color: #343a40; /* 主要文字改為深灰色，提高對比度 */
+    background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+    color: #343a40;
     padding: 30px 40px;
     border-radius: 20px;
     text-align: center;
     max-width: 500px;
-    width: 90%;
+    width: 90%; /* <--- 這行確保容器寬度為頁面的 90% */
     position: relative;
     border: 1px solid rgba(0, 0, 0, 0.1);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2); /* 更柔和的陰影 */
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
     transform: scale(0.9);
     opacity: 0;
     transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.4s ease;
+    box-sizing: border-box; /* 確保 padding 不會導致寬度溢出 */
 }
 
 .lyrics-quiz-modal.active .quiz-content {
@@ -2230,19 +2233,19 @@
 
 .quiz-title {
     font-size: 2.2rem;
-    color: #17a2b8; /* 使用清新的青色作為標題色 */
+    color: #17a2b8;
     margin-bottom: 10px;
     font-weight: 700;
 }
 
 .quiz-instructions {
     font-size: 1rem;
-    color: #6c757d; /* 使用中灰色作為輔助說明文字 */
+    color: #6c757d;
     margin-bottom: 20px;
 }
 
 .quiz-progress {
-    background: #17a2b820; /* 帶透明度的青色背景 */
+    background: #17a2b820;
     padding: 8px 12px;
     border-radius: 8px;
     margin-bottom: 25px;
@@ -2269,10 +2272,22 @@
     font-size: 1.6rem;
     color: #212529;
     line-height: 1.6;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
     font-weight: 500;
 }
 
+/* 【新增】處理填空底線的樣式 */
+.quiz-blank {
+    display: inline-block;
+    width: 100px; /* 您可以依據平均答案長度調整此寬度 */
+    border-bottom: 2px solid #6c757d;
+    margin: 0 4px;
+    vertical-align: middle; /* 確保底線與文字垂直對齊 */
+    position: relative;
+    top: -4px; /* 微調垂直位置，使其看起來更舒適 */
+}
+
+/* 【修訂】確保輸入框不會超出容器 */
 .quiz-answer-input {
     width: 100%;
     padding: 15px;
@@ -2283,6 +2298,7 @@
     color: #495057;
     text-align: center;
     transition: all 0.3s ease;
+    box-sizing: border-box; /* <--- 這是確保輸入框寬度計算正確的關鍵 */
 }
 
 .quiz-answer-input:focus {
@@ -2291,14 +2307,13 @@
     box-shadow: 0 0 0 4px rgba(23, 162, 184, 0.25);
 }
 
-/* 答題回饋樣式 */
 .quiz-answer-input.correct {
-    border-color: #28a745; /* 綠色代表正確 */
+    border-color: #28a745;
     background-color: #e9f7ec;
 }
 
 .quiz-answer-input.incorrect {
-    border-color: #dc3545; /* 紅色代表錯誤 */
+    border-color: #dc3545;
     background-color: #fbebed;
     animation: shake 0.5s ease-in-out;
 }
@@ -2315,7 +2330,7 @@
     font-size: 1.2rem;
     font-weight: bold;
     color: #fff;
-    background: linear-gradient(45deg, #17a2b8, #138496); /* 清新青色漸變 */
+    background: linear-gradient(45deg, #17a2b8, #138496);
     border: none;
     border-radius: 12px;
     cursor: pointer;
@@ -2366,6 +2381,10 @@
     .quiz-answer-input {
         font-size: 1.1rem;
         padding: 12px;
+    }
+    /* 【新增】調整小螢幕下的底線寬度 */
+    .quiz-blank {
+        width: 70px;
     }
 }
         
@@ -4096,7 +4115,11 @@ function displayNextQuizQuestion() {
     // 從題庫中取出下一題
     currentQuizQuestion = quizQuestions.pop();
 
-    quizQuestionText.textContent = currentQuizQuestion.line;
+    // ▼▼▼ 【核心修訂】將底線替換為帶有 class 的 span 元素 ▼▼▼
+    const questionLine = currentQuizQuestion.line.replace(/__/g, '<span class="quiz-blank"></span>');
+    quizQuestionText.innerHTML = questionLine;
+    // ▲▲▲ 修訂結束 ▲▲▲
+
     quizProgress.textContent = `進度: ${questionsAnsweredCorrectly} / ${totalQuestionsInQuiz}`;
     quizAnswerInput.value = '';
     quizAnswerInput.classList.remove('correct', 'incorrect');
