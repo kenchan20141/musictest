@@ -880,10 +880,39 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
             font-size: 1rem;
         }
-        .setting-slider {
-            width: 100%;
-            margin-top: 5px;
-        }
+       /* --- 1. 滑桿軌道的基礎樣式 --- */
+.setting-slider {
+    -webkit-appearance: none; /* 移除 Chrome/Safari 的預設樣式 */
+    appearance: none;
+    width: 100%;
+    height: 8px; /* 軌道高度 */
+    background: #4a5568; /* 軌道底色 (未填充部分) */
+    border-radius: 5px;
+    outline: none;
+    transition: opacity .2s;
+    cursor: pointer;
+}
+
+/* --- 2. 滑桿拖曳鈕 (Thumb) 的樣式 --- */
+.setting-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px; /* 拖曳鈕寬度 */
+    height: 20px; /* 拖曳鈕高度 */
+    background: #e2e8f0; /* 拖曳鈕顏色 */
+    border-radius: 50%;
+    border: 2px solid #718096;
+    box-shadow: 0 0 5px rgba(0,0,0,0.2);
+}
+
+.setting-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #e2e8f0;
+    border-radius: 50%;
+    border: 2px solid #718096;
+    box-shadow: 0 0 5px rgba(0,0,0,0.2);
+}
 
 /* Copyright Disclaimer Modal Styles */
 .copyright-disclaimer-modal {
