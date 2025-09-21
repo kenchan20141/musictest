@@ -4606,8 +4606,8 @@ async function handlePlayerName() {
                 
                 showNotification('success', '儲存成功', `你的新名稱「<strong>${playerName}</strong>」已成功設定！`);
 
- // 【新增】成功儲存名稱後，自動關閉設定視窗
-                settingsModal.classList.remove('active');
+ // 【新增】成功儲存名稱後，自動關閉【排行榜視窗】
+                leaderboardModal.classList.remove('active');
             }
         } catch (error) {
             console.error("檢查名稱時發生錯誤:", error);
@@ -5044,61 +5044,52 @@ function updateUnlockMeter() {
             }
 
 // ====================================================================
-// ====== 【強化版】強制名稱檢查的 startGame 函數 ======
+// ====== 【決定版】強制導向【排行榜視窗】設定名稱的 startGame 函數 ======
 // ====================================================================
 async function startGame() {
-    // 【第一步：除錯日誌】在主控台印出 playerName 的當前狀態
-    // 請按 F12 打開主控台查看此訊息
-    console.log('點擊開始按鈕。目前的 playerName 是:', playerName, '，其類型是:', typeof playerName);
+    // 【除錯日誌】請按 F12 打開主控台，這行訊息能幫助我們確認變數狀態
+    console.log(`[startGame] 檢查開始。目前 playerName: "${playerName}" (類型: ${typeof playerName})`);
 
-    // 【第二步：強化版的守門員檢查】
-    // 這個檢查會攔截 null, undefined, 空字串, 只包含空白的字串, 以及值為 "null" 或 "undefined" 的字串
+    // 【強化版守門員】這個檢查會攔截所有無效的名稱狀態
     if (!playerName || playerName.trim() === '' || playerName === 'null' || playerName === 'undefined') {
         
-        console.log('檢查到 playerName 無效，已阻止遊戲開始。');
+        console.log('[startGame] 檢查失敗：玩家名稱無效。已阻止遊戲開始，並強制打開排行榜視窗。');
 
-        // 顯示一個清晰的引導通知
+        // 1. 顯示一個清晰的引導通知
         showNotification(
             'info',
             '請先設定玩家名稱',
-            '為了開始遊戲並記錄您的成績，請先在設定中設置您的顯示名稱。',
+            '為了開始遊戲並記錄您的成績，請先在此視窗中設定您的顯示名稱。',
             7000
         );
         
-        // 強制彈出設定視窗
-        settingsModal.classList.add('active');
+        // 2. 【核心修正】強制彈出【排行榜視窗】而不是設定視窗
+        leaderboardModal.classList.add('active');
         
-        // 自動將游標聚焦在名稱輸入框
+        // 3. 將游標聚焦在排行榜視窗內的名稱輸入框
         const playerNameInput = document.getElementById('playerNameInput');
         if (playerNameInput) {
             playerNameInput.focus();
         }
 
-        // 【最重要】立即中止函數，不執行後續任何程式碼
+        // 4. 【最重要】立即中止函數，不執行後續任何遊戲啟動程式碼
         return; 
     }
     
     // --- 只有在通過名稱檢查後，才會執行以下的遊戲邏輯 ---
-    console.log('名稱檢查通過，遊戲正常開始。');
+    console.log('[startGame] 名稱檢查通過，遊戲正常啟動。');
+    
+    // ... 以下是您原有的、無需修改的遊戲啟動邏輯 ...
     
     const selectedSong = musicSelect.value;
     const selectedDifficulty = difficultySelect.value;
 
     if (!isSongUnlocked(selectedSong)) {
-        showUnlockModal(`在普通模式下達到 ${SONG_UNLOCK_SCORE} 分以解鎖下一首歌曲。`);
+        showUnlockModal(`此歌曲尚未解鎖。`); // 簡化訊息
         return;
     }
     if (!isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
-        let reqScore = 0;
-        let reqDiff = '';
-        if (selectedDifficulty === 'hard') {
-            reqScore = DIFFICULTY_UNLOCK_SCORE_NORMAL_TO_HARD;
-            reqDiff = '普通';
-        } else if (selectedDifficulty === 'hell') {
-            reqScore = DIFFICULTY_UNLOCK_SCORE_HARD_TO_HELL;
-            reqDiff = '困難';
-        }
-        showUnlockModal(`在 ${reqDiff} 模式下達到 ${reqScore} 分以解鎖此難度。`);
+        showUnlockModal(`此難度尚未解鎖。`); // 簡化訊息
         return;
     }
 
