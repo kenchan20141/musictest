@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>詞海拾心</title>
+    <title>失落之感性</title>
 
   <!-- ▼▼▼ 步驟 1：貼上或替換為這段新的 CSP 規則 ▼▼▼ -->
    <meta http-equiv="Content-Security-Policy" content="
@@ -2023,77 +2023,31 @@
     flex-direction: row;
 }
 
-/* 【最終修訂】遊戲中歌詞顯示容器 */
+/* [新增] 遊戲中歌詞顯示容器 */
 .game-lyrics-container {
-    /* 核心定位：保持精確的水平垂直置中 */
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-
-    /* 【關鍵修訂】直接設定高度，與 .tracks 元素的預設高度 600px 完全一致 */
-    height: 600px;
-    width: 90%;          /* 寬度保持響應式 */
-    
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 15px;
-    box-sizing: border-box;
-
-    /* 視覺效果與互動性 */
-    color: white;
+    top: 10%;            /* [新增] 置於軌道上方，避免擋音符 */
+    left: 0;
+    right: 0;
     text-align: center;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
-    pointer-events: none;
-    z-index: 4;
-
-    /* 動畫與預設狀態 */
-    opacity: 0;
+    z-index: 15;         /* [新增] 高於進度條但低於粒子/判定 */
+    opacity: 0.8;        /* [新增] 半透明，避免干擾遊戲 */
     transition: opacity 0.5s ease;
+    display: none;       /* [新增] 預設隱藏，由 JS 控制 */
 }
 
-/* 當遊戲進行時，才顯示歌詞容器 */
-.game-running .game-lyrics-container {
-    opacity: 0.85;
-}
-
-/* 【最終修訂】單行歌詞樣式 (此部分無需變更) */
 .game-lyric-line {
-    font-size: clamp(1.2rem, min(4vw, 7vh), 3rem); 
-    font-weight: bold;
-    line-height: 1.4;
-    margin: 0;
-    white-space: normal;
-    overflow-wrap: break-word;
-    width: 100%;
+    font-size: 1.2rem;   /* [新增] 小字體，避免佔空間 */
+    color: #fff;
+    margin: 5px 0;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5); /* [新增] 陰影提升可讀性 */
+    transition: transform 0.3s ease, color 0.3s ease;
 }
 
-/* 
-   【新增響應式調整】
-   為了讓歌詞容器的高度始終與 .tracks 元素同步，
-   我們需要為 .game-lyrics-container 複製 .tracks 的響應式高度設定。
-*/
-
-/* 平板尺寸 (769px - 1024px) */
-@media (min-width: 769px) and (max-width: 1024px) {
-    .game-lyrics-container {
-        height: 550px; /* 與 .tracks 在此區間的高度一致 */
-    }
-}
-
-/* 一般平板與手機尺寸 (寬度小於 768px) */
-@media (max-width: 768px) {
-    .game-lyrics-container {
-        height: 500px; /* 與 .tracks 在此區間的高度一致 */
-    }
-}
-
-/* 小型手機尺寸 (寬度小於 480px) */
-@media (max-width: 480px) {
-    .game-lyrics-container {
-        height: 400px; /* 與 .tracks 在此區間的高度一致 */
-    }
+.game-lyric-line.active {
+    font-size: 1.5rem;   /* [新增] 活躍歌詞放大強調 */
+    color: #ffcc00;      /* [新增] 亮色強調教育重點 */
+    transform: scale(1.1);
 }
 
 /* 遊戲運行中隱藏選擇器，避免重疊 */
@@ -2114,7 +2068,186 @@
 }        
 
  /* 遊戲中歌詞顯示：軌道兩側全透明垂直區域 */
+.lyrics-side {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 150px; /* 預設電腦寬度 */
+    opacity: 0.5;
+    background: transparent; /* 全透明 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    overflow-y: auto; /* 若直排溢出，自動滾動 */
+    color: #fff;
+    font-size: clamp(1rem, 10vw, 1.5rem); /* 利用寬度調整字體：最小1rem，依視窗寬10%，最大1.5rem */
+    text-align: center;
+    writing-mode: vertical-rl; /* 直排顯示：垂直從右到左 */
+    text-orientation: mixed; /* 確保中文直排正常 */
+    line-height: 1.2; /* 調整字間距 */
+    z-index: 10; /* 高於背景，低於音符 */
+    transition: opacity 0.3s ease;
+}
 
+.lyrics-left {
+    left: calc(50% - 200px - 150px); /* 軌道約344px寬，居中調整左側位置 */
+    text-align: right;
+    padding-right: 20px;
+}
+
+.lyrics-right {
+    right: calc(50% - 200px - 150px); /* 對稱右側 */
+    text-align: left;
+    padding-left: 20px;
+}
+
+.lyrics-side.hidden {
+    display: none;
+}
+
+/* 響應式設計 */
+@media (max-width: 1024px) {
+    .lyrics-side {
+        width: 120px;
+        font-size: clamp(0.9rem, 8vw, 1.2rem); /* 平板：調整clamp範圍 */
+        padding: 8px;
+    }
+    .lyrics-left {
+        left: calc(50% - 172px - 120px); /* 調整軌道寬度估計 */
+    }
+    .lyrics-right {
+        right: calc(50% - 172px - 120px);
+    }
+}
+
+@media (max-width: 768px) {
+    .lyrics-side {
+        width: 80px;
+        font-size: clamp(0.7rem, 6vw, 1rem); /* 手機：更小調整 */
+        padding: 5px;
+        opacity: 0.3; /* 手機上更透明，避免干擾觸控 */
+    }
+    .lyrics-left {
+        left: calc(50% - 172px - 80px);
+    }
+    .lyrics-right {
+        right: calc(50% - 172px - 80px);
+    }
+}
+
+@media (max-width: 480px) {
+    .lyrics-side {
+        width: 60px;
+        font-size: clamp(0.6rem, 5vw, 0.8rem); /* 小手機：最小調整 */
+    }
+    .lyrics-left {
+        left: calc(50% - 172px - 60px);
+    }
+    .lyrics-right {
+        right: calc(50% - 172px - 60px);
+    }
+}
+
+.lyrics-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1; /* 在背景圖上方，但低於遊戲內容 */
+    display: flex; /* 保留 flex 以自動排列 */
+    flex-wrap: wrap; /* 自動換行，填滿畫面 */
+    align-content: flex-start; /* 從頂部開始，無垂直間距 */
+    justify-content: space-around; /* 均勻分散，填滿左右 */
+    gap: 2px; /* 統一小間距（2px），所有設備一致 */
+    margin: 0; /* 確保容器無邊距 */
+    padding: 0; /* 確保容器無內距 */
+    opacity: 0.25; /* 保留半透明 */
+    color: #fff; /* 保留白色文字 */
+    font-size: 5rem; /* 預設大小，media query 會調整 */
+    pointer-events: none; /* 不擋互動 */
+    text-align: center;
+    overflow: hidden; /* 防止溢出產生空白或重疊 */
+    display: none; /* 預設隱藏，由 JS 控制 */
+}
+
+.lyrics-background span {
+    /* ▼▼▼ 【核心修改】新增以下三行 ▼▼▼ */
+    writing-mode: vertical-rl; /* 將文字方向改為垂直，並由右至左排列 */
+    text-orientation: mixed;   /* 確保中、英、數字符號都能以正確的方向直立顯示 */
+    letter-spacing: 0.2em;     /* (可選) 增加文字的垂直間距，使其更美觀 */
+
+    /* ▼▼▼ 以下為保留並適應垂直排版的原始樣式 ▼▼▼ */
+    margin: 0;
+    /* 為垂直文字的上下兩端增加一些留白 */
+    padding: 1em 0;
+    line-height: 1.1;
+    word-spacing: 0;
+    white-space: nowrap;
+    flex: 0 0 auto;
+    min-width: 10%;
+    min-height: 10vh;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    word-break: break-word;
+    overflow: hidden;
+}
+
+        
+@media (max-width: 1024px) { /* 平板：中等密集，每行約 8 個 */
+    .lyrics-background {
+        font-size: 4rem; /* 稍減小字體，避免重疊 */
+        justify-content: space-around; /* 均勻填滿左右 */
+        gap: 2px; /* 統一間距 */
+    }
+    .lyrics-background span {
+        min-width: 12.5%; /* 每行約 8 個，密集但有空間 */
+        min-height: 12vh; /* 增加垂直緩衝 */
+        line-height: 1.1; /* 統一行距 */
+    }
+}
+
+@media (max-width: 768px) { /* 手機：稍鬆，每行約 6 個 */
+    .lyrics-background {
+        font-size: 3.5rem; /* 修訂：介於 3-4rem，讓手機行距不太大（平衡密度） */
+        justify-content: space-around; /* 均勻填滿左右 */
+        gap: 2px; /* 統一間距 */
+    }
+    .lyrics-background span {
+        min-width: 16.66%; /* 每行約 6 個，確保不擠 */
+        min-height: 15vh; /* 增加垂直緩衝 */
+        line-height: 1.1; /* 統一行距 */
+    }
+}
+
+@media (max-width: 480px) { /* 小手機：更鬆，每行約 4 個 */
+    .lyrics-background {
+        font-size: 3rem; /* 修訂：減小為 3rem，讓手機行距更小（但不重疊） */
+        justify-content: space-around; /* 均勻填滿左右 */
+        gap: 2px; /* 統一間距 */
+    }
+    .lyrics-background span {
+        min-width: 25%; /* 每行約 4 個，足夠空間 */
+        min-height: 20vh; /* 最大垂直緩衝 */
+        line-height: 1.1; /* 統一行距 */
+    }
+}
+
+@media (min-width: 1025px) { /* 電腦大屏：更密，每行約 12 個 */
+    .lyrics-background {
+        font-size: 4.5rem; /* 修訂：稍減為 4.5rem，讓電腦不太密（平衡行距） */
+        gap: 2px; /* 統一間距 */
+    }
+    .lyrics-background span {
+        min-width: 8.33%; /* 每行約 12 個，密集但不重疊 */
+        min-height: 8vh; /* 減小垂直，增加密度 */
+        line-height: 1.1; /* 統一行距 */
+    }
+}
 
         .track.flash-effect {
     animation: trackFlashStrong 0.3s ease-out; /* 新增強版閃光 */
@@ -3239,7 +3372,7 @@
     
 </head>
 <body>
-
+    <div class="lyrics-background" id="lyricsBackground"></div>  <!-- 移到這裡 -->
     <!-- Background Image -->
     <div class="background-image"></div>
     <div class="container">
@@ -3369,13 +3502,6 @@
                 </div>
                <div class="game-area">
     <div class="tracks" id="tracksContainer"></div>
-
-                    <!-- ▼▼▼ 【新增】遊戲中歌詞顯示容器 ▼▼▼ -->
-        <div class="game-lyrics-container" id="gameLyricsContainer">
-            <!-- 歌詞將由 JavaScript 動態填入此處 -->
-            <p class="game-lyric-line" id="currentGameLyricLine"></p>
-        </div>
-        <!-- ▲▲▲ 新增結束 ▲▲▲ -->
    
     
     <!-- 觸控按鍵 (僅在觸控裝置上顯示) -->
