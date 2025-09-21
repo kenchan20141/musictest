@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -3358,11 +3357,10 @@
     }
 }
 
+        #battleModal, #waitingModal, #rematchModal { /* 與 settings-modal 樣式一致 */ }
+#displayBattleRoomId { font-weight: bold; color: #ffcc00; }
+#waitingStatus { color: #00c9ff; }
 
-        #matchStatus, #waitingStatus {
-  font-size: 1.1rem;
-  opacity: 0.8;
-}
         
         
     </style>
@@ -3384,7 +3382,50 @@
                         <div class="stat-box">
                             <div class="stat-value" id="score">0</div>
                             <div class="stat-label">分數</div>
+                         
                         </div>
+
+                        <div class="stat-box">
+    <div class="stat-value" id="opponentScore">0</div>
+    <div class="stat-label">對手分數</div>
+    <div class="progress-container"><div id="opponentProgressBar" class="progress-bar"></div></div>
+  </div>
+</div>
+
+<!-- 對戰模式 Modal -->
+<div class="settings-modal" id="battleModal">
+  <div class="settings-content">
+    <button class="close-settings" id="closeBattle">&times;</button>
+    <h2 class="settings-title">對戰模式</h2>
+    <div class="setting-group">
+      <label class="setting-label" for="battleRoomId">輸入房間號 (4位數，留空隨機配對):</label>
+      <input type="text" class="setting-control" id="battleRoomId" maxlength="4" placeholder="例如: 1234">
+    </div>
+    <div class="setting-group">
+      <button class="restart-btn" id="joinBattleBtn">加入/創建房間</button>
+    </div>
+  </div>
+</div>
+
+<!-- 等待房間 Modal -->
+<div class="settings-modal" id="waitingModal">
+  <div class="settings-content">
+    <h2 class="settings-title">等待對手...</h2>
+    <p>你的房間號: <span id="displayBattleRoomId"></span></p>
+    <p id="waitingStatus">搜尋中...</p>
+    <button class="restart-btn" id="cancelWaiting">取消</button>
+  </div>
+</div>
+
+<!-- 重開確認 Modal -->
+<div class="settings-modal" id="rematchModal">
+  <div class="settings-content">
+    <h2 class="settings-title">對手請求重開</h2>
+    <button class="restart-btn" id="acceptRematch">接受</button>
+    <button class="restart-btn" id="declineRematch" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">拒絕</button>
+  </div>
+</div>
+                        
 
 
 <!-- ▼▼▼ 【修訂】將原有的單一標記線改為兩個獨立的標記線 ▼▼▼ -->
@@ -3419,15 +3460,15 @@
                             </svg>
                         </button>
 
-<button class="svg-button" id="multiplayerBtn" title="對戰模式">
+<button class="svg-button" id="battleBtn" title="對戰模式">
   <svg class="start-button-svg" viewBox="0 0 80 40">
     <defs>
-      <linearGradient id="multiplayerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <linearGradient id="battleGradient" x1="0%" y1="0%" x2="100%" y2="0%">
         <stop offset="0%" style="stop-color:#c0392b;stop-opacity:1" />
         <stop offset="100%" style="stop-color:#e74c3c;stop-opacity:1" />
       </linearGradient>
     </defs>
-    <rect x="0" y="0" width="80" height="40" rx="20" ry="20" fill="url(#multiplayerGradient)" />
+    <rect x="0" y="0" width="80" height="40" rx="20" ry="20" fill="url(#battleGradient)" />
     <text x="20" y="25" fill="white" font-size="14">對戰</text>
   </svg>
 </button>
@@ -3652,27 +3693,19 @@
 const firebaseConfig = {
   apiKey: "AIzaSyCzIWqCC47PJAKtvW2PoALA_QETz5JysfY",
   authDomain: "musictest-15e9c.firebaseapp.com",
-  databaseURL: "https://musictest-15e9c-default-rtdb.firebaseio.com",
   projectId: "musictest-15e9c",
   storageBucket: "musictest-15e9c.firebasestorage.app",
   messagingSenderId: "800604129840",
   appId: "1:800604129840:web:ddd3ca5f5d4d5ff81a3bf5"
 };
 
-            firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-
-// 對戰狀態變數
-let isMultiplayer = false;
-let currentRoomId = null;
-let isHost = false;
-let opponentScore = 0;
-let myScore = 0; // 同步到 score
-let multiplayerTimer = null;
-
 // 初始化 Firebase
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
+
+const auth = firebase.auth(); // 如需登入
+// 監聽認證 (可選，參考另一HTML)
+auth.onAuthStateChanged(user => { /* 如需登入邏輯 */ });
 
 // 髒話過濾列表 (可持續擴充)
 const profanityList = [
@@ -4073,6 +4106,11 @@ const quizSubmitBtn = document.getElementById('quizSubmitBtn');
 const quizCloseBtn = document.getElementById('quizCloseBtn');
             
             // --- Game State Variables ---
+            let battleMode = false; // 是否在對戰模式
+let currentRoomId = null;
+let isHost = false; // 是否房主
+let opponentScore = 0; // 對手分數
+let rematchRequested = false;
             let gameActive = false;
 let maxScoreForCurrentLevel = 0; // ▼▼▼ 新增狀態變數
             let unlockThresholdPercentage = 0; // ▼▼▼ 新增狀態變數
@@ -4783,130 +4821,104 @@ async function submitScoreToLeaderboard(songUrl, difficulty, finalScore) {
 
             // --- Game Logic ---
 
-// 創建隨機房間
-function createRandomMultiplayerRoom() {
-  multiplayerModal.classList.remove('active');
-  waitingModal.classList.add('active');
-  waitingStatus.textContent = '正在創建房間並等待對手...';
 
-  currentRoomId = Math.floor(1000 + Math.random() * 9000).toString();
-  isHost = true;
-
-  const roomRef = db.ref(`multiplayerRooms/${currentRoomId}`);
-  roomRef.set({
-    hostScore: 0,
-    clientScore: 0,
-    hostReady: false,
-    clientReady: false,
-    gameStarted: false,
-    gameEnded: false,
-    createdAt: firebase.database.ServerValue.TIMESTAMP
-  });
-
-  roomRef.onDisconnect().remove(); // 斷線移除房間
-  displayRoomCode.textContent = currentRoomId;
-  listenToMultiplayerRoom();
-}
-
-// 加入特定房間
-function joinMultiplayerRoom(roomCode) {
-  multiplayerModal.classList.remove('active');
-  waitingModal.classList.add('active');
-  waitingStatus.textContent = '正在加入房間並等待對手...';
-
-  currentRoomId = roomCode;
-  isHost = false;
-
-  const roomRef = db.ref(`multiplayerRooms/${currentRoomId}`);
-  roomRef.once('value').then(snapshot => {
-    if (!snapshot.exists()) {
-      waitingStatus.textContent = '錯誤: 房間不存在';
-      return;
+// 隨機配對
+function randomMatch() {
+  const waitingRef = database.ref('waitingRooms');
+  waitingRef.once('value', snapshot => {
+    const waitingData = snapshot.val();
+    if (!waitingData) {
+      // 創建房間
+      currentRoomId = Math.floor(1000 + Math.random() * 9000).toString();
+      isHost = true;
+      database.ref('rooms/' + currentRoomId).set({
+        player1: { uid: 'player_uid', score: 0, ready: false }, // 用 auth.uid 替換
+        player2: null,
+        gameStarted: false
+      });
+      waitingRef.set({ roomId: currentRoomId });
+    } else {
+      // 加入房間
+      currentRoomId = waitingData.roomId;
+      isHost = false;
+      database.ref('rooms/' + currentRoomId + '/player2').set({ uid: 'player_uid', score: 0, ready: false });
+      waitingRef.remove();
     }
-    if (snapshot.val().clientReady) {
-      waitingStatus.textContent = '錯誤: 房間已滿';
-      return;
-    }
-    roomRef.update({ clientReady: true });
-    displayRoomCode.textContent = currentRoomId;
-    listenToMultiplayerRoom();
+    showWaitingModal();
+    listenBattleRoom();
   });
 }
 
-// 取消匹配
-function cancelMultiplayerMatch() {
-  waitingModal.classList.remove('active');
-  if (currentRoomId) {
-    db.ref(`multiplayerRooms/${currentRoomId}`).remove();
-  }
-  currentRoomId = null;
-  isMultiplayer = false;
+// 特定房間加入
+function joinSpecificRoom(roomId) {
+  const roomRef = database.ref('rooms/' + roomId);
+  roomRef.once('value', snapshot => {
+    const room = snapshot.val();
+    if (room && !room.player2) {
+      currentRoomId = roomId;
+      isHost = false;
+      roomRef.child('player2').set({ uid: 'player_uid', score: 0, ready: false });
+      showWaitingModal();
+      listenBattleRoom();
+    } else {
+      showNotification('info', '無法加入', '房間不存在或已滿。');
+    }
+  });
+}
+
+// 顯示等待 modal
+function showWaitingModal() {
+  waitingModal.classList.add('active');
+  displayBattleRoomId.textContent = currentRoomId;
 }
 
 // 監聽房間狀態
-function listenToMultiplayerRoom() {
-  const roomRef = db.ref(`multiplayerRooms/${currentRoomId}`);
+function listenBattleRoom() {
+  const roomRef = database.ref('rooms/' + currentRoomId);
   roomRef.on('value', snapshot => {
     const room = snapshot.val();
-    if (!room) return;
-
-    if (room.hostReady && room.clientReady && !room.gameStarted) {
-      waitingModal.classList.remove('active');
-      roomRef.update({ gameStarted: true });
-      startMultiplayerGame();
+    if (room.player1 && room.player2) {
+      // 等待 ready
+      if (room.player1.ready && room.player2.ready) {
+        waitingModal.classList.remove('active');
+        battleMode = true;
+        startGame(); // 你的單人開始邏輯，但添加同步
+      }
     }
-
-    if (room.gameStarted) {
-      opponentScore = isHost ? room.clientScore : room.hostScore;
-      updateOpponentProgress(); // 更新對手進度條
+    // 實時分數
+    if (battleMode) {
+      opponentScore = isHost ? room.player2.score : room.player1.score;
+      updateOpponentProgress(); // 自訂函數，更新進度條
     }
-
-    if (room.gameEnded) {
-      endMultiplayerGame(room);
+    // 重開請求
+    if (room.rematchRequest && !rematchRequested) {
+      rematchRequested = true;
+      rematchModal.classList.add('active');
     }
   });
 }
 
-// 開始對戰遊戲
-function startMultiplayerGame() {
-  // 複製單人 startGame 邏輯，但添加分數同步
-  startGame(); // 調用原有 startGame()
-
-  // 每秒同步分數
-  multiplayerTimer = setInterval(() => {
-    if (gameActive) {
-      myScore = score;
-      const updateKey = isHost ? 'hostScore' : 'clientScore';
-      db.ref(`multiplayerRooms/${currentRoomId}`).update({ [updateKey]: myScore });
-    }
-  }, 1000);
-}
-
-// 更新對手進度條（假設添加一個對手進度條）
+// 更新對手進度條 (新增到 UI)
 function updateOpponentProgress() {
-  const opponentProgressBar = document.createElement('div'); // 如果未有，需添加HTML
-  // 假設在 .stats 添加對手進度條 (需步驟1添加HTML)
-  opponentProgressBar.style.width = `${(opponentScore / maxScoreForCurrentLevel) * 100}%`;
+  const opponentBar = document.getElementById('opponentProgressBar'); // 需添加 HTML
+  opponentBar.style.width = `${(opponentScore / maxScoreForCurrentLevel) * 100}%`;
 }
 
-// 結束對戰
-function endMultiplayerGame(room) {
-  clearInterval(multiplayerTimer);
-  endGame(); // 調用原有 endGame()
-
-  // 比較分數決定勝負
-  const myFinalScore = isHost ? room.hostScore : room.clientScore;
-  const opponentFinalScore = isHost ? room.clientScore : room.hostScore;
-  const result = myFinalScore > opponentFinalScore ? '勝利！' : 
-                 myFinalScore < opponentFinalScore ? '失敗！' : '平手！';
-
-  showNotification('info', '對戰結束', `結果: ${result}\n你的分數: ${myFinalScore}\n對手分數: ${opponentFinalScore}`);
+// 接受重開
+function acceptRematchRequest() {
+  database.ref('rooms/' + currentRoomId).update({ rematchAccept: true });
+  // 雙方 accept 後，重置房間並重新 startGame
 }
 
-// 重開遊戲：發送重開請求
-function handleRematch() {
-  const myReadyKey = isHost ? 'hostReady' : 'clientReady';
-  db.ref(`multiplayerRooms/${currentRoomId}`).update({ [myReadyKey]: true });
+// 拒絕重開
+function declineRematchRequest() {
+  database.ref('rooms/' + currentRoomId).remove(); // 刪除房間，返回主頁
+}
+
+// 在 endGame() 內添加
+// processPostGameRewards 後，檢查對戰模式並彈出重開選項
+if (battleMode) {
+  // 顯示重開 modal 或直接發送請求
 }
 
             
@@ -5625,14 +5637,6 @@ function updateGameLyrics(currentTime) {
 // ====== 【最終修正版】確保在點擊開始時，直接檢查儲存的最新名稱 ======
 // ====================================================================
 async function startGame() {
-
-if (isMultiplayer) {
-  const readyKey = isHost ? 'hostReady' : 'clientReady';
-  db.ref(`multiplayerRooms/${currentRoomId}`).update({ [readyKey]: true });
-}
-
-
-    
     console.log("--- startGame function initiated ---");
     
     // 【核心修正】在點擊開始的瞬間，直接從 localStorage 獲取最新的玩家名稱
@@ -5875,16 +5879,6 @@ function endGame() {
     processPostGameRewards(selectedSong, selectedDifficulty, score, pureHitScore);
 
     showGameOver();
-
-if (isMultiplayer) {
-  const updateKey = isHost ? 'hostScore' : 'clientScore';
-  db.ref(`multiplayerRooms/${currentRoomId}`).update({ 
-    [updateKey]: score,
-    gameEnded: true 
-  });
-}
-
-    
 }
 
             function showGameOver() {
@@ -6386,46 +6380,43 @@ function updatePlayingVisuals(isPlaying) {
             
 
             // --- Event Listeners ---
-const multiplayerBtn = document.getElementById('multiplayerBtn');
-const multiplayerModal = document.getElementById('multiplayerModal');
-const closeMultiplayer = document.getElementById('closeMultiplayer');
-const roomCodeInput = document.getElementById('roomCodeInput');
-const joinRoomBtn = document.getElementById('joinRoomBtn');
-const randomMatchBtn = document.getElementById('randomMatchBtn');
-const matchStatus = document.getElementById('matchStatus');
+
+const battleBtn = document.getElementById('battleBtn');
+const battleModal = document.getElementById('battleModal');
+const closeBattle = document.getElementById('closeBattle');
+const battleRoomId = document.getElementById('battleRoomId');
+const joinBattleBtn = document.getElementById('joinBattleBtn');
 const waitingModal = document.getElementById('waitingModal');
-const displayRoomCode = document.getElementById('displayRoomCode');
-const waitingStatus = document.getElementById('waitingStatus');
-const cancelMatchBtn = document.getElementById('cancelMatchBtn');
+const displayBattleRoomId = document.getElementById('displayBattleRoomId');
+const cancelWaiting = document.getElementById('cancelWaiting');
+const rematchModal = document.getElementById('rematchModal');
+const acceptRematch = document.getElementById('acceptRematch');
+const declineRematch = document.getElementById('declineRematch');
 
-multiplayerBtn.addEventListener('click', () => {
-  isMultiplayer = true;
-  multiplayerModal.classList.add('active');
-  matchStatus.textContent = '狀態: 就緒';
-});
-
-closeMultiplayer.addEventListener('click', () => {
-  multiplayerModal.classList.remove('active');
-  isMultiplayer = false;
-});
-
-joinRoomBtn.addEventListener('click', () => {
-  const roomCode = roomCodeInput.value.trim();
-  if (roomCode.length !== 4 || !/^\d{4}$/.test(roomCode)) {
-    matchStatus.textContent = '錯誤: 請輸入4位數字房間號';
-    return;
+battleBtn.addEventListener('click', () => battleModal.classList.add('active'));
+closeBattle.addEventListener('click', () => battleModal.classList.remove('active'));
+joinBattleBtn.addEventListener('click', () => {
+  const roomId = battleRoomId.value.trim();
+  battleModal.classList.remove('active');
+  if (roomId) {
+    joinSpecificRoom(roomId);
+  } else {
+    randomMatch();
   }
-  joinMultiplayerRoom(roomCode);
 });
-
-randomMatchBtn.addEventListener('click', () => {
-  createRandomMultiplayerRoom();
+cancelWaiting.addEventListener('click', () => {
+  waitingModal.classList.remove('active');
+  if (currentRoomId) database.ref('rooms/' + currentRoomId).remove();
+  currentRoomId = null;
 });
-
-cancelMatchBtn.addEventListener('click', () => {
-  cancelMultiplayerMatch();
+acceptRematch.addEventListener('click', () => {
+  rematchModal.classList.remove('active');
+  acceptRematchRequest();
 });
-
+declineRematch.addEventListener('click', () => {
+  rematchModal.classList.remove('active');
+  declineRematchRequest();
+});
             
             touchKeys.forEach(key => {
                 key.addEventListener('touchstart', onTouchStart, { passive: false });
@@ -6742,32 +6733,7 @@ disclaimerModal.addEventListener('click', (e) => {
             </ol>
             <p id="leaderboardLoading" style="display: none;">讀取中...</p>
         </div>
-
-<!-- 新增：對戰模態窗 -->
-<div class="settings-modal" id="multiplayerModal">
-  <div class="settings-content">
-    <button class="close-settings" id="closeMultiplayer">&times;</button>
-    <h2 class="settings-title">進入對戰模式</h2>
-    <div class="setting-group">
-      <label class="setting-label" for="roomCodeInput">輸入房間號（4位數字）或隨機配對：</label>
-      <input type="text" class="setting-control" id="roomCodeInput" maxlength="4" placeholder="例如: 1234">
     </div>
-    <div class="setting-group">
-      <button class="restart-btn" id="joinRoomBtn">加入特定房間</button>
-      <button class="restart-btn" id="randomMatchBtn">隨機配對</button>
-    </div>
-    <p id="matchStatus" style="text-align: center; color: #ffcc00; margin-top: 1rem;">狀態: 就緒</p>
-  </div>
-</div>
-
-<!-- 等待對手模態窗（在遊戲開始後用） -->
-<div class="settings-modal" id="waitingModal">
-  <div class="settings-content">
-    <h2 class="settings-title">等待對手加入</h2>
-    <p>房間號: <span id="displayRoomCode"></span></p>
-    <p id="waitingStatus">正在匹配中...</p>
-    <button class="restart-btn" id="cancelMatchBtn">取消匹配</button>
-  </div>
 </div>
 
 </body>
