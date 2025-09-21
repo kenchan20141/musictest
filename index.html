@@ -133,7 +133,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-image: url('背景.png');
+            background-image: url('https://i.ibb.co/W4yhM5v0/image.png');
             background-size: cover;
             background-position: center;
             opacity: 0.6; /* 60% transparency */
@@ -210,19 +210,10 @@
             font-weight: bold;
             color: #ffcc00;
         }
-       .stat-label {
+        .stat-label {
     font-size: 1rem;
-    /* 1. 使用一個非常深的、近乎黑色的顏色作為主體 */
-    color: #2c3e50; /* 深石板灰 */
+    color: #fff;
     opacity: 1;
-    font-weight: bold; /* 加粗以增加清晰度 */
-
-    /* 2. 【核心】使用多層 text-shadow 創建一個清晰的白色輪廓 */
-    text-shadow: 
-        -1px -1px 0 rgba(255, 255, 255, 0.8),  
-         1px -1px 0 rgba(255, 255, 255, 0.8),
-        -1px  1px 0 rgba(255, 255, 255, 0.8),
-         1px  1px 0 rgba(255, 255, 255, 0.8);
 }
         .controls {
             display: flex;
@@ -3582,14 +3573,6 @@
                 <div class="no-lyrics">無歌詞</div>
             </div>
             <div class="player-controls">
-
-<!-- ▼▼▼ 【新增】循環按鈕 ▼▼▼ -->
-    <button class="player-btn" id="loopBtn" title="關閉循環">
-        <!-- 圖示會由 JS 動態填入 -->
-    </button>
-    <!-- ▲▲▲ 新增結束 ▲▲▲ -->
-
-                
                 <button class="player-btn" id="prevBtn" title="上一首" disabled>&#9664;&#9664;</button>
                 <button class="player-btn play-pause-btn" id="playPauseBtn" title="播放/暫停">&#9658;</button>
                 <button class="player-btn" id="nextBtn" title="下一首" disabled>&#9654;&#9654;</button>
@@ -3630,12 +3613,12 @@
 
 // 你的 Firebase 設定物件
 const firebaseConfig = {
-  apiKey: "AIzaSyCzIWqCC47PJAKtvW2PoALA_QETz5JysfY",
-  authDomain: "musictest-15e9c.firebaseapp.com",
-  projectId: "musictest-15e9c",
-  storageBucket: "musictest-15e9c.firebasestorage.app",
-  messagingSenderId: "800604129840",
-  appId: "1:800604129840:web:ddd3ca5f5d4d5ff81a3bf5"
+  apiKey: "AIzaSyD0J56yq_QjjzAZuhAEqE3SVU0GePS2l-0",
+  authDomain: "musicgame-7dad1.firebaseapp.com",
+  projectId: "musicgame-7dad1",
+  storageBucket: "musicgame-7dad1.firebasestorage.app",
+  messagingSenderId: "720961310659",
+  appId: "1:720961310659:web:4959c7269b0adbed5ab776"
 };
 
 // 初始化 Firebase
@@ -3940,11 +3923,11 @@ const songData = {
 // --- CD Cover Images ---
 const songCovers = {
 
-    "白影.mp3": "白影.png",
+    "白影.mp3": "https://i.ibb.co/0pYsv0m1/image.png",
    
     // 為其他歌曲添加封面，格式為 "歌曲文件名.mp3": "圖片URL"
     // 如果沒有特定封面，可以使用一個通用的默認封面
-    "default": "標準.png" // 默認封面
+    "default": "https://i.ibb.co/G4Rmgzjt/image.png" // 默認封面
 };
 
 
@@ -4000,10 +3983,6 @@ const leaderboardLoading = document.getElementById('leaderboardLoading');
             const durationDisplay = document.getElementById('duration');
             const volumeSliderPlayer = document.getElementById('volumeSliderPlayer');
             const playlist = document.getElementById('playlist');
-//【新增】獲取循環按鈕的 DOM 元素
-            const loopBtn = document.getElementById('loopBtn');
-
-            
             const unlockModal = document.getElementById('unlockModal');
             const closeUnlock = document.getElementById('closeUnlock');
             const unlockRequirement = document.getElementById('unlockRequirement');
@@ -4084,16 +4063,6 @@ let currentNoteParticleIndex = 0;
             let lyrics = [];
             let lyricsInterval = null;
             let isUpdatingSlider = false; // Flag to prevent slider update conflicts
-
-
-//【新增】循環播放的狀態變數
-            let loopMode = 'list';
-
-            //【新增】三個狀態對應的 SVG 圖示
-            const loopIconList = `<svg viewBox="0 0 24 24" fill="currentColor" style="width: 24px; height: 24px;"><path d="M7 7H17V10L21 6L17 2V5H5V12H7V7M17 17H7V14L3 18L7 22V19H19V12H17V17Z"></path></svg>`;
-const loopIconSingle = `<svg viewBox="0 0 24 24" fill="currentColor" style="width: 24px; height: 24px;"><path d="M7 7H17V10L21 6L17 2V5H5V12H7V7M17 17H7V14L3 18L7 22V19H19V12H17V17Z M13 15V9H12L10 10V11H11.5V15H13Z"></path></svg>`;
-const loopIconNone = `<svg viewBox="0 0 24 24" fill="currentColor" style="width: 24px; height: 24px; opacity: 0.4;"><path d="M7 7H17V10L21 6L17 2V5H5V12H7V7M17 17H7V14L3 18L7 22V19H19V12H17V17Z"></path></svg>`;
-            
 
             // --- Audio Context for SFX ---
             const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -4219,27 +4188,11 @@ function savePlayerSettings() {
 }
 
 // 載入播放器設定
-// 【修訂後】的 loadPlayerSettings 函數
 function loadPlayerSettings() {
+    // 恢復音量設定
     if (playerSettings.volume !== undefined) {
         playerAudio.volume = playerSettings.volume;
         volumeSliderPlayer.value = playerSettings.volume;
-    }
-
-    // 當播放器打開時，準備好上次播放的歌曲畫面，但先不播放
-    if (playerSettings.currentSong && playlistItems.length > 0) {
-        const songIndex = playlistItems.findIndex(item => item.url === playerSettings.currentSong);
-        if (songIndex !== -1) {
-            // 呼叫主函數來更新所有畫面
-            setupSongUI(songIndex);
-            // 恢復上次的播放進度
-            playerAudio.currentTime = playerSettings.currentTime || 0;
-            
-            // 如果上次是正在播放的狀態，則自動繼續播放
-            if (playerSettings.isPlaying) {
-                playerAudio.play().catch(e => console.error("自動播放失敗:", e));
-            }
-        }
     }
 }
 
@@ -5993,10 +5946,11 @@ playlistItems.forEach(item => {
     }
 });
 
-// 【修訂後】的 pause 事件監聽
-playerAudio.addEventListener('pause', () => {
-    updatePlayingVisuals(false); // 統一更新為暫停視覺
-    savePlayerSettings(); // 保存暫停狀態
+playerAudio.addEventListener('play', () => {
+    playerIsPlaying = true;
+    playPauseBtn.textContent = '\u275A\u275A';
+    updatePlayerUI();
+    savePlayerSettings(); // 保存播放狀態
 });
 
 playerAudio.addEventListener('pause', () => {
@@ -6005,45 +5959,24 @@ playerAudio.addEventListener('pause', () => {
     updatePlayerUI();
     savePlayerSettings(); // 保存暫停狀態
 });
-             // 【修訂後】的音樂播放結束事件
-// 【修訂後】的音樂播放結束事件
-playerAudio.addEventListener('ended', () => {
-    updatePlayingVisuals(false); // 歌曲結束時，也要更新為停止狀態的視覺
-
-    switch (loopMode) {
-        case 'single':
-            playerAudio.currentTime = 0;
-            playerAudio.play();
-            break;
-
-        case 'list':
-            let nextIndex = findNextEnabledSong(currentPlaylistIndex);
-            if (nextIndex === -1) {
-                nextIndex = findNextEnabledSong(-1);
-            }
-            if (nextIndex !== -1) {
-                playSong(nextIndex);
-            }
-            break;
-
-        case 'none':
-        default:
-            const nextSongIndex = findNextEnabledSong(currentPlaylistIndex);
-            if (nextSongIndex !== -1) {
-                playSong(nextSongIndex);
-            } else {
-                updatePlayerUI(); // 更新UI，取消高亮
-            }
-            break;
+               playerAudio.addEventListener('ended', () => {
+    playerIsPlaying = false;
+    playPauseBtn.textContent = '\u25B6'; // Play icon
+ocument.getElementById('cdCoverImage').classList.remove('playing'); // 新增：停止旋轉
+    
+    // 尋找下一首啟用的歌曲
+    const nextIndex = findNextEnabledSong(currentPlaylistIndex);
+    if (nextIndex !== -1) {
+        playSong(nextIndex);
     }
+    updatePlayerUI();
 });
 
-               // 【修訂後】的 play 事件監聽，主要用於同步狀態
-playerAudio.addEventListener('play', () => {
-    playerIsPlaying = true; // 確保狀態同步
-    // 保留 savePlayerSettings 以便在意外情況下也能保存狀態
-    savePlayerSettings(); 
-});
+                playerAudio.addEventListener('play', () => {
+                    playerIsPlaying = true;
+                    playPauseBtn.textContent = '\u275A\u275A'; // Pause icon
+                    updatePlayerUI();
+                });
 
                 playerAudio.addEventListener('pause', () => {
                     playerIsPlaying = false;
@@ -6060,46 +5993,41 @@ playerAudio.addEventListener('play', () => {
                 return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
             }
 
-// 【新增】一個統一的、只負責更新畫面的主函數
-function setupSongUI(index) {
+           function playSong(index) {
     if (index < 0 || index >= playlistItems.length) return;
+    
+    // 檢查歌曲是否被停用
+    const playlistItem = playlist.children[index];
+    if (playlistItem && playlistItem.dataset.enabled === 'false') {
+        console.log('歌曲已被停用，跳過播放');
+        return;
+    }
+    
+    // Check if the song is unlocked before playing
+    const songToPlay = playlistItems[index];
+    if (!isSongUnlocked(songToPlay.url)) {
+        console.warn(`嘗試播放未解鎖的歌曲: ${songToPlay.title}`);
+        return; // Do not play if not unlocked
+    }
 
+    currentPlaylistIndex = index;
     const song = playlistItems[index];
-    currentPlaylistIndex = index; // 更新當前索引
-
-    // 更新"正在播放"的文字
-    nowPlaying.textContent = `正在播放: ${song.title}`;
-    
-    // 更新封面和歌詞 (這是準備工作)
-    updateCdCover(song.url);
-    lyrics = songData[song.url]?.lyrics || [];
-    updateLyricsContainer();
-    
-    // 更新播放列表的高亮狀態
-    updatePlayerUI();
-    
-    // 將音訊來源準備好，但先不播放
     playerAudio.src = song.url;
     playerAudio.volume = volumeSliderPlayer.value;
+    nowPlaying.textContent = `正在播放: ${song.title}`;
+    updateCdCover(song.url); // 更新 CD 封面
+    
+    // ▼▼▼ 【修訂處】從 songData 獲取歌詞 ▼▼▼
+    lyrics = songData[song.url]?.lyrics || [];
+    // ▲▲▲ 修訂結束 ▲▲▲
+
+    updateLyricsContainer();
+    updatePlayerUI();
+    document.getElementById('cdCoverImage').classList.add('playing'); // 開始旋轉
+    playerAudio.play().catch(e => console.error("播放器播放失敗:", e));
+    savePlayerSettings(); // 保存當前播放狀態
 }
 
-            
-// 【最終修訂版】playSong 函數
-function playSong(index) {
-    // 呼叫主函數，完成所有畫面的設定
-    setupSongUI(index);
-    
-    // 如果畫面設定成功 (音訊來源已準備好)，就播放
-    if (playerAudio.src) {
-        playerAudio.play().catch(e => console.error("播放器播放失敗:", e));
-        
-        // 【核心修正】在下達播放指令後，立即手動更新視覺為「播放中」
-        updatePlayingVisuals(true); 
-        
-        savePlayerSettings();
-    }
-}
-            
 // 在現有函數之前新增這兩個輔助函數
 function findNextEnabledSong(currentIndex) {
     for (let i = currentIndex + 1; i < playlistItems.length; i++) {
@@ -6169,6 +6097,7 @@ function updateCdCover(songUrl) {
 }
 
 
+
             function updatePlayerUI() {
     document.querySelectorAll('.playlist-item').forEach((item, i) => {
         item.classList.toggle('active', i === currentPlaylistIndex);
@@ -6181,31 +6110,6 @@ function updateCdCover(songUrl) {
     prevBtn.disabled = !hasPrev;
     nextBtn.disabled = !hasNext;
 }
-
-           // 一個統一的函數，根據播放狀態更新所有視覺效果
-function updatePlayingVisuals(isPlaying) {
-    const cdCover = document.getElementById('cdCoverImage');
-    if (isPlaying) {
-        // 更新為「播放中」的視覺效果
-        playerIsPlaying = true;
-        playPauseBtn.innerHTML = '&#10074;&#10074;'; // 暫停符號
-        cdCover.classList.add('playing');
-    } else {
-        // 更新為「暫停/停止」的視覺效果
-        playerIsPlaying = false;
-        playPauseBtn.innerHTML = '&#9658;'; // 播放符號
-        cdCover.classList.remove('playing');
-    }
-}
-
-//【新增】初始化循環按鈕的圖示
-           function initializeLoopButton() {
-    // 因為預設是列表循環，所以初始圖示也要對應
-    loopBtn.innerHTML = loopIconList; 
-    loopBtn.title = '列表循環';
-}
-
-            
 
             // --- Event Listeners ---
             touchKeys.forEach(key => {
@@ -6310,45 +6214,21 @@ function updatePlayingVisuals(isPlaying) {
     musicPlayerModal.classList.remove('active');
     playerAudio.pause();
 });
-// 【最終修訂版】的播放/暫停按鈕事件
-playPauseBtn.addEventListener('click', () => {
-    // 檢查是否已有準備好的歌曲
-    if (playerAudio.src && !playerAudio.src.endsWith('/')) { 
+            playPauseBtn.addEventListener('click', () => {
+    if (playerAudio.src) {
         if (playerIsPlaying) {
-            // 如果正在播放，就暫停
             playerAudio.pause();
         } else {
-            // 如果是暫停狀態，就播放
             playerAudio.play();
-            // 【核心修正】在下達播放指令後，立即手動更新視覺為「播放中」
-            updatePlayingVisuals(true); 
         }
     } else {
-        // 如果播放器是空的，呼叫 playSong 來完整地設定畫面並播放
+        // 如果沒有音源，播放第一首啟用的歌曲
         const firstEnabledIndex = findNextEnabledSong(-1);
         if (firstEnabledIndex !== -1) {
             playSong(firstEnabledIndex);
         }
     }
 });
-//【新增】循環按鈕的點擊事件
-            loopBtn.addEventListener('click', () => {
-    if (loopMode === 'list') {
-        loopMode = 'single'; // 從 列表 切換到 單曲
-        loopBtn.innerHTML = loopIconSingle;
-        loopBtn.title = '單曲循環';
-    } else if (loopMode === 'single') {
-        loopMode = 'none';   // 從 單曲 切換到 關閉
-        loopBtn.innerHTML = loopIconNone;
-        loopBtn.title = '關閉循環';
-    } else { // loopMode === 'none'
-        loopMode = 'list';   // 從 關閉 切換回 列表
-        loopBtn.innerHTML = loopIconList;
-        loopBtn.title = '列表循環';
-    }
-});
-
-            
           prevBtn.addEventListener('click', () => {
     const prevIndex = findPrevEnabledSong(currentPlaylistIndex);
     if (prevIndex !== -1) {
@@ -6423,10 +6303,6 @@ nextBtn.addEventListener('click', () => {
             updateSongOptions(); // Apply unlock status on load
             populatePersonalHighScoreList(musicSelect.value); // Show scores for initially selected song
             initGame();
-             initializeLoopButton(); //【新增】在這裡呼叫初始化函數
-
-
-            
 
             // 【新增】綁定測驗視窗的按鈕事件
 quizSubmitBtn.addEventListener('click', checkQuizAnswer);
