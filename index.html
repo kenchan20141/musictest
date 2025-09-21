@@ -3526,30 +3526,32 @@ closeNotification.addEventListener('click', () => {
 
             // --- Game Logic ---
             function generateNote(noteData) {
-                if (!gameActive) return;
-                const trackIndex = noteData.track;
-                const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
-                if (!track) return;
-                const note = document.createElement('div');
-                note.className = noteData.type === 'long' ? 'long-note' : 'note';
-                note.dataset.track = trackIndex;
-                note.style.animationDuration = `${noteSpeed}ms`;
-                if (noteData.type === 'long') {
-                    const noteHeight = (noteData.duration / (noteSpeed / 1000)) * (tracksContainer.clientHeight + 50);
-                    note.style.height = `${Math.max(30, noteHeight)}px`;
-                }
-                track.appendChild(note);
-                const noteObj = {
-                    element: note,
-                    track: trackIndex,
-                    type: noteData.type,
-                    duration: noteData.duration || 0,
-                    active: true,
-                    hitStarted: false,
-                    creationTime: Date.now(), // 【新增】記錄音符的創建時間戳
-                };
-                notes.push(noteObj);
-            }
+    if (!gameActive) return;
+    const trackIndex = noteData.track;
+    const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
+    if (!track) return;
+    const note = document.createElement('div');
+    note.className = noteData.type === 'long' ? 'long-note' : 'note';
+    note.dataset.track = trackIndex;
+    note.style.animationDuration = `${noteSpeed}ms`;
+    if (noteData.type === 'long') {
+        const noteHeight = (noteData.duration / (noteSpeed / 1000)) * (tracksContainer.clientHeight + 50);
+        note.style.height = `${Math.max(30, noteHeight)}px`;
+    }
+    track.appendChild(note);
+    const noteObj = {
+        element: note,
+        track: trackIndex,
+        type: noteData.type,
+        duration: noteData.duration || 0,
+        active: true,
+        hitStarted: false,
+        // ▼▼▼ 【優化】記錄音符被創造時的精確時間戳 ▼▼▼
+        creationTime: Date.now(),
+        // ▲▲▲ 優化結束 ▲▲▲
+    };
+    notes.push(noteObj);
+}
 
           // ▼▼▼ 【修訂後】使用物件池的 createHitParticles 函數 ▼▼▼
 function createHitParticles(trackIndex, judgment) {
@@ -4582,41 +4584,49 @@ function endGame() {
                 initGame();
             }
 
-            function gameLoop() {
-                if (!gameActive) return;
-                const trackRect = tracksContainer.getBoundingClientRect();
-                const hitLineY = trackRect.top + trackRect.height - 100;
-                for (let i = notes.length - 1; i >= 0; i--) {
-                    const note = notes[i];
-                    if (!note.active) continue;
-                    const rect = note.element.getBoundingClientRect();
-                    
-                    // 當音符的頂部完全超過判定線加一個緩衝區時
-                    if (rect.top > hitLineY + 20) {
-                         // ▼▼▼ 修訂核心邏輯開始 ▼▼▼
-                        
-                        // 檢查該軌道上是否有正在被按下的長音符 (進入無敵狀態)
-                        const isTrackInvincible = notes.some(n =>
-                            n.track === note.track && // 條件1: 是同一個軌道
-                            n.type === 'long' &&      // 條件2: 該軌道上有一個長音符
-                            n.hitStarted              // 條件3: 並且那個長音符已經開始被按住
-                        );
+          function gameLoop() {
+    if (!gameActive) return;
 
-                        // 只有在軌道不是無敵狀態時，才判定為 MISS
-                        if (!isTrackInvincible) {
-                            judgeHit(note.track, 'miss');
-                        }
-                        
-                        // 無論軌道是否無敵，這個已經錯過的音符都必須被移除
-                        note.active = false;
-                        note.element.remove();
-                        notes.splice(i, 1);
-                        
-                        // ▲▲▲ 修訂核心邏輯結束 ▲▲▲
-                    }
-                }
-                animationFrame = requestAnimationFrame(gameLoop);
+    // --- 核心優化：在迴圈外快取不會變動的數值 ---
+    // 獲取軌道總高度，音符需要移動的總距離
+    const fallDistance = tracksContainer.clientHeight; 
+    // 計算判定線的 Y 座標 (相對於軌道頂部)
+    const hitLineY = fallDistance - 100; 
+    // 計算音符每毫秒移動的像素距離
+    const pixelsPerMillisecond = fallDistance / noteSpeed;
+
+    const now = Date.now();
+
+    for (let i = notes.length - 1; i >= 0; i--) {
+        const note = notes[i];
+        if (!note.active) continue;
+
+        // --- 核心優化：用數學公式「計算」音符的當前位置 ---
+        const timeElapsed = now - note.creationTime;
+        // 音符頂部的 Y 座標 = 已過時間 * 每毫秒移動距離 - 音符自身高度(動畫是從-50px開始的)
+        const noteTopY = (timeElapsed * pixelsPerMillisecond) - 50;
+
+        // --- 使用計算出的位置來進行判斷 ---
+        // 如果音符頂部已經超過了判定線加一個緩衝區 (20px)
+        if (noteTopY > hitLineY + 20) {
+            const isTrackInvincible = notes.some(n =>
+                n.track === note.track &&
+                n.type === 'long' &&
+                n.hitStarted
+            );
+
+            if (!isTrackInvincible) {
+                judgeHit(note.track, 'miss');
             }
+            
+            note.active = false;
+            note.element.remove(); // 這裡的 remove 是必要的，因為 miss 了
+            notes.splice(i, 1);
+        }
+    }
+
+    animationFrame = requestAnimationFrame(gameLoop);
+}
 
          function handleKeyDown(e) {
                 if (!gameActive) return;
