@@ -3681,7 +3681,7 @@ function isProfane(name) {
 }
 
 /**
- * 處理玩家名稱的設定、儲存與唯一性檢查
+ * 處理玩家名稱的設定與儲存
  */
 function handlePlayerName() {
     playerNameInput.value = playerName;
@@ -3691,9 +3691,6 @@ function handlePlayerName() {
 
     savePlayerNameBtn.addEventListener('click', () => {
         const newName = playerNameInput.value.trim();
-        const oldName = playerName;
-
-        // --- 基本驗證 ---
         if (newName.length === 0) {
             showNotification('info', '名稱無效', '名稱不能為空！');
             return;
@@ -3702,40 +3699,9 @@ function handlePlayerName() {
             showNotification('info', '名稱不雅', '請勿使用不雅詞彙作為名稱。');
             return;
         }
-        // 如果名稱沒有改變，則不需要做任何事
-        if (newName === oldName) {
-            showNotification('info', '提示', '名稱未變更。');
-            return;
-        }
-
-        // --- Firebase 唯一性檢查 ---
-        const newNameRef = database.ref('playerNames/' + newName.toLowerCase()); // 使用小寫來檢查，避免大小寫不同但名稱一樣
-        newNameRef.once('value', (snapshot) => {
-            if (snapshot.exists()) {
-                // 如果名稱已存在，顯示錯誤
-                showNotification('info', '名稱已被使用', `「<strong>${newName}</strong>」這個名稱已經被其他玩家佔用了，請換一個吧！`);
-            } else {
-                // 名稱可用，執行更新
-                // 我們使用 multi-path update 來確保操作的原子性
-                const updates = {};
-                // 1. 註冊新名稱
-                updates['/playerNames/' + newName.toLowerCase()] = true;
-                // 2. 如果有舊名稱，將其註銷
-                if (oldName) {
-                    updates['/playerNames/' + oldName.toLowerCase()] = null;
-                }
-                
-                // 執行更新
-                database.ref().update(updates).then(() => {
-                    playerName = newName;
-                    localStorage.setItem('musicGamePlayerName', playerName);
-                    showNotification('success', '儲存成功', `你的新名稱「<strong>${playerName}</strong>」已儲存！`);
-                }).catch((error) => {
-                    console.error("更新名稱失敗:", error);
-                    showNotification('info', '儲存失敗', '儲存名稱時發生錯誤，請稍後再試。');
-                });
-            }
-        });
+        playerName = newName;
+        localStorage.setItem('musicGamePlayerName', playerName);
+        showNotification('success', '儲存成功', `你的新名稱「<strong>${playerName}</strong>」已儲存！`);
     });
 }
 
