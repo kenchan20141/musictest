@@ -4080,12 +4080,12 @@ function setupParticlePools() {
                     oscillator.stop(audioContext.currentTime + duration);
                 };
             }
-            const sounds = {
-                perfect: createSound(523.25, 'sine', 0.15, 0.3),
-                great: createSound(392.00, 'sine', 0.15, 0.25),
-                good: createSound(329.63, 'sine', 0.15, 0.2),
-                miss: createSound(220.00, 'square', 0.2, 0.15),
-                combo: createSound(659.25, 'triangle', 0.1, 0.2)
+           const sounds = {
+                perfect: createSound(523.25, 'sine', 0.15, 0.7), // 原為 0.3
+                great: createSound(392.00, 'sine', 0.15, 0.6),  // 原為 0.25
+                good: createSound(329.63, 'sine', 0.15, 0.5),   // 原為 0.2
+                miss: createSound(220.00, 'square', 0.2, 0.4),  // 原為 0.15
+                combo: createSound(659.25, 'triangle', 0.1, 0.5) // 原為 0.2
             };
 
             // --- Local Storage Management ---
@@ -6217,12 +6217,12 @@ function updateCdCover(songUrl) {
                 if (e.target === unlockModal) unlockModal.classList.remove('active');
             });
 
-            // Fixed volume slider input listeners to use 'change' event for full range
-            volumeControlModal.addEventListener('change', () => {
+            // 【修訂】使用 'input' 事件來實現即時音量更新，並確保能到達 0 和 100
+            volumeControlModal.addEventListener('input', () => {
                 const value = parseFloat(volumeControlModal.value);
                 audio.volume = isNaN(value) ? 0.7 : value;
             });
-            sfxVolumeControl.addEventListener('change', () => {
+            sfxVolumeControl.addEventListener('input', () => {
                 const value = parseFloat(sfxVolumeControl.value);
                 sfxVolume = isNaN(value) ? 0.5 : value;
             });
