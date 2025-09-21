@@ -3914,7 +3914,7 @@ let quizQuestions = []; // 將儲存當前測驗的所有題目
 let currentQuizQuestion = null; // 儲存當前的問題物件
 let questionsAnsweredCorrectly = 0; // 追蹤已答對的題數
 let totalQuestionsInQuiz = 0; // 測驗開始時的總題數
-let quizUnlockTarget = null; // 用於儲存測驗成功後要解鎖的目標
+let quizRewardsQueue = []; // 【修改】用於儲存所有待處理的獎勵
 
 // --- 【新增】獲取測驗視窗的 DOM 元素 ---
 const lyricsQuizModal = document.getElementById('lyricsQuizModal');
@@ -5265,57 +5265,27 @@ function shuffleArray(array) {
     return array;
 }
 
-/**
- * 開始歌詞填充測驗
- * @param {string} unlockType - 解鎖類型 ('song', 'difficulty', 'leaderboard')
- * @param {any} unlockValue - 要解鎖的目標值
- * @param {string} songUrlForQuiz - 用於生成測驗題目的歌曲 URL
- */
-function startLyricsQuiz(unlockType, unlockValue, songUrlForQuiz) {
-    // 獲取該歌曲的全部預設題目
+function startLyricsQuiz(rewards, songUrlForQuiz) {
     const predefinedQuestions = songData[songUrlForQuiz]?.quiz || [];
 
-    // 如果這首歌沒有題目，則直接成功
     if (predefinedQuestions.length === 0) {
-        console.warn(`歌曲 ${songUrlForQuiz} 沒有預設題目，自動授予解鎖。`);
-        // 根據解鎖類型，顯示不同的提示
-        const message = unlockType === 'leaderboard' ? '您的分數已自動提交至排行榜。' : '已為您直接解鎖新內容！';
-        const title = unlockType === 'leaderboard' ? '自動提交分數' : '自動解鎖';
-        showNotification('info', title, `由於此歌曲無歌詞可供測驗，${message}`);
-        
-        // 執行對應的成功操作
-        if (unlockType === 'song') unlockNextSong(unlockValue);
-        else if (unlockType === 'difficulty') unlockDifficulty(unlockValue.song, unlockValue.difficulty);
-        else if (unlockType === 'leaderboard') submitScoreToLeaderboard(unlockValue.songUrl, unlockValue.difficulty, unlockValue.score);
+        // 這個檢查理論上在 processPostGameRewards 中已經做過，但作為安全備用
+        console.warn(`歌曲 ${songUrlForQuiz} 沒有預設題目，自動授予獎勵。`);
+        grantAllRewards(rewards);
         return;
     }
     
-    // ▼▼▼ 【核心修訂】從完整題庫中隨機抽取 5 題 ▼▼▼
-
-    // 1. 先將完整的題庫陣列洗牌，使其順序隨機
     const shuffledPool = shuffleArray([...predefinedQuestions]);
-    
-    // 2. 從洗牌後的陣列中，取出前 5 個元素作為本次測驗的題目
-    //    使用 slice(0, 5) 可以優雅地處理這個問題，
-    //    同時也能應對題庫總數不足 5 題的邊界情況（此時會取出所有題目）。
-    quizQuestions = shuffledPool.slice(0, 5); 
-    
-    // 3. 將本次測驗的總題數設定為我們取出的題目數量 (最多為 5)
-    totalQuestionsInQuiz = quizQuestions.length; 
-    
-    // 如果因故沒有選出任何題目，也視為通過
+    quizQuestions = shuffledPool.slice(0, 5);
+    totalQuestionsInQuiz = quizQuestions.length;
+
     if (totalQuestionsInQuiz === 0) {
-        console.warn(`無法為 ${songUrlForQuiz} 選出測驗題目，自動通過。`);
-        if (unlockType === 'song') unlockNextSong(unlockValue);
-        else if (unlockType === 'difficulty') unlockDifficulty(unlockValue.song, unlockValue.difficulty);
-        else if (unlockType === 'leaderboard') submitScoreToLeaderboard(unlockValue.songUrl, unlockValue.difficulty, unlockValue.score);
+        grantAllRewards(rewards);
         return;
     }
-    // ▲▲▲ 修訂結束 ▲▲▲
-
-    // --- 以下是原有的測驗啟動邏輯，無需改動 ---
+    
     isQuizActive = true;
-    quizUnlockTarget = { type: unlockType, value: unlockValue };
+    quizRewardsQueue = rewards; // 【修改】儲存整個獎勵佇列
     questionsAnsweredCorrectly = 0;
     
     lyricsQuizModal.classList.add('active');
@@ -5373,10 +5343,6 @@ function checkQuizAnswer() {
 }
 
 
-/**
- * 結束測驗，並根據結果執行最終操作
- * @param {boolean} success - 測驗是否成功
- */
 function endQuiz(success) {
     if (!isQuizActive) return;
 
@@ -5384,109 +5350,25 @@ function endQuiz(success) {
     lyricsQuizModal.classList.remove('active');
 
     if (success) {
-        const { type, value } = quizUnlockTarget;
-        
-        // ▼▼▼ 【核心修訂】新增對 'leaderboard' 類型的處理 ▼▼▼
-        if (type === 'song') {
-            unlockNextSong(value); 
-        } else if (type === 'difficulty') {
-            unlockDifficulty(value.song, value.difficulty);
-        } else if (type === 'leaderboard') {
-            // 如果測驗是為了上榜，且成功了，就在這裡提交分數
-            submitScoreToLeaderboard(value.songUrl, value.difficulty, value.score);
+        // 【核心修改】如果成功，遍歷佇列並授予所有獎勵
+        const rewardsToGrant = [...quizRewardsQueue]; // 複製佇列以防萬一
+        if (rewardsToGrant.length > 0) {
+             showNotification('success', '測驗通過！', '恭喜您通過歌詞測驗，所有獎勵正在發放中！');
+             grantAllRewards(rewardsToGrant); // 使用通用函數來發放
         }
-        // ▲▲▲ 修訂結束 ▲▲▲
-
     } else {
-        // ▼▼▼ 【核心修訂】為不同失敗情況顯示不同訊息 ▼▼▼
-        const { type } = quizUnlockTarget;
-        if (type === 'leaderboard') {
-            showNotification('info', '排行榜挑戰失敗', '歌詞測驗未通過，無法登上排行榜。下次請再接再厲！');
-        } else {
-            showNotification('info', '解鎖失敗', '歌詞測驗未通過，下次請再接再厲！');
-        }
-        // ▲▲▲ 修訂結束 ▲▲▲
+        // 如果失敗，顯示統一的失敗訊息
+        showNotification('info', '挑戰失敗', '歌詞測驗未通過，本次無法獲得任何獎勵。下次請再接再厲！');
     }
 
+    // 清空佇列和狀態
+    quizRewardsQueue = [];
     quizQuestions = [];
     currentQuizQuestion = null;
     questionsAnsweredCorrectly = 0;
     totalQuestionsInQuiz = 0;
-    quizUnlockTarget = null;
 }
 
-/**
- * 檢查解鎖條件並觸發測驗或顯示提示 (核心邏輯函數)
- * @param {string} songUrl - 當前歌曲 URL
- * @param {string} difficulty - 當前難度
- * @param {number} pureHitScore - 純粹的擊打分數 (不含 Combo 加成)
- */
-function checkAndShowQuizOrInfo(songUrl, difficulty, pureHitScore) {
-    // ▼▼▼ 【修訂處】檢查 songData 中是否有 quiz 屬性 ▼▼▼
-    const hasQuiz = songData[songUrl]?.quiz && songData[songUrl].quiz.length > 0;
-    // ▲▲▲ 修訂結束 ▲▲▲
-    let potentialUnlock = null;
-
-    // 檢查1: 是否滿足解鎖【新歌曲】的條件 (僅在普通難度下)
-    if (difficulty === 'normal') {
-        const allSongs = Array.from(musicSelect.options).map(opt => opt.value);
-        const lastUnlockedSong = saveData.unlockedSongs[saveData.unlockedSongs.length - 1];
-        
-        // 必須玩的是當前已解鎖的最後一首歌
-        if (songUrl === lastUnlockedSong) {
-            const currentIndex = allSongs.indexOf(lastUnlockedSong);
-            if (currentIndex >= 0 && currentIndex < allSongs.length - 1) {
-                const nextSong = allSongs[currentIndex + 1];
-                if (!isSongUnlocked(nextSong)) {
-                    const requiredScore = maxScoreForCurrentLevel * SONG_UNLOCK_PERCENTAGE;
-                    if (pureHitScore >= requiredScore) {
-                        potentialUnlock = { type: 'song', value: songUrl, songForQuiz: songUrl };
-                    } else {
-                        const remainingScore = Math.ceil(requiredScore - pureHitScore);
-                        showNotification('info', '目標差一點！', `您在「普通」難度下還差 <strong>${remainingScore.toLocaleString()}</strong> 分就能挑戰解鎖下一首歌曲了。再加把勁！`, 6000);
-                    }
-                }
-            }
-        }
-    }
-
-    // 如果已滿足解鎖歌曲條件，則優先處理，並終止後續檢查
-    if (potentialUnlock) {
-        if (hasQuiz) {
-            startLyricsQuiz(potentialUnlock.type, potentialUnlock.value, potentialUnlock.songForQuiz);
-        } else {
-            console.warn(`歌曲 ${potentialUnlock.songForQuiz} 無法觸發測驗，因為沒有預設題目。將直接解鎖。`);
-            unlockNextSong(potentialUnlock.value);
-        }
-        return; 
-    }
-
-    // 檢查2: 是否滿足解鎖【困難】難度的條件 (從普通難度挑戰)
-    if (difficulty === 'normal' && !isDifficultyUnlocked(songUrl, 'hard')) {
-        const requiredScore = maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE;
-        if (pureHitScore >= requiredScore) {
-            potentialUnlock = { type: 'difficulty', value: { song: songUrl, difficulty: 'hard' }, songForQuiz: songUrl };
-        }
-    }
-
-    // 檢查3: 是否滿足解鎖【地獄】難度的條件 (從困難難度挑戰)
-    if (difficulty === 'hard' && !isDifficultyUnlocked(songUrl, 'hell')) {
-        const requiredScore = maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE;
-        if (pureHitScore >= requiredScore) {
-            potentialUnlock = { type: 'difficulty', value: { song: songUrl, difficulty: 'hell' }, songForQuiz: songUrl };
-        }
-    }
-    
-    // 如果滿足解鎖難度的條件，觸發相應操作
-    if (potentialUnlock) {
-         if (hasQuiz) {
-            startLyricsQuiz(potentialUnlock.type, potentialUnlock.value, potentialUnlock.songForQuiz);
-         } else {
-            console.warn(`歌曲 ${potentialUnlock.songForQuiz} 無法觸發測驗，因為沒有預設題目。將直接解鎖。`);
-            unlockDifficulty(potentialUnlock.value.song, potentialUnlock.value.difficulty);
-         }
-    }
-}
 
 
             
@@ -5619,58 +5501,98 @@ noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, se
 }
 
 
-/**
- * 遊戲結束時，嘗試進入排行榜的入口函數
- * 它會檢查分數，並決定是直接提交、啟動測驗，還是什麼都不做
- * @param {string} songUrl 
- * @param {string} difficulty 
- * @param {number} score 
- */
-async function attemptLeaderboardEntry(songUrl, difficulty, score) {
-    // 規則 1: 如果玩家沒設定名字，直接結束流程
-    if (!playerName) {
-        console.log("玩家未設定名稱，無法挑戰排行榜。");
-        return;
+// ====================================================================
+// ====== 【全新】統一的遊戲後獎勵處理函數 (取代舊的兩個函數) ======
+// ====================================================================
+async function processPostGameRewards(songUrl, difficulty, score, pureHitScore) {
+    const rewardsQueue = [];
+    const hasQuiz = songData[songUrl]?.quiz && songData[songUrl].quiz.length > 0;
+
+    // --- 檢查 1: 新歌曲解鎖條件 ---
+    if (difficulty === 'normal') {
+        const allSongs = Array.from(musicSelect.options).map(opt => opt.value);
+        const lastUnlockedSong = saveData.unlockedSongs[saveData.unlockedSongs.length - 1];
+        if (songUrl === lastUnlockedSong) {
+            const currentIndex = allSongs.indexOf(lastUnlockedSong);
+            if (currentIndex >= 0 && currentIndex < allSongs.length - 1) {
+                const nextSong = allSongs[currentIndex + 1];
+                if (!isSongUnlocked(nextSong)) {
+                    const requiredScore = maxScoreForCurrentLevel * SONG_UNLOCK_PERCENTAGE;
+                    if (pureHitScore >= requiredScore) {
+                        rewardsQueue.push({ type: 'song', value: songUrl });
+                    }
+                }
+            }
+        }
     }
 
-    // 規則 2: 檢查這首歌是否有可用於測驗的歌詞
-    const hasQuiz = songData[songUrl]?.quiz && songData[songUrl].quiz.length > 0;
-    
-    // 規則 3: 從 Firebase 獲取最新的排行榜數據
-    const songId = sanitizeFirebaseKey(songUrl);
-    const leaderboardRef = database.ref(`leaderboards/${songId}/${difficulty}`);
-    
-    try {
-        const snapshot = await leaderboardRef.once('value');
-        const board = snapshot.val() || [];
-
-        // 規則 4: 判斷分數是否足夠進入排行榜
-        const lowestScoreOnBoard = board.length < 3 ? 0 : board[board.length - 1].score;
-        const selfEntry = board.find(e => e.name === playerName);
-        
-        // 條件：分數高於榜上最低分，或者玩家已在榜上且創下新高分
-        const isEligible = score > lowestScoreOnBoard || (selfEntry && score > selfEntry.score);
-
-        if (isEligible) {
-            if (hasQuiz) {
-                // 分數夠高且有測驗 -> 啟動測驗
-                console.log("分數符合排行榜資格，啟動歌詞測驗。");
-                startLyricsQuiz('leaderboard', { songUrl, difficulty, score }, songUrl);
-            } else {
-                // 分數夠高但沒有測驗 -> 直接提交分數
-                console.log("分數符合排行榜資格，但無測驗題目，直接提交。");
-                showNotification('info', '自動提交分數', '由於此歌曲無歌詞測驗，您的分數已自動提交至排行榜。');
-                submitScoreToLeaderboard(songUrl, difficulty, score);
-            }
-        } else {
-            // 分數不夠高，不執行任何操作
-            console.log("分數未達到排行榜標準。");
+    // --- 檢查 2: 新難度解鎖條件 ---
+    // 解鎖困難
+    if (difficulty === 'normal' && !isDifficultyUnlocked(songUrl, 'hard')) {
+        const requiredScore = maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE;
+        if (pureHitScore >= requiredScore) {
+            rewardsQueue.push({ type: 'difficulty', value: { song: songUrl, difficulty: 'hard' } });
         }
-    } catch (error) {
-        console.error("檢查排行榜資格時出錯:", error);
+    }
+    // 解鎖地獄
+    if (difficulty === 'hard' && !isDifficultyUnlocked(songUrl, 'hell')) {
+        const requiredScore = maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE;
+        if (pureHitScore >= requiredScore) {
+            rewardsQueue.push({ type: 'difficulty', value: { song: songUrl, difficulty: 'hell' } });
+        }
+    }
+
+    // --- 檢查 3: 排行榜資格條件 (異步) ---
+    if (playerName) {
+        const songId = sanitizeFirebaseKey(songUrl);
+        const leaderboardRef = database.ref(`leaderboards/${songId}/${difficulty}`);
+        try {
+            const snapshot = await leaderboardRef.once('value');
+            const board = snapshot.val() || [];
+            const lowestScoreOnBoard = board.length < 3 ? 0 : board[board.length - 1].score;
+            const selfEntry = board.find(e => e.name === playerName);
+            const isEligible = score > lowestScoreOnBoard || (selfEntry && score > selfEntry.score);
+
+            if (isEligible) {
+                rewardsQueue.push({ type: 'leaderboard', value: { songUrl, difficulty, score } });
+            }
+        } catch (error) {
+            console.error("檢查排行榜資格時出錯:", error);
+        }
+    }
+
+    // --- 根據佇列內容，決定下一步行動 ---
+    if (rewardsQueue.length > 0) {
+        if (hasQuiz) {
+            // 如果有獎勵且有測驗，則啟動歌詞測驗
+            startLyricsQuiz(rewardsQueue, songUrl);
+        } else {
+            // 如果有獎勵但沒有測驗，則直接授予所有獎勵
+            showNotification('info', '自動授予獎勵', '由於此歌曲無歌詞測驗，所有已達成的獎勵將自動授予給您。');
+            grantAllRewards(rewardsQueue);
+        }
     }
 }
 
+/**
+ * 直接授予所有獎勵 (用於沒有測驗的歌曲)
+ * @param {Array} rewards - 獎勵佇列
+ */
+function grantAllRewards(rewards) {
+    rewards.forEach(reward => {
+        switch (reward.type) {
+            case 'song':
+                unlockNextSong(reward.value);
+                break;
+            case 'difficulty':
+                unlockDifficulty(reward.value.song, reward.value.difficulty);
+                break;
+            case 'leaderboard':
+                submitScoreToLeaderboard(reward.value.songUrl, reward.value.difficulty, reward.value.score);
+                break;
+        }
+    });
+}
             
 
 function endGame() {
@@ -5697,15 +5619,9 @@ function endGame() {
     const selectedDifficulty = difficultySelect.value;
     updatePersonalHighScore(selectedSong, selectedDifficulty, score);
 
-    // ▼▼▼ 【核心修訂】將解鎖判斷與排行榜挑戰分開處理 ▼▼▼
-
-    // 1. 處理「歌曲」和「難度」的解鎖，這部分仍然使用舊的測驗流程
-    checkAndShowQuizOrInfo(selectedSong, selectedDifficulty, pureHitScore);
-    
-    // 2. 獨立處理「排行榜」挑戰，呼叫我們的新函數
-    attemptLeaderboardEntry(selectedSong, selectedDifficulty, score);
-    
-    // ▲▲▲ 修訂結束 ▲▲▲
+    // 【核心修改】呼叫統一的獎勵處理函數
+    // 函數內部會處理所有檢查、測驗觸發和獎勵發放
+    processPostGameRewards(selectedSong, selectedDifficulty, score, pureHitScore);
 
     showGameOver();
 }
