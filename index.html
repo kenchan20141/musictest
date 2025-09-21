@@ -3029,6 +3029,159 @@
     /* 【互動效果】添加一個優雅的90度旋轉動畫 */
     transform: rotate(90deg);
 }
+
+        /* ========================================================================= */
+/* ====== 【全新獨立設計】排行榜 "榮譽殿堂" 主題 (Hall of Honor) ====== */
+/* ========================================================================= */
+
+/* --- 基礎設定：確保新樣式只在 leaderboardModal 中生效 --- */
+#leaderboardModal .settings-content {
+    background: linear-gradient(145deg, #f5f5f5, #e8e8e8); /* 使用柔和的米白/淺灰漸變 */
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+    border: 1px solid #ddd;
+}
+
+/* --- 標題美化 --- */
+#leaderboardModal .settings-title,
+#leaderboardModal .personal-high-score-title {
+    color: #4a4a4a; /* 使用沉穩的深灰色 */
+    font-weight: 600;
+    text-shadow: none;
+}
+
+/* --- 玩家名稱輸入區域美化 --- */
+#leaderboardModal .setting-group {
+    display: flex; /* 讓輸入框和按鈕可以並排 */
+    align-items: center;
+    gap: 10px;
+}
+#leaderboardModal #playerNameInput {
+    flex-grow: 1; /* 讓輸入框佔據大部分空間 */
+    background: #fff;
+    border: 1px solid #ccc;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+}
+#leaderboardModal #playerNameInput:focus {
+    border-color: #b48f5a; /* 聚焦時顯示金色邊框 */
+    box-shadow: 0 0 5px rgba(180, 143, 90, 0.5);
+}
+
+/* --- 【核心】無文字的圖標按鈕設計 --- */
+.save-name-icon-btn {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0; /* 防止按鈕被壓縮 */
+    background: #28a745; /* 使用代表成功的綠色 */
+    color: white;
+    border: none;
+    border-radius: 50%; /* 完美的圓形 */
+    cursor: pointer;
+    position: relative; /* 為了定位偽元素圖標 */
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.4);
+    transition: background 0.3s ease, transform 0.2s ease;
+}
+.save-name-icon-btn:hover {
+    background: #218838; /* 懸停時顏色加深 */
+    transform: translateY(-2px);
+}
+/* 使用 ::before 偽元素繪製一個 CSS 的打勾 (✓) 圖標 */
+.save-name-icon-btn::before {
+    content: '';
+    position: absolute;
+    top: 45%;
+    left: 50%;
+    width: 10px;
+    height: 20px;
+    border: solid white;
+    border-width: 0 4px 4px 0;
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+/* --- 【核心】排行榜列表樣式美化 --- */
+#leaderboardModal .leaderboard-item {
+    background: rgba(255, 255, 255, 0.8);
+    border-left: none; /* 移除舊的左側邊框 */
+    border-radius: 12px;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transition: all 0.3s ease;
+}
+
+/* --- 【核心】排名顯示升級為金、銀、銅獎牌 --- */
+#leaderboardModal .leaderboard-rank {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+}
+
+/* 金牌 (#1) */
+#leaderboardModal .leaderboard-item:nth-child(1) {
+    background: linear-gradient(135deg, #fffbeb, #fff);
+    box-shadow: 0 4px 20px rgba(255, 215, 0, 0.4);
+    border: 1px solid #FFD700;
+}
+#leaderboardModal .leaderboard-item:nth-child(1) .leaderboard-rank {
+    background: linear-gradient(145deg, #FFD700, #F0C400);
+    border: 2px solid #fff;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+}
+
+/* 銀牌 (#2) */
+#leaderboardModal .leaderboard-item:nth-child(2) .leaderboard-rank {
+    background: linear-gradient(145deg, #e0e0e0, #B0B0B0);
+    border: 2px solid #f8f8f8;
+}
+
+/* 銅牌 (#3) */
+#leaderboardModal .leaderboard-item:nth-child(3) .leaderboard-rank {
+    background: linear-gradient(145deg, #d9a771, #ae7a44);
+    border: 2px solid #f8f8f8;
+}
+
+/* --- 列表內文字細節調整 --- */
+#leaderboardModal .leaderboard-name {
+    flex-grow: 1;
+    color: #333;
+    font-size: 1.1rem;
+}
+#leaderboardModal .leaderboard-score {
+    color: #666;
+    font-size: 1.2rem;
+}
+#leaderboardModal .leaderboard-item:nth-child(1) .leaderboard-name {
+    font-weight: bold;
+    color: #584400;
+}
+#leaderboardModal .leaderboard-item:nth-child(1) .leaderboard-score {
+    font-weight: bold;
+    color: #a37d00;
+}
+
+/* --- 響應式微調 --- */
+@media (max-width: 480px) {
+    #leaderboardModal .leaderboard-item {
+        padding: 8px 10px;
+        gap: 10px;
+    }
+    #leaderboardModal .leaderboard-rank {
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
+    }
+    #leaderboardModal .leaderboard-name {
+        font-size: 1rem;
+    }
+}
         
     </style>
 
@@ -6178,7 +6331,7 @@ disclaimerModal.addEventListener('click', (e) => {
         <div class="setting-group" id="playerNameGroup">
             <label class="setting-label" for="playerNameInput">你的顯示名稱:</label>
             <input type="text" id="playerNameInput" class="setting-control" placeholder="輸入你的名稱" maxlength="20">
-            <button id="savePlayerNameBtn" class="restart-btn" style="margin-top: 10px; width: 100%;">儲存名稱</button>
+          <button id="savePlayerNameBtn" class="save-name-icon-btn" title="儲存名稱"></button>
         </div>
 
         <!-- 排行榜顯示區域 -->
