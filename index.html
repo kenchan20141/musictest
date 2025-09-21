@@ -2045,98 +2045,6 @@
 
 
 
-.lyrics-background {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1; /* 在背景圖上方，但低於遊戲內容 */
-    display: flex; /* 保留 flex 以自動排列 */
-    flex-wrap: wrap; /* 自動換行，填滿畫面 */
-    align-content: flex-start; /* 從頂部開始，無垂直間距 */
-    justify-content: space-around; /* 均勻分散，填滿左右 */
-    gap: 2px; /* 統一小間距（2px），所有設備一致 */
-    margin: 0; /* 確保容器無邊距 */
-    padding: 0; /* 確保容器無內距 */
-    opacity: 0.25; /* 保留半透明 */
-    color: #fff; /* 保留白色文字 */
-    font-size: 5rem; /* 預設大小，media query 會調整 */
-    pointer-events: none; /* 不擋互動 */
-    text-align: center;
-    overflow: hidden; /* 防止溢出產生空白或重疊 */
-    display: none; /* 預設隱藏，由 JS 控制 */
-}
-
-.lyrics-background span {
-    margin: 0; /* 移除邊距 */
-    padding: 0; /* 移除內距 */
-    line-height: 1.1; /* 修訂：統一為 1.1，讓行距一致（平衡值：手機不太大，電腦不太密；可調成 1.05 以更緊密） */
-    word-spacing: 0; /* 正常字距 */
-    letter-spacing: 0; /* 正常字母間距 */
-    white-space: nowrap; /* 防止換行，讓文字連續 */
-    flex: 0 0 auto; /* 自動調整大小 */
-    min-width: 10%; /* 預設每行約 10 個，media query 會調整 */
-    min-height: 10vh; /* 最小高度，防止垂直壓縮重疊 */
-    display: inline-flex; /* 內聯 flex，讓文字緊貼 */
-    align-items: center;
-    justify-content: center;
-    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5); /* 保留陰影，提升可讀性 */
-    word-break: break-word; /* 正常斷詞，避免過長重疊 */
-    overflow: hidden; /* 隱藏溢出文字，強制防止重疊 */
-}
-
-        
-@media (max-width: 1024px) { /* 平板：中等密集，每行約 8 個 */
-    .lyrics-background {
-        font-size: 4rem; /* 稍減小字體，避免重疊 */
-        justify-content: space-around; /* 均勻填滿左右 */
-        gap: 2px; /* 統一間距 */
-    }
-    .lyrics-background span {
-        min-width: 12.5%; /* 每行約 8 個，密集但有空間 */
-        min-height: 12vh; /* 增加垂直緩衝 */
-        line-height: 1.1; /* 統一行距 */
-    }
-}
-
-@media (max-width: 768px) { /* 手機：稍鬆，每行約 6 個 */
-    .lyrics-background {
-        font-size: 3.5rem; /* 修訂：介於 3-4rem，讓手機行距不太大（平衡密度） */
-        justify-content: space-around; /* 均勻填滿左右 */
-        gap: 2px; /* 統一間距 */
-    }
-    .lyrics-background span {
-        min-width: 16.66%; /* 每行約 6 個，確保不擠 */
-        min-height: 15vh; /* 增加垂直緩衝 */
-        line-height: 1.1; /* 統一行距 */
-    }
-}
-
-@media (max-width: 480px) { /* 小手機：更鬆，每行約 4 個 */
-    .lyrics-background {
-        font-size: 3rem; /* 修訂：減小為 3rem，讓手機行距更小（但不重疊） */
-        justify-content: space-around; /* 均勻填滿左右 */
-        gap: 2px; /* 統一間距 */
-    }
-    .lyrics-background span {
-        min-width: 25%; /* 每行約 4 個，足夠空間 */
-        min-height: 20vh; /* 最大垂直緩衝 */
-        line-height: 1.1; /* 統一行距 */
-    }
-}
-
-@media (min-width: 1025px) { /* 電腦大屏：更密，每行約 12 個 */
-    .lyrics-background {
-        font-size: 4.5rem; /* 修訂：稍減為 4.5rem，讓電腦不太密（平衡行距） */
-        gap: 2px; /* 統一間距 */
-    }
-    .lyrics-background span {
-        min-width: 8.33%; /* 每行約 12 個，密集但不重疊 */
-        min-height: 8vh; /* 減小垂直，增加密度 */
-        line-height: 1.1; /* 統一行距 */
-    }
-}
 
         .track.flash-effect {
     animation: trackFlashStrong 0.3s ease-out; /* 新增強版閃光 */
@@ -3331,7 +3239,7 @@
     
 </head>
 <body>
-    <div class="lyrics-background" id="lyricsBackground"></div>  <!-- 移到這裡 -->
+ 
     <!-- Background Image -->
     <div class="background-image"></div>
     <div class="container">
@@ -5601,21 +5509,21 @@ function checkAndShowQuizOrInfo(songUrl, difficulty, pureHitScore) {
 
 
 
+// ▼▼▼ 請將此函數完整複製，並替換掉您現有的 updateGameLyrics 函數 ▼▼▼
 function updateGameLyrics(currentTime) {
     const selectedSong = musicSelect.value;
     const lyrics = songData[selectedSong]?.lyrics || [];
-    
-    // 如果這首歌沒有歌詞，就直接結束，不做任何事
+    const verticalLyricElement = document.getElementById('game-lyric-text');
+
+    if (!verticalLyricElement) return; // 如果找不到元素，直接退出
+
+    // 如果這首歌沒有歌詞，就清空文字
     if (lyrics.length === 0) {
-        // 同時也確保垂直歌詞是空的
-        const verticalLyricElement = document.getElementById('game-lyric-text');
-        if (verticalLyricElement) {
-            verticalLyricElement.textContent = '';
-        }
+        verticalLyricElement.textContent = '';
         return;
     }
 
-    // 1. 找出當前應該顯示哪一句歌詞
+    // 找出當前應該顯示哪一句歌詞
     let currentIndex = -1;
     for (let i = 0; i < lyrics.length; i++) {
         if (lyrics[i].time <= currentTime) {
@@ -5624,38 +5532,12 @@ function updateGameLyrics(currentTime) {
             break;
         }
     }
-    const currentLyricText = (currentIndex >= 0 && lyrics[currentIndex]) ? lyrics[currentIndex].text : '';
+    const currentLyricText = (currentIndex >= 0) ? lyrics[currentIndex].text : '';
 
-    // 2. 【核心新增】將找到的歌詞文字，更新到我們新的垂直歌詞元素中
-    const verticalLyricElement = document.getElementById('game-lyric-text');
-    if (verticalLyricElement) {
-        verticalLyricElement.textContent = currentLyricText;
-    }
-
-    // 3. (保留) 繼續執行您原有的滿版背景歌詞功能
-    const lyricsBackground = document.getElementById('lyricsBackground');
-    if (lyricsBackground && lyricsBackground.style.display !== 'none') {
-        lyricsBackground.innerHTML = ''; // 清空舊內容
-        if (currentLyricText) {
-            const fontSize = parseFloat(getComputedStyle(lyricsBackground).fontSize);
-            const approxCharWidth = fontSize * 0.6;
-            const lineHeight = fontSize * 1.2;
-            const lyricWidth = currentLyricText.length * approxCharWidth;
-            const spanWidth = Math.max(lyricWidth, window.innerWidth * 0.1);
-            const spanHeight = lineHeight;
-            const horizontalCount = Math.ceil(window.innerWidth / spanWidth);
-            const verticalCount = Math.ceil(window.innerHeight / spanHeight);
-            const densityFactor = 1.2;
-            const totalSpans = Math.ceil(horizontalCount * verticalCount * densityFactor);
-            
-            for (let i = 0; i < totalSpans; i++) {
-                const span = document.createElement('span');
-                span.textContent = currentLyricText;
-                lyricsBackground.appendChild(span);
-            }
-        }
-    }
+    // 將找到的歌詞文字，更新到我們的垂直歌詞元素中
+    verticalLyricElement.textContent = currentLyricText;
 }
+// ▲▲▲ 替換結束 ▲▲▲
 // ▲▲▲ 替換結束 ▲▲▲
 // 修訂：startGame（顯示新背景容器）
 async function startGame() {
@@ -5749,11 +5631,7 @@ noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, se
     progressInterval = setInterval(updateProgress, 100);
     setTimeout(() => { if (gameActive) endGame(); }, currentSongDuration * 1000 + 2000);
 
-    // 新增：顯示背景歌詞容器
-    const lyricsBackground = document.getElementById('lyricsBackground');
-    if (lyricsBackground) {
-        lyricsBackground.style.display = 'grid';
-    }
+ 
 }
 
 function endGame() {
@@ -5777,11 +5655,7 @@ function endGame() {
     notes.forEach(note => note.element.remove());
     notes = [];
 
-    const lyricsBackground = document.getElementById('lyricsBackground');
-    if (lyricsBackground) {
-        lyricsBackground.style.display = 'none';
-        lyricsBackground.innerHTML = '';
-    }
+  
 
     // --- 遊戲後結算 ---
     const selectedSong = musicSelect.value;
