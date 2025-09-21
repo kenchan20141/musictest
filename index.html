@@ -4477,6 +4477,9 @@ async function handlePlayerName() {
                 localStorage.setItem('musicGamePlayerName', playerName);
                 
                 showNotification('success', '儲存成功', `你的新名稱「<strong>${playerName}</strong>」已成功設定！`);
+
+ // 【新增】成功儲存名稱後，自動關閉設定視窗
+                settingsModal.classList.remove('active');
             }
         } catch (error) {
             console.error("檢查名稱時發生錯誤:", error);
@@ -4913,6 +4916,24 @@ function updateUnlockMeter() {
             }
 
           async function startGame() {
+ // 【新增】在遊戲開始前強制檢查玩家名稱
+    if (!playerName) {
+        // 如果玩家名稱為空，則執行以下操作
+        showNotification('info', '請先設定名稱', '為了記錄您的成績與登上排行榜，請先在設定中設置您的顯示名稱。');
+        
+        // 自動彈出設定視窗
+        settingsModal.classList.add('active');
+        
+        // 為了方便玩家，自動將游標聚焦在名稱輸入框中
+        const playerNameInput = document.getElementById('playerNameInput'); // 確保獲取到輸入框元素
+        if (playerNameInput) {
+            playerNameInput.focus();
+        }
+
+        return; // 【重要】中止 startGame 函數的後續執行
+    }
+    // 【新增結束】
+              
     const selectedSong = musicSelect.value;
     const selectedDifficulty = difficultySelect.value;
 
