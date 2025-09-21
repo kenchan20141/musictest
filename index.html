@@ -3941,7 +3941,7 @@ const songCovers = {
             const touchKeys = document.querySelectorAll('.touch-key');
             const difficultySelect = document.getElementById('difficultySelect');
             const audio = new Audio();
-            audio.volume = 0.7;
+            audio.volume = 1.0;
             // --- 【新增】排行榜相關的 DOM 元素 ---
 const leaderboardBtn = document.getElementById('leaderboardBtn');
 const leaderboardModal = document.getElementById('leaderboardModal');
@@ -4043,7 +4043,7 @@ let currentNoteParticleIndex = 0;
 
             // Music Player State
             let playerAudio = new Audio();
-            playerAudio.volume = 0.7;
+            playerAudio.volume = 1.0;
             let playerIsPlaying = false;
             let playlistItems = [];
             let currentPlaylistIndex = 0;
@@ -6246,10 +6246,10 @@ function updateCdCover(songUrl) {
                 if (e.target === unlockModal) unlockModal.classList.remove('active');
             });
 
-            // 【修訂】為音樂音量滑桿添加事件監聽，並即時更新CSS變數
+         // 【修訂】為音樂音量滑桿添加事件監聽，並即時更新CSS變數
             volumeControlModal.addEventListener('input', (e) => {
                 const value = parseFloat(e.target.value);
-                audio.volume = isNaN(value) ? 0.7 : value;
+                audio.volume = isNaN(value) ? 1.0 : value; // 將後備值從 0.7 改為 1.0
                 // 更新CSS變數來控制背景填充
                 const percent = value * 100;
                 e.target.style.background = `linear-gradient(to right, #3b82f6 ${percent}%, #4a5568 ${percent}%)`;
