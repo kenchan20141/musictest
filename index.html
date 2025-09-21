@@ -2025,51 +2025,52 @@
 
 /* 【全面修訂】遊戲中歌詞顯示容器 */
 .game-lyrics-container {
-    /* 核心定位：保持精確的水平垂直置中，這部分是正確的 */
+    /* 核心定位：保持精確的水平垂直置中 */
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
 
-    /* 尺寸與佈局：確保容器行為符合預期 */
-    width: 90%;          /* 容器寬度為軌道的 90%，留出邊距 */
-    max-height: 100%;    /* 【關鍵】嚴格限制容器高度不能超過軌道區域 */
+    /* 解決方案 1：響應式設計與尺寸限制 */
+    width: 90%;          /* 容器寬度為軌道區域的 90%，在各種裝置上都能保持邊距 */
+    max-height: 100%;    /* 【關鍵】嚴格限制容器高度不能超過父層（軌道區域）的高度 */
     display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 15px;       /* 增加一些內邊距，讓文字有呼吸空間 */
-    box-sizing: border-box;
+    justify-content: center; /* 水平置中容器內的文字 */
+    align-items: center;     /* 垂直置中容器內的文字 */
+    padding: 15px;       /* 增加一些內邊距，讓文字有呼吸空間，避免貼邊 */
+    box-sizing: border-box; /* 確保 padding 不會撐大容器，導致溢出 */
 
     /* 視覺效果與互動性 */
     color: white;
     text-align: center;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9); /* 再次加深陰影，確保在任何背景下都清晰 */
-    pointer-events: none;
-    z-index: 4;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9); /* 加深陰影，確保在任何背景下都清晰 */
+    pointer-events: none; /* 讓歌詞不會擋住下方的點擊事件 */
+    z-index: 4;          /* 確保歌詞在軌道背景之上，但在音符之下 */
 
     /* 動畫與預設狀態 */
     opacity: 0;
     transition: opacity 0.5s ease;
 }
 
-/* 當遊戲進行時，顯示歌詞容器 */
+/* 當遊戲進行時，才顯示歌詞容器 */
 .game-running .game-lyrics-container {
-    opacity: 0.85;
+    opacity: 0.85; /* 遊戲中顯示時的透明度 */
 }
 
 /* 【全面修訂】單行歌詞樣式 */
 .game-lyric-line {
-    /* 【解決方案 2 & 3】全新的響應式字體與換行設定 */
-    /* 使用 min() 結合 vw 和 vh，讓字體大小同時考慮螢幕的寬度和高度，避免在寬螢幕上字體過高 */
+    /* 解決方案 2：控制文字高度與響應式字體 */
+    /* 使用 clamp 配合 vh (viewport height) 和 vw (viewport width)，讓字體大小同時考慮螢幕的寬高比，
+       在寬螢幕上不會過高，在窄螢幕上不會過寬。這是解決文字高度超出區域的關鍵。 */
     font-size: clamp(1.2rem, min(4vw, 7vh), 3rem); 
     font-weight: bold;
-    line-height: 1.5;     /* 稍微增加行高，讓換行後的文字更易讀 */
+    line-height: 1.4;     /* 稍微增加行高，讓換行後的文字更易讀 */
     margin: 0;
     
-    /* 【解決方案 3】強制啟用正常的換行行為 */
-    white-space: normal;      /* 確保文字能自動換行 */
-    overflow-wrap: break-word; /* 強制長單詞或連續字符斷開換行 */
-    width: 100%;          /* 確保文字元素能利用容器的全部寬度 */
+    /* 解決方案 3：啟用自動換行 */
+    white-space: normal;      /* 【關鍵】允許文字根據容器寬度自動換行 */
+    overflow-wrap: break-word; /* 強制長單詞或連續字符（若有）也能斷開換行 */
+    width: 100%;          /* 確保文字元素能利用容器的全部寬度來進行換行判斷 */
 }
 
 /* 遊戲運行中隱藏選擇器，避免重疊 */
