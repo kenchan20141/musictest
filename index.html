@@ -6,13 +6,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>失落之感性</title>
-
-
-   <!-- ▼▼▼ 請將 Firebase SDK 加在這裡 ▼▼▼ -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <!-- ▲▲▲ 新增結束 ▲▲▲ -->
-    
      <!-- ▼▼▼ 請將這行 Google Fonts 連結加在這裡 ▼▼▼ -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -2478,38 +2471,80 @@
     }
 }
 
-        /* ▼▼▼ 為排行榜列表項新增的樣式 ▼▼▼ */
+        /* ====== 【新增】排行榜相關樣式 ====== */
+
+/* 排行榜列表項目 */
 .leaderboard-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 1.1rem;
+    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border-left: 4px solid #ffcc00;
+    transition: background 0.3s ease, transform 0.2s ease;
 }
 
+.leaderboard-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(5px);
+}
+
+/* 排名 */
 .leaderboard-rank {
+    font-size: 1.2rem;
     font-weight: bold;
-    color: #ffcc00; /* 金色 */
-    flex-basis: 10%;
-    text-align: left;
+    color: #ffcc00;
+    flex-basis: 15%;
 }
 
+/* 玩家名稱 */
 .leaderboard-name {
-    flex-basis: 60%;
+    font-size: 1.1rem;
+    color: #f0f0f0;
+    flex-basis: 55%;
     text-align: left;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
+/* 分數 */
 .leaderboard-score {
+    font-size: 1.3rem;
     font-weight: bold;
-    color: #00c9ff; /* 亮藍色 */
+    color: #00c9ff;
     flex-basis: 30%;
     text-align: right;
 }
-/* ▲▲▲ 新增結束 ▲▲▲ */
+
+/* 列表第一名的特殊樣式 */
+.leaderboard-item:first-child {
+    border-left-color: #ff8a00;
+    box-shadow: 0 0 15px rgba(255, 138, 0, 0.3);
+}
+.leaderboard-item:first-child .leaderboard-rank {
+    color: #ff8a00;
+    transform: scale(1.1);
+}
+
+/* 響應式設計 */
+@media (max-width: 480px) {
+    .leaderboard-name {
+        font-size: 1rem;
+    }
+    .leaderboard-score {
+        font-size: 1.1rem;
+    }
+}
         
     </style>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
 </head>
 <body>
     <div class="lyrics-background" id="lyricsBackground"></div>  <!-- 移到這裡 -->
@@ -2562,6 +2597,15 @@
                                 <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" />
                             </svg>
                         </button>
+
+<!-- 在 id="settingsBtn" 的按鈕後面加入這段 -->
+<button class="personal-high-score-btn" id="leaderboardBtn" title="歌曲排行榜">
+    <svg class="personal-high-score-icon" viewBox="0 0 24 24">
+        <path d="M16 11V3H8V11H2V21H22V11H16M14 5H10V9H14V5M20 13H18V15H20V13M20 17H18V19H20V17M12 13H4V19H12V13Z" />
+    </svg>
+</button>
+
+                        
                         <button class="music-player-btn" id="musicPlayerBtn" title="音樂播放器">
                              <svg class="music-player-icon" viewBox="0 0 24 24">
                                 <path d="M12,3V13.55C11.41,13.21 10.73,13 10,13C7.79,13 6,14.79 6,17C6,19.21 7.79,21 10,21C12.21,21 14,19.21 14,17V7H18V3H12Z" />
@@ -2612,17 +2656,6 @@
                                 <path d="M12,17.27L18.18,21L16.54,13.97L22,9.24L14.81,8.62L12,2L9.19,8.62L2,9.24L7.45,13.97L5.82,21L12,17.27Z" />
                             </svg>
                         </button>
-
-  <!-- ▼▼▼ 請在這裡加入新的排行榜按鈕 ▼▼▼ -->
-                        <button class="personal-high-score-btn" id="leaderboardBtn" title="查看全球排行榜">
-                            <svg class="personal-high-score-icon" viewBox="0 0 24 24">
-                                <path d="M20,10H4V12H20V10M20,14H4V16H20V14M12,6C13.11,6 14,6.9 14,8C14,9.11 13.11,10 12,10C10.89,10 10,9.11 10,8C10,6.9 10.89,6 12,6M20,4H4A2,2 0 0,0 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V6A2,2 0 0,0 20,4Z" />
-                            </svg>
-                        </button>
-                        <!-- ▲▲▲ 新增結束 ▲▲▲ -->
-
-
-                        
                     </div>
                     <div class="difficulty-selector">
                         
@@ -2716,18 +2749,6 @@
         </div>
     </div>
 
-    <!-- ▼▼▼ 請在這裡加入新的排行榜視窗 ▼▼▼ -->
-    <div class="personal-high-score-modal" id="leaderboardModal">
-        <div class="personal-high-score-content">
-            <button class="close-personal-high-score" id="closeLeaderboard">&times;</button>
-            <h2 class="personal-high-score-title" id="leaderboardTitle">全球排行榜</h2>
-            <ul class="personal-high-score-list" id="leaderboardList">
-                <!-- 排行榜資料將會由 JS 填入此處 -->
-            </ul>
-        </div>
-    </div>
-    <!-- ▲▲▲ 新增結束 ▲▲▲ -->
-
     <!-- Music Player Modal -->
     <div class="music-player-modal" id="musicPlayerModal">
         <div class="music-player-content">
@@ -2789,24 +2810,38 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
 
-// 你的 Firebase 設定
-            const firebaseConfig = {
-              apiKey: "AIzaSyD0J56yq_QjjzAZuhAEqE3SVU0GePS2l-0",
-              authDomain: "musicgame-7dad1.firebaseapp.com",
-              projectId: "musicgame-7dad1",
-              storageBucket: "musicgame-7dad1.firebasestorage.app",
-              messagingSenderId: "720961310659",
-              appId: "1:720961310659:web:4959c7269b0adbed5ab776",
-              databaseURL: "https://musicgame-7dad1-default-rtdb.asia-southeast1.firebasedatabase.app" // 請確認你的資料庫 URL
-            };
+// ==========================================================
+// ====== 【新增】Firebase 初始化與排行榜相關設定 ======
+// ==========================================================
 
-            // 初始化 Firebase
-            firebase.initializeApp(firebaseConfig);
-            const database = firebase.database();
+// 你的 Firebase 設定物件
+const firebaseConfig = {
+  apiKey: "AIzaSyD0J56yq_QjjzAZuhAEqE3SVU0GePS2l-0",
+  authDomain: "musicgame-7dad1.firebaseapp.com",
+  projectId: "musicgame-7dad1",
+  storageBucket: "musicgame-7dad1.firebasestorage.app",
+  messagingSenderId: "720961310659",
+  appId: "1:720961310659:web:4959c7269b0adbed5ab776"
+};
 
-            // 玩家名稱的 localStorage Key
-            const PLAYER_NAME_KEY = 'musicGamePlayerName';
-            // ▲▲▲ 新增結束 ▲▲▲
+// 初始化 Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// 髒話過濾列表 (可持續擴充)
+const profanityList = [
+    // 粵語
+    "屌", "屌你", "仆街", "冚家剷", "on9", "撚", "鳩", "柒", "onL9",
+    // 普通話
+    "操", "草泥马", "傻逼", "肏", "媽的", "他媽的", "我靠", "尼玛"
+];
+
+// 玩家狀態變數
+let playerName = localStorage.getItem('musicGamePlayerName') || '';
+
+// ==========================================================
+// ====== 【新增結束】 ========================================
+// ==========================================================
 
             
            // --- Constants and Configuration ---
@@ -3068,6 +3103,7 @@ const songCovers = {
 
 
             // --- DOM Elements ---
+
             const mainGameContainer = document.getElementById('mainGameContainer');
             const tracksContainer = document.getElementById('tracksContainer');
             const scoreDisplay = document.getElementById('score');
@@ -3088,6 +3124,16 @@ const songCovers = {
             const difficultySelect = document.getElementById('difficultySelect');
             const audio = new Audio();
             audio.volume = 0.7;
+            // --- 【新增】排行榜相關的 DOM 元素 ---
+const leaderboardBtn = document.getElementById('leaderboardBtn');
+const leaderboardModal = document.getElementById('leaderboardModal');
+const closeLeaderboard = document.getElementById('closeLeaderboard');
+const playerNameGroup = document.getElementById('playerNameGroup');
+const playerNameInput = document.getElementById('playerNameInput');
+const savePlayerNameBtn = document.getElementById('savePlayerNameBtn');
+const leaderboardTitle = document.getElementById('leaderboardTitle');
+const leaderboardList = document.getElementById('leaderboardList');
+const leaderboardLoading = document.getElementById('leaderboardLoading');
 
             // New DOM Elements
             const personalHighScoreBtn = document.getElementById('personalHighScoreBtn');
@@ -3110,13 +3156,6 @@ const songCovers = {
             const unlockModal = document.getElementById('unlockModal');
             const closeUnlock = document.getElementById('closeUnlock');
             const unlockRequirement = document.getElementById('unlockRequirement');
-             // ▼▼▼ 請在這裡加入新的 DOM 元素變數 ▼▼▼
-            const leaderboardBtn = document.getElementById('leaderboardBtn');
-            const leaderboardModal = document.getElementById('leaderboardModal');
-            const closeLeaderboard = document.getElementById('closeLeaderboard');
-            const leaderboardTitle = document.getElementById('leaderboardTitle');
-            const leaderboardList = document.getElementById('leaderboardList');
-            // ▲▲▲ 新增結束 ▲▲▲
              // ▼▼▼ 新增通知視窗的 DOM 元素 ▼▼▼
             const notificationModal = document.getElementById('notificationModal');
             const notificationIcon = document.getElementById('notificationIcon');
@@ -3410,146 +3449,6 @@ function checkAndUnlockDifficulties(songUrl, difficulty, pureHitScore) {
                 unlockModal.classList.add('active');
             }
 
-            // ▼▼▼ 【新增】排行榜與玩家名稱核心功能 ▼▼▼
-
-            /**
-             * 獲取或設定玩家名稱。
-             * 如果 localStorage 中沒有名稱，會彈出視窗讓玩家輸入。
-             * @returns {Promise<string|null>} 回傳玩家名稱，如果玩家取消輸入則回傳 null。
-             */
-            async function getOrSetPlayerName() {
-                let playerName = localStorage.getItem(PLAYER_NAME_KEY);
-
-                while (!playerName || playerName.trim().length === 0 || playerName.trim().length > 20) {
-                    playerName = prompt("請輸入你的排行榜名稱 (1-20 字元):", playerName || "");
-                    
-                    if (playerName === null) { // 玩家點擊了 "取消"
-                        showNotification('info', '操作取消', '你取消了輸入名稱，本次分數將不會記錄到全球排行榜。');
-                        return null;
-                    }
-
-                    if (playerName.trim().length > 20) {
-                        alert("名稱太長了！請勿超過 20 個字元。");
-                    } else if (playerName.trim().length === 0) {
-                        alert("名稱不能為空！");
-                    }
-                }
-
-                localStorage.setItem(PLAYER_NAME_KEY, playerName.trim());
-                return playerName.trim();
-            }
-
-            /**
-             * 將檔名轉換為可用於 Firebase key 的安全字串。
-             * @param {string} songUrl - 歌曲的 URL 或檔名
-             * @returns {string} - 轉換後的安全字串
-             */
-            function sanitizeSongUrl(songUrl) {
-                return songUrl.replace(/[.#$[\]/]/g, '_');
-            }
-
-            /**
-             * 提交分數到 Firebase 排行榜
-             * @param {string} songUrl - 歌曲檔名
-             * @param {string} difficulty - 難度
-             * @param {number} finalScore - 最終分數
-             */
-            async function submitScoreToLeaderboard(songUrl, difficulty, finalScore) {
-                if (finalScore <= 0) return; // 0分不計
-
-                const playerName = await getOrSetPlayerName();
-                if (!playerName) return; // 如果沒有名稱，則不提交
-
-                const sanitizedUrl = sanitizeSongUrl(songUrl);
-                const leaderboardRef = database.ref(`leaderboards/${sanitizedUrl}/${difficulty}`);
-
-                leaderboardRef.transaction(currentData => {
-                    const board = currentData || [];
-                    
-                    // 檢查玩家是否已經在榜上且分數更高
-                    const existingPlayerIndex = board.findIndex(p => p.name === playerName);
-                    if (existingPlayerIndex !== -1 && board[existingPlayerIndex].score >= finalScore) {
-                        // 如果已在榜上且分數沒有更高，則不更新，直接中止 transaction
-                        return; 
-                    }
-
-                    // 如果玩家已在榜上但新分數更高，先將其移除
-                    if (existingPlayerIndex !== -1) {
-                        board.splice(existingPlayerIndex, 1);
-                    }
-
-                    // 加入新分數
-                    board.push({ name: playerName, score: finalScore });
-
-                    // 依分數從高到低排序
-                    board.sort((a, b) => b.score - a.score);
-
-                    // 只保留前三名
-                    const newBoard = board.slice(0, 3);
-                    
-                    return newBoard;
-                }, (error, committed, snapshot) => {
-                    if (error) {
-                        console.error("提交分數失敗:", error);
-                        showNotification('info', '提交失敗', '上傳排行榜時發生錯誤，請稍後再試。');
-                    } else if (committed) {
-                        console.log("分數成功提交！");
-                        // 檢查玩家是否進入了前三名
-                        const finalBoard = snapshot.val();
-                        const playerRank = finalBoard.findIndex(p => p.name === playerName);
-                        if(playerRank !== -1) {
-                           showNotification('success', '登上排行榜！', `恭喜！你在這首歌曲的全球排行榜中獲得了第 <strong>${playerRank + 1}</strong> 名！`);
-                        }
-                    } else {
-                        // Transaction 未被提交 (例如因為分數沒有更高)，屬於正常情況
-                        console.log("分數未更新至排行榜 (可能分數未達前三或沒有比舊紀錄高)。");
-                    }
-                });
-            }
-            
-            /**
-             * 顯示全球排行榜視窗
-             */
-            async function displayLeaderboard() {
-                const selectedSong = musicSelect.options[musicSelect.selectedIndex].textContent;
-                const songUrl = musicSelect.value;
-                const difficulty = difficultySelect.value;
-                const difficultyText = difficultySelect.options[difficultySelect.selectedIndex].textContent;
-
-                leaderboardTitle.textContent = `${selectedSong} - ${difficultyText}`;
-                leaderboardList.innerHTML = '<li>讀取中...</li>';
-                leaderboardModal.classList.add('active');
-
-                const sanitizedUrl = sanitizeSongUrl(songUrl);
-                const leaderboardRef = database.ref(`leaderboards/${sanitizedUrl}/${difficulty}`);
-
-                try {
-                    const snapshot = await leaderboardRef.once('value');
-                    const boardData = snapshot.val();
-
-                    leaderboardList.innerHTML = '';
-                    if (boardData && boardData.length > 0) {
-                        boardData.forEach((player, index) => {
-                            const li = document.createElement('li');
-                            li.className = 'personal-high-score-item leaderboard-item';
-                            li.innerHTML = `
-                                <span class="leaderboard-rank">#${index + 1}</span>
-                                <span class="leaderboard-name">${player.name}</span>
-                                <span class="leaderboard-score">${player.score.toLocaleString()}</span>
-                            `;
-                            leaderboardList.appendChild(li);
-                        });
-                    } else {
-                        leaderboardList.innerHTML = '<li>這個排行榜還沒有任何紀錄，快來成為第一名吧！</li>';
-                    }
-                } catch (error) {
-                    console.error("讀取排行榜失敗:", error);
-                    leaderboardList.innerHTML = '<li>讀取排行榜時發生錯誤。</li>';
-                }
-            }
-
-            // ▲▲▲ 新增結束 ▲▲▲
-
             // --- UI Updates ---
 
 
@@ -3752,6 +3651,164 @@ closeNotification.addEventListener('click', () => {
         updateGameLyrics(elapsed);
     }
 }
+
+            // ==============================================================
+// ====== 【新增】排行榜核心功能函數 ==========================
+// ==============================================================
+
+/**
+ * 將歌曲文件名轉換為可用於 Firebase key 的安全字串
+ * @param {string} filename - 例如 "白影.mp3"
+ * @returns {string} - 例如 "白影_mp3"
+ */
+function sanitizeFirebaseKey(filename) {
+    return filename.replace(/\./g, '_').replace(/[#$\[\]]/g, '');
+}
+
+/**
+ * 檢查名稱是否包含髒話
+ * @param {string} name - 要檢查的名稱
+ * @returns {boolean} - 如果包含髒話則回傳 true
+ */
+function isProfane(name) {
+    const lowerCaseName = name.toLowerCase();
+    return profanityList.some(word => lowerCaseName.includes(word));
+}
+
+/**
+ * 處理玩家名稱的設定與儲存
+ */
+function handlePlayerName() {
+    playerNameInput.value = playerName;
+    if (!playerName) {
+        showNotification('info', '設定名稱', '為了登上排行榜，請先設定你的專屬名稱！');
+    }
+
+    savePlayerNameBtn.addEventListener('click', () => {
+        const newName = playerNameInput.value.trim();
+        if (newName.length === 0) {
+            showNotification('info', '名稱無效', '名稱不能為空！');
+            return;
+        }
+        if (isProfane(newName)) {
+            showNotification('info', '名稱不雅', '請勿使用不雅詞彙作為名稱。');
+            return;
+        }
+        playerName = newName;
+        localStorage.setItem('musicGamePlayerName', playerName);
+        showNotification('success', '儲存成功', `你的新名稱「<strong>${playerName}</strong>」已儲存！`);
+    });
+}
+
+/**
+ * 顯示指定歌曲與難度的排行榜
+ * @param {string} songUrl - 歌曲的 URL
+ * @param {string} difficulty - 難度
+ */
+function displayLeaderboard(songUrl, difficulty) {
+    const songDisplayName = Array.from(musicSelect.options).find(opt => opt.value === songUrl)?.textContent || '未知歌曲';
+    const difficultyDisplayName = difficultySelect.querySelector(`option[value="${difficulty}"]`).textContent;
+    
+    leaderboardTitle.textContent = `${songDisplayName} - ${difficultyDisplayName}`;
+    leaderboardList.innerHTML = '';
+    leaderboardLoading.style.display = 'block';
+
+    const songId = sanitizeFirebaseKey(songUrl);
+    const leaderboardRef = database.ref(`leaderboards/${songId}/${difficulty}`);
+
+    leaderboardRef.once('value', (snapshot) => {
+        leaderboardLoading.style.display = 'none';
+        const data = snapshot.val();
+
+        if (data && data.length > 0) {
+            data.forEach((entry, index) => {
+                const li = document.createElement('li');
+                li.className = 'leaderboard-item';
+                li.innerHTML = `
+                    <span class="leaderboard-rank">#${index + 1}</span>
+                    <span class="leaderboard-name">${entry.name}</span>
+                    <span class="leaderboard-score">${entry.score.toLocaleString()}</span>
+                `;
+                leaderboardList.appendChild(li);
+            });
+        } else {
+            leaderboardList.innerHTML = '<li><p style="text-align: center; color: #aaa;">這個排行榜還沒有人挑戰過，快來成為第一名！</p></li>';
+        }
+    });
+}
+
+/**
+ * 提交分數到 Firebase 排行榜
+ * @param {string} songUrl 
+ * @param {string} difficulty 
+ * @param {number} finalScore 
+ */
+async function submitScoreToLeaderboard(songUrl, difficulty, finalScore) {
+    // 如果玩家沒有設定名稱，直接結束，不提交分數
+    if (!playerName) {
+        console.log("玩家未設定名稱，不提交分數至排行榜。");
+        return;
+    }
+
+    const songId = sanitizeFirebaseKey(songUrl);
+    const leaderboardRef = database.ref(`leaderboards/${songId}/${difficulty}`);
+
+    // 使用 Transaction 來處理併發讀寫，確保資料一致性
+    leaderboardRef.transaction((currentData) => {
+        // 如果資料庫中沒有資料，就初始化為一個空陣列
+        if (currentData === null) {
+            currentData = [];
+        }
+
+        // 檢查分數是否足以登上排行榜
+        const lowestScoreOnBoard = currentData.length < 3 ? 0 : currentData[currentData.length - 1].score;
+        if (finalScore <= lowestScoreOnBoard) {
+            // 分數太低，不需要更新，返回 undefined 來中止 transaction
+            return; 
+        }
+
+        // 標記玩家是否已在榜上
+        let playerIndex = -1;
+        for (let i = 0; i < currentData.length; i++) {
+            if (currentData[i].name === playerName) {
+                playerIndex = i;
+                break;
+            }
+        }
+        
+        let madeItToLeaderboard = false;
+
+        if (playerIndex !== -1) {
+            // 玩家已在榜上，只在分數更高時更新
+            if (finalScore > currentData[playerIndex].score) {
+                currentData[playerIndex].score = finalScore;
+                madeItToLeaderboard = true;
+            }
+        } else {
+            // 玩家不在榜上，新增紀錄
+            currentData.push({ name: playerName, score: finalScore });
+            madeItToLeaderboard = true;
+        }
+
+        // 排序、裁減並返回更新後的資料
+        currentData.sort((a, b) => b.score - a.score);
+        const newData = currentData.slice(0, 3);
+        
+        // 如果成功上榜，則觸發通知
+        if(madeItToLeaderboard) {
+            // 使用 setTimeout 將通知推遲到主線程之外，避免在 transaction 中觸發
+            setTimeout(() => {
+                showNotification('success', '登上排行榜！', `恭喜！你在「<strong>${difficulty}</strong>」難度的分數已成功登上排行榜！`);
+            }, 0);
+        }
+
+        return newData;
+    });
+}
+
+// ==============================================================
+// ====== 【新增函數結束】 ======================================
+// ==============================================================
 
             // --- Game Logic ---
             function generateNote(noteData) {
@@ -4762,49 +4819,48 @@ noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, se
 }
 
 function endGame() {
-                if (!gameActive) return; // 防止重複觸發
+    if (!gameActive) return; // 防止重複觸發
 
-                gameActive = false;
-                audio.pause();
-                audio.currentTime = 0;
-                clearTimeout(generateNotesTimer);
-                clearInterval(progressInterval);
-                cancelAnimationFrame(animationFrame);
-                startBtn.disabled = false;
-                musicSelect.disabled = false;
-                difficultySelect.disabled = false;
+    gameActive = false;
+    audio.pause();
+    audio.currentTime = 0;
+    clearTimeout(generateNotesTimer);
+    clearInterval(progressInterval);
+    cancelAnimationFrame(animationFrame);
+    startBtn.disabled = false;
+    musicSelect.disabled = false;
+    difficultySelect.disabled = false;
 
-                // 隱藏遊戲中的 UI 元素
-                mainGameContainer.classList.remove('game-running'); 
-                unlockProgressBar.style.width = '0%';
-                unlockProgressBar.classList.remove('glowing');
-                progressBar.style.width = '0%';
-                notes.forEach(note => note.element.remove());
-                notes = [];
+    // 隱藏遊戲中的 UI 元素
+    mainGameContainer.classList.remove('game-running'); 
+    unlockProgressBar.style.width = '0%';
+    unlockProgressBar.classList.remove('glowing');
+    progressBar.style.width = '0%';
+    notes.forEach(note => note.element.remove());
+    notes = [];
 
-                const lyricsBackground = document.getElementById('lyricsBackground');
-                if (lyricsBackground) {
-                    lyricsBackground.style.display = 'none';
-                    lyricsBackground.innerHTML = '';
-                }
+    const lyricsBackground = document.getElementById('lyricsBackground');
+    if (lyricsBackground) {
+        lyricsBackground.style.display = 'none';
+        lyricsBackground.innerHTML = '';
+    }
 
-                // --- 遊戲後結算 ---
-                const selectedSong = musicSelect.value;
-                const selectedDifficulty = difficultySelect.value;
-                updatePersonalHighScore(selectedSong, selectedDifficulty, score);
+    // --- 遊戲後結算 ---
+    const selectedSong = musicSelect.value;
+    const selectedDifficulty = difficultySelect.value;
+    updatePersonalHighScore(selectedSong, selectedDifficulty, score);
 
-                // ▼▼▼ 【修訂處】在這裡呼叫分數提交函數 ▼▼▼
-                submitScoreToLeaderboard(selectedSong, selectedDifficulty, score);
-                // ▲▲▲ 修訂結束 ▲▲▲
+    // 【核心修訂】
+    // 將所有解鎖判斷統一交給 checkAndShowQuizOrInfo 函數。
+    checkAndShowQuizOrInfo(selectedSong, selectedDifficulty, pureHitScore);
+    
+    // ====== 【新增】提交分數到全球排行榜 ======
+    submitScoreToLeaderboard(selectedSong, selectedDifficulty, score);
+    // ==========================================
 
-                // 【核心修訂】
-                // 將所有解鎖判斷統一交給 checkAndShowQuizOrInfo 函數。
-                // 這個函數將決定是觸發測驗、直接解鎖，還是顯示提示訊息。
-                checkAndShowQuizOrInfo(selectedSong, selectedDifficulty, pureHitScore);
-
-                // 顯示遊戲結束畫面
-                showGameOver();
-            }
+    // 顯示遊戲結束畫面
+    showGameOver();
+}
 
             function showGameOver() {
                 finalScoreDisplay.textContent = score.toLocaleString();
@@ -5407,24 +5463,33 @@ nextBtn.addEventListener('click', () => {
 
             closeUnlock.addEventListener('click', () => unlockModal.classList.remove('active'));
 
-
-// New Event Listeners
-            personalHighScoreBtn.addEventListener('click', () => {
-                const selectedSong = musicSelect.value;
-                populatePersonalHighScoreList(selectedSong);
-                personalHighScoreModal.classList.add('active');
+             // --- 【新增】排行榜 Modal 的事件監聽器 ---
+            leaderboardBtn.addEventListener('click', () => {
+                leaderboardModal.classList.add('active');
+                handlePlayerName(); // 處理玩家名稱
+                // 預設顯示當前主介面選擇的歌曲和難度
+                displayLeaderboard(musicSelect.value, difficultySelect.value);
             });
-            closePersonalHighScore.addEventListener('click', () => personalHighScoreModal.classList.remove('active');
-            
-            // ▼▼▼ 請在這裡加入新的事件監聽 ▼▼▼
-            leaderboardBtn.addEventListener('click', displayLeaderboard);
-            closeLeaderboard.addEventListener('click', () => leaderboardModal.classList.remove('active');
-            window.addEventListener('click', (e) => {
-                if (e.target === leaderboardModal) leaderboardModal.classList.remove('active');
-            });
-            // ▲▲▲ 新增結束 ▲▲▲
 
-            
+            closeLeaderboard.addEventListener('click', () => {
+                leaderboardModal.classList.remove('active');
+            });
+
+            // 當主介面的歌曲或難度改變時，如果排行榜是開啟的，就同步更新
+            musicSelect.addEventListener('change', () => {
+                if (leaderboardModal.classList.contains('active')) {
+                    displayLeaderboard(musicSelect.value, difficultySelect.value);
+                }
+                // 這一段會與上面的 musicSelect.addEventListener 重複，但影響不大，因為它們的功能不衝突
+                // 為了程式碼簡潔，你可以考慮將兩個 change 事件的邏輯合併，但分開寫也完全可以運作
+            });
+
+            difficultySelect.addEventListener('change', () => {
+                if (leaderboardModal.classList.contains('active')) {
+                    displayLeaderboard(musicSelect.value, difficultySelect.value);
+                }
+            });
+
             // --- Initialization ---
             const originalStartButtonSVG = startBtn.innerHTML;
             updateSongOptions(); // Apply unlock status on load
@@ -5505,7 +5570,29 @@ disclaimerModal.addEventListener('click', (e) => {
 </div>
 <!-- ▲▲▲ 新增結束 ▲▲▲ -->
 
-    
+    <!-- ====== 【新增】排行榜 Modal ====== -->
+<div class="settings-modal" id="leaderboardModal">
+    <div class="settings-content">
+        <button class="close-settings" id="closeLeaderboard">&times;</button>
+        <h2 class="settings-title">歌曲排行榜</h2>
+        
+        <!-- 玩家名稱設定 -->
+        <div class="setting-group" id="playerNameGroup">
+            <label class="setting-label" for="playerNameInput">你的顯示名稱:</label>
+            <input type="text" id="playerNameInput" class="setting-control" placeholder="輸入你的名稱" maxlength="20">
+            <button id="savePlayerNameBtn" class="restart-btn" style="margin-top: 10px; width: 100%;">儲存名稱</button>
+        </div>
+
+        <!-- 排行榜顯示區域 -->
+        <div class="leaderboard-display">
+            <h3 id="leaderboardTitle" class="personal-high-score-title" style="margin-top: 20px;">請選擇歌曲與難度</h3>
+            <ol class="personal-high-score-list" id="leaderboardList">
+                <!-- 排行榜資料會由 JS 動態填入 -->
+            </ol>
+            <p id="leaderboardLoading" style="display: none;">讀取中...</p>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>
