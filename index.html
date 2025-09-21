@@ -3358,75 +3358,7 @@
     }
 }
 
-/* ====== 【新增】對戰 UI 相關樣式 ====== */
-
-/* 遊戲中對戰進度條容器 */
-.battle-ui-container {
-    display: none; /* 預設隱藏，對戰時由 JS 顯示 */
-    flex-direction: column;
-    gap: 10px;
-    padding: 10px;
-    margin-bottom: 15px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 10px;
-}
-
-.battle-progress-wrapper {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.player-name {
-    color: #fff;
-    font-weight: bold;
-    flex-basis: 100px;
-    text-align: right;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.battle-progress-container {
-    flex-grow: 1;
-    height: 22px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 11px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    overflow: hidden;
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.battle-progress-bar {
-    height: 100%;
-    width: 0%;
-    transition: width 0.5s ease-out;
-}
-
-.battle-progress-bar.player1 {
-    background: linear-gradient(90deg, #1D976C, #93F9B9);
-}
-
-.battle-progress-bar.player2 {
-    background: linear-gradient(90deg, #e52e71, #ff8a00);
-}
-
-.progress-score {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    color: white;
-    font-weight: bold;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.7);
-}
-
-/* 讓 input[type=text] 的 placeholder 顏色更明顯 */
-#roomIdInput::placeholder {
-    color: #aaa;
-    opacity: 1;
-}        
+        
         
     </style>
 
@@ -3494,15 +3426,6 @@
                                 <path d="M12,3V13.55C11.41,13.21 10.73,13 10,13C7.79,13 6,14.79 6,17C6,19.21 7.79,21 10,21C12.21,21 14,19.21 14,17V7H18V3H12Z" />
                             </svg>
                         </button>
-
-
-<button class="svg-button" id="battleBtn" title="對戰模式" style="width: 50px;">
-    <svg viewBox="0 0 24 24" fill="white">
-        <path d="M23,11L20.5,8.5L18,11L15.5,8.5L13,11L10.5,8.5L8,11L5.5,8.5L3,11V3H21V11M3,13H5.5L8,15.5L10.5,13L13,15.5L15.5,13L18,15.5L20.5,13H23V21H3V13Z" />
-    </svg>
-</button>
-
-                        
                     </div>
                     <div class="music-selector">
                         <div class="music-select-wrapper">
@@ -3549,25 +3472,6 @@
                     </div>
                 </div>
                <div class="game-area">
-
-<div id="battleUI" class="battle-ui-container">
-    <div class="battle-progress-wrapper">
-        <span id="player1Name" class="player-name">Player 1</span>
-        <div class="battle-progress-container">
-            <div id="player1ProgressBar" class="battle-progress-bar player1"></div>
-            <span id="player1Score" class="progress-score">0</span>
-        </div>
-    </div>
-    <div class="battle-progress-wrapper">
-        <span id="player2Name" class="player-name">Player 2</span>
-        <div class="battle-progress-container">
-            <div id="player2ProgressBar" class="battle-progress-bar player2"></div>
-            <span id="player2Score" class="progress-score">0</span>
-        </div>
-    </div>
-</div>
-
-                   
     <div class="tracks" id="tracksContainer"></div>
                     <!-- ▼▼▼ 請將這段新的 HTML 加在這裡 ▼▼▼ -->
     <div class="vertical-lyrics-container">
@@ -3726,12 +3630,12 @@
 
 // 你的 Firebase 設定物件
 const firebaseConfig = {
-  apiKey: "AIzaSyCzIWqCC47PJAKtvW2PoALA_QETz5JysfY",
-  authDomain: "musictest-15e9c.firebaseapp.com",
-  projectId: "musictest-15e9c",
-  storageBucket: "musictest-15e9c.firebasestorage.app",
-  messagingSenderId: "800604129840",
-  appId: "1:800604129840:web:ddd3ca5f5d4d5ff81a3bf5"
+  apiKey: "AIzaSyD0J56yq_QjjzAZuhAEqE3SVU0GePS2l-0",
+  authDomain: "musicgame-7dad1.firebaseapp.com",
+  projectId: "musicgame-7dad1",
+  storageBucket: "musicgame-7dad1.firebasestorage.app",
+  messagingSenderId: "720961310659",
+  appId: "1:720961310659:web:4959c7269b0adbed5ab776"
 };
 
 // 初始化 Firebase
@@ -4046,28 +3950,7 @@ const songCovers = {
 
 
             // --- DOM Elements ---
-const battleBtn = document.getElementById('battleBtn');
-const battleLobbyModal = document.getElementById('battleLobbyModal');
-const closeBattleLobby = document.getElementById('closeBattleLobby');
-const randomMatchBtn = document.getElementById('randomMatchBtn');
-const roomIdInput = document.getElementById('roomIdInput');
-const createRoomBtn = document.getElementById('createRoomBtn');
-const joinRoomBtn = document.getElementById('joinRoomBtn');
-const battleWaitingModal = document.getElementById('battleWaitingModal');
-const displayRoomId = document.getElementById('displayRoomId');
-const countdownArea = document.getElementById('countdownArea');
-const battleUI = document.getElementById('battleUI');
-const player1Name = document.getElementById('player1Name');
-const player1ProgressBar = document.getElementById('player1ProgressBar');
-const player1Score = document.getElementById('player1Score');
-const player2Name = document.getElementById('player2Name');
-const player2ProgressBar = document.getElementById('player2ProgressBar');
-const player2Score = document.getElementById('player2Score');
-const battleResultModal = document.getElementById('battleResultModal');
-const battleResultTitle = document.getElementById('battleResultTitle');
-const battleResultStats = document.getElementById('battleResultStats');
-const rematchBtn = document.getElementById('rematchBtn');
-const exitBattleBtn = document.getElementById('exitBattleBtn');
+
             const mainGameContainer = document.getElementById('mainGameContainer');
             const tracksContainer = document.getElementById('tracksContainer');
             const scoreDisplay = document.getElementById('score');
@@ -4158,14 +4041,6 @@ const quizSubmitBtn = document.getElementById('quizSubmitBtn');
 const quizCloseBtn = document.getElementById('quizCloseBtn');
             
             // --- Game State Variables ---
-            let currentBattleRoomId = null;
-let battleUnsubscribe = null; // 用於儲存 Firebase 監聽器的解除函數
-let isHost = false;
-let localPlayerId = 'player1'; // 預設為 player1，加入房間後會更新
-let opponentPlayerId = 'player2';
-let isBattleMode = false;
-let battleNoteData = []; // 對戰模式的譜面數據
-
             let gameActive = false;
 let maxScoreForCurrentLevel = 0; // ▼▼▼ 新增狀態變數
             let unlockThresholdPercentage = 0; // ▼▼▼ 新增狀態變數
@@ -5107,16 +4982,8 @@ else if (type === 'good') baseScore = 40;
                 tracksContainer.className = 'tracks';
                 if (trackComboClass) tracksContainer.classList.add(trackComboClass);
                 
-                // ▼▼▼ 【新增】對戰模式下的分數同步 ▼▼▼
-    if (isBattleMode && currentBattleRoomId) {
-        const progress = (pureHitScore / maxScoreForCurrentLevel) * 100;
-        const updates = {};
-        updates[`/players/${localPlayerId}/score`] = score;
-        updates[`/players/${localPlayerId}/maxCombo`] = maxCombo;
-        updates[`/players/${localPlayerId}/progress`] = progress;
-        database.ref(`battleRooms/${currentBattleRoomId}`).update(updates);
-    }
-}
+                updateUnlockMeter(); // 在分數更新後，同步更新解鎖進度條
+            }
 
  // ▼▼▼ 新增的函數 ▼▼▼
            // ▼▼▼ 修正後的函數 ▼▼▼
@@ -5598,24 +5465,6 @@ function updateGameLyrics(currentTime) {
 // ====== 【最終修正版】確保在點擊開始時，直接檢查儲存的最新名稱 ======
 // ====================================================================
 async function startGame() {
-    if (isBattleMode) {
-        // 對戰模式的啟動邏輯，由 Firebase 監聽器觸發，這裡主要是 UI 準備
-        console.log("Battle Mode Started by Firebase trigger.");
-        gameActive = true;
-        mainGameContainer.classList.add('game-running');
-        battleUI.style.display = 'flex'; // 顯示對戰UI
-
-        noteQueue = [...battleNoteData]; // 使用從 Firebase 獲取的同步譜面
-        maxScoreForCurrentLevel = noteQueue.length * 100;
-        
-        audio.play().catch(e => console.error("Audio playback failed:", e));
-        gameStartTime = Date.now();
-        generateNotesContinuously();
-        gameLoop();
-        progressInterval = setInterval(updateProgress, 100);
-        setTimeout(() => { if (gameActive) endGame(); }, currentSongDuration * 1000 + 2000);
-
-    } else {
     console.log("--- startGame function initiated ---");
     
     // 【核心修正】在點擊開始的瞬間，直接從 localStorage 獲取最新的玩家名稱
@@ -5831,38 +5680,33 @@ function grantAllRewards(rewards) {
 
 function endGame() {
     if (!gameActive) return;
+
     gameActive = false;
     audio.pause();
     audio.currentTime = 0;
     clearTimeout(generateNotesTimer);
     clearInterval(progressInterval);
     cancelAnimationFrame(animationFrame);
+    startBtn.disabled = false;
+    musicSelect.disabled = false;
+    difficultySelect.disabled = false;
+
+    mainGameContainer.classList.remove('game-running'); 
+    unlockProgressBar.style.width = '0%';
+    unlockProgressBar.classList.remove('glowing');
+    progressBar.style.width = '0%';
     notes.forEach(note => note.element.remove());
     notes = [];
-    
-    mainGameContainer.classList.remove('game-running');
-    progressBar.style.width = '0%';
 
-    if (isBattleMode) {
-        // ▼▼▼ 【新增】對戰模式的結束處理 ▼▼▼
-        const updates = {};
-        updates[`/players/${localPlayerId}/status`] = 'finished';
-        database.ref(`battleRooms/${currentBattleRoomId}`).update(updates);
-        // 不立即顯示結果，等待 Firebase 監聽器判斷雙方都結束
-    } else {
-        // ▼▼▼ 原本的單人模式 endGame 邏輯 ▼▼▼
-        startBtn.disabled = false;
-        musicSelect.disabled = false;
-        difficultySelect.disabled = false;
-        unlockProgressBar.style.width = '0%';
-        unlockProgressBar.classList.remove('glowing');
+    const selectedSong = musicSelect.value;
+    const selectedDifficulty = difficultySelect.value;
+    updatePersonalHighScore(selectedSong, selectedDifficulty, score);
 
-        const selectedSong = musicSelect.value;
-        const selectedDifficulty = difficultySelect.value;
-        updatePersonalHighScore(selectedSong, selectedDifficulty, score);
-        processPostGameRewards(selectedSong, selectedDifficulty, score, pureHitScore);
-        showGameOver();
-    }
+    // 【核心修改】呼叫統一的獎勵處理函數
+    // 函數內部會處理所有檢查、測驗觸發和獎勵發放
+    processPostGameRewards(selectedSong, selectedDifficulty, score, pureHitScore);
+
+    showGameOver();
 }
 
             function showGameOver() {
@@ -5872,12 +5716,9 @@ function endGame() {
             }
 
             function restartGame() {
-    // 確保這只在非對戰模式下調用
-    if (!isBattleMode) {
-        gameOverModal.classList.remove('active');
-        initGame();
-    }
-}
+                gameOverModal.classList.remove('active');
+                initGame();
+            }
 
           function gameLoop() {
     if (!gameActive) return;
@@ -6367,27 +6208,6 @@ function updatePlayingVisuals(isPlaying) {
             
 
             // --- Event Listeners ---
-
-battleBtn.addEventListener('click', () => {
-    // 確保玩家已設定名稱才能進入對戰
-    if (!playerName) {
-        showNotification('info', '請先設定名稱', '為了進行對戰，請先在排行榜中設定您的顯示名稱。');
-        leaderboardModal.classList.add('active'); // 強制彈出設定視窗
-        return;
-    }
-    battleLobbyModal.classList.add('active');
-});
-
-closeBattleLobby.addEventListener('click', () => battleLobbyModal.classList.remove('active'));
-createRoomBtn.addEventListener('click', createBattleRoom);
-joinRoomBtn.addEventListener('click', joinBattleRoom);
-randomMatchBtn.addEventListener('click', randomMatch);
-rematchBtn.addEventListener('click', handleRematch);
-exitBattleBtn.addEventListener('click', () => {
-    // 簡單地重載頁面以清理所有狀態
-    window.location.reload();
-});
-            
             touchKeys.forEach(key => {
                 key.addEventListener('touchstart', onTouchStart, { passive: false });
                 key.addEventListener('touchend', onTouchEnd, { passive: false });
@@ -6643,303 +6463,6 @@ disclaimerModal.addEventListener('click', (e) => {
     }
 });
 });
-
-        // ==========================================================
-// ====== 【全新】對戰模式核心函數 ==========================
-// ==========================================================
-
-// 創建房間
-async function createBattleRoom() {
-    const roomId = roomIdInput.value.trim().toUpperCase();
-    if (roomId.length !== 4) {
-        showNotification('info', '無效號碼', '房間號碼必須是 4 位數。');
-        return;
-    }
-
-    const roomRef = database.ref(`battleRooms/${roomId}`);
-    const snapshot = await roomRef.once('value');
-    if (snapshot.exists()) {
-        showNotification('info', '房間已存在', '此房間號碼已被使用，請換一個或直接加入。');
-        return;
-    }
-
-    isHost = true;
-    localPlayerId = 'player1_UID'; // 在真實應用中，應使用 firebase.auth().currentUser.uid
-    opponentPlayerId = 'player2_UID';
-    currentBattleRoomId = roomId;
-
-    const selectedSong = musicSelect.value;
-    const selectedDifficulty = difficultySelect.value;
-    const difficulty = getCurrentDifficulty();
-    const duration = await getAudioDuration(selectedSong);
-    const noteSeed = Date.now(); // 用時間戳生成隨機種子
-    battleNoteData = generateSongData(duration, difficulty, [], noteSeed, Math.floor(4000 / difficulty.speedMultiplier));
-    
-    const roomData = {
-        gameState: 'waiting',
-        song: selectedSong,
-        difficulty: selectedDifficulty,
-        noteSeed: noteSeed,
-        created_at: firebase.database.ServerValue.TIMESTAMP,
-        players: {
-            [localPlayerId]: {
-                name: playerName,
-                score: 0,
-                maxCombo: 0,
-                progress: 0,
-                status: 'playing'
-            }
-        }
-    };
-
-    await roomRef.set(roomData);
-    battleLobbyModal.classList.remove('active');
-    displayRoomId.textContent = roomId;
-    battleWaitingModal.classList.add('active');
-    listenToBattleRoomChanges();
-}
-
-// 加入房間
-async function joinBattleRoom() {
-    const roomId = roomIdInput.value.trim().toUpperCase();
-    if (roomId.length !== 4) {
-        showNotification('info', '無效號碼', '請輸入有效的 4 位房間號碼。');
-        return;
-    }
-
-    const roomRef = database.ref(`battleRooms/${roomId}`);
-    const snapshot = await roomRef.once('value');
-    if (!snapshot.exists()) {
-        showNotification('info', '房間不存在', '找不到此房間，請確認號碼是否正確。');
-        return;
-    }
-
-    const roomData = snapshot.val();
-    if (Object.keys(roomData.players).length >= 2) {
-        showNotification('info', '房間已滿', '此房間已滿員，無法加入。');
-        return;
-    }
-
-    isHost = false;
-    localPlayerId = 'player2_UID'; // 在真實應用中，應使用 firebase.auth().currentUser.uid
-    opponentPlayerId = 'player1_UID';
-    currentBattleRoomId = roomId;
-
-    const playerData = {
-        name: playerName,
-        score: 0,
-        maxCombo: 0,
-        progress: 0,
-        status: 'playing'
-    };
-
-    await database.ref(`battleRooms/${roomId}/players/${localPlayerId}`).set(playerData);
-    // 觸發遊戲開始
-    await roomRef.update({ gameState: 'countdown' });
-
-    battleLobbyModal.classList.remove('active');
-    listenToBattleRoomChanges();
-}
-
-// 隨機配對
-async function randomMatch() {
-    const queueRef = database.ref('waitingQueue');
-    const snapshot = await queueRef.orderByChild('created_at').limitToFirst(1).once('value');
-
-    if (snapshot.exists()) {
-        // 找到等待的玩家，加入他們的房間
-        let waitingRoomId;
-        let queueKey;
-        snapshot.forEach(child => {
-            waitingRoomId = child.val().roomId;
-            queueKey = child.key;
-        });
-        
-        await queueRef.child(queueKey).remove(); // 從佇列中移除
-        roomIdInput.value = waitingRoomId;
-        joinBattleRoom();
-
-    } else {
-        // 沒有等待的玩家，自己創建一個房間並進入等待佇列
-        const roomId = (Math.random().toString(36).substring(2, 6)).toUpperCase();
-        roomIdInput.value = roomId;
-        await createBattleRoom(); // 創建房間
-        
-        // 將自己加入等待佇列
-        await queueRef.push({
-            roomId: roomId,
-            uid: 'player1_UID', // 應為 auth.currentUser.uid
-            created_at: firebase.database.ServerValue.TIMESTAMP
-        });
-    }
-}
-
-
-// 監聽房間狀態變化
-function listenToBattleRoomChanges() {
-    if (battleUnsubscribe) battleUnsubscribe(); // 解除之前的監聽
-
-    const roomRef = database.ref(`battleRooms/${currentBattleRoomId}`);
-    battleUnsubscribe = roomRef.on('value', async (snapshot) => {
-        if (!snapshot.exists()) {
-            // 房間被解散
-            showNotification('info', '房間已解散', '房主已離開，對戰結束。');
-            cleanUpBattle();
-            return;
-        }
-
-        const roomData = snapshot.val();
-        
-        // 更新雙方進度條
-        updateBattleUI(roomData.players);
-
-        // 根據遊戲狀態處理邏輯
-        switch (roomData.gameState) {
-            case 'countdown':
-                if (isBattleMode) return; // 防止重複倒數
-                isBattleMode = true;
-                battleWaitingModal.classList.add('active');
-                
-                // 獲取同步的譜面
-                const difficulty = difficultySettings[roomData.difficulty];
-                currentSongDuration = await getAudioDuration(roomData.song);
-                audio.src = roomData.song;
-                noteSpeed = Math.floor(4000 / difficulty.speedMultiplier);
-                battleNoteData = generateSongData(currentSongDuration, difficulty, [], roomData.noteSeed, noteSpeed);
-
-                // 3秒倒數
-                let count = 3;
-                countdownArea.textContent = count;
-                const countdownInterval = setInterval(() => {
-                    count--;
-                    countdownArea.textContent = count > 0 ? count : "START!";
-                    if (count <= 0) {
-                        clearInterval(countdownInterval);
-                        battleWaitingModal.classList.remove('active');
-                        startGame();
-                        roomRef.update({ gameState: 'playing' });
-                    }
-                }, 1000);
-                break;
-
-            case 'playing':
-                // 遊戲進行中，UI已由 updateBattleUI 更新
-                break;
-            
-            case 'finished':
-                showBattleResults(roomData);
-                break;
-        }
-        
-        // 檢查雙方是否都已完成遊戲
-        const players = roomData.players;
-        const playerKeys = Object.keys(players);
-        if (playerKeys.length === 2) {
-            const allFinished = playerKeys.every(key => players[key].status === 'finished');
-            if (allFinished && roomData.gameState !== 'finished') {
-                roomRef.update({ gameState: 'finished' });
-            }
-        }
-    });
-}
-
-// 更新對戰 UI
-function updateBattleUI(players) {
-    if (!players) return;
-    const p1 = players['player1_UID'];
-    const p2 = players['player2_UID'];
-    
-    if (p1) {
-        player1Name.textContent = p1.name;
-        player1Score.textContent = p1.score.toLocaleString();
-        player1ProgressBar.style.width = `${p1.progress || 0}%`;
-    }
-    if (p2) {
-        player2Name.textContent = p2.name;
-        player2Score.textContent = p2.score.toLocaleString();
-        player2ProgressBar.style.width = `${p2.progress || 0}%`;
-    }
-}
-
-// 顯示對戰結果
-function showBattleResults(roomData) {
-    if (battleResultModal.classList.contains('active')) return;
-
-    const players = roomData.players;
-    const p1 = players['player1_UID'];
-    const p2 = players['player2_UID'];
-
-    let resultHTML = '';
-    if (p1.score > p2.score) {
-        battleResultTitle.textContent = p1.name === playerName ? "勝利！" : "失敗！";
-    } else if (p2.score > p1.score) {
-        battleResultTitle.textContent = p2.name === playerName ? "勝利！" : "失敗！";
-    } else {
-        battleResultTitle.textContent = "平局！";
-    }
-    
-    // 構建結果顯示
-    resultHTML = `
-        <div class="game-over-stat">
-            <div class="stat-label">${p1.name}</div>
-            <div class="stat-number">${p1.score.toLocaleString()}</div>
-            <div class="stat-label" style="font-size: 0.8em; margin-top: 5px;">最高連擊: ${p1.maxCombo}</div>
-        </div>
-        <div class="game-over-stat">
-            <div class="stat-label">${p2.name}</div>
-            <div class="stat-number">${p2.score.toLocaleString()}</div>
-            <div class="stat-label" style="font-size: 0.8em; margin-top: 5px;">最高連擊: ${p2.maxCombo}</div>
-        </div>
-    `;
-    battleResultStats.innerHTML = resultHTML;
-    battleResultModal.classList.add('active');
-}
-
-// 處理再戰
-function handleRematch() {
-    // 主機方負責重置房間狀態
-    if (isHost) {
-        const roomRef = database.ref(`battleRooms/${currentBattleRoomId}`);
-        roomRef.update({
-            gameState: 'waiting_rematch', // 一個臨時狀態
-            'players/player1_UID/status': 'playing',
-            'players/player1_UID/score': 0,
-            'players/player1_UID/maxCombo': 0,
-            'players/player1_UID/progress': 0,
-            'players/player2_UID/status': 'playing',
-            'players/player2_UID/score': 0,
-            'players/player2_UID/maxCombo': 0,
-            'players/player2_UID/progress': 0
-        }).then(() => {
-            // 雙方都會監聽到變化並重新開始
-             roomRef.update({ gameState: 'countdown' });
-        });
-    }
-    battleResultModal.classList.remove('active');
-    // 客戶端只需等待主機重置狀態，監聽器會自動處理後續
-}
-
-// 清理對戰狀態
-function cleanUpBattle() {
-    if (battleUnsubscribe) battleUnsubscribe();
-    if (isHost && currentBattleRoomId) {
-        database.ref(`battleRooms/${currentBattleRoomId}`).remove();
-    }
-    isBattleMode = false;
-    currentBattleRoomId = null;
-    isHost = false;
-    
-    battleWaitingModal.classList.remove('active');
-    battleResultModal.classList.remove('active');
-    battleLobbyModal.classList.remove('active');
-    battleUI.style.display = 'none';
-
-    // 重置遊戲UI
-    initGame();
-}
-
-
-        
     </script>
 
 
@@ -7000,52 +6523,6 @@ function cleanUpBattle() {
             </ol>
             <p id="leaderboardLoading" style="display: none;">讀取中...</p>
         </div>
-    </div>
-</div>
-
-    <!-- ====== 【新增】對戰大廳 Modal ====== -->
-<div class="settings-modal" id="battleLobbyModal">
-    <div class="settings-content">
-        <button class="close-settings" id="closeBattleLobby">&times;</button>
-        <h2 class="settings-title">對戰模式</h2>
-
-        <div class="setting-group">
-            <button id="randomMatchBtn" class="restart-btn" style="width: 100%; margin-bottom: 15px;">
-                <i class="fas fa-random"></i> 隨機配對
-            </button>
-        </div>
-        
-        <div class="setting-group" style="text-align: center; color: #ccc;">或</div>
-
-        <div class="setting-group" id="playerNameGroup">
-            <input type="text" id="roomIdInput" class="setting-control" placeholder="輸入 4 位房間號碼" maxlength="4" style="text-align: center; letter-spacing: 5px;">
-        </div>
-        <div class="setting-group" style="display: flex; gap: 15px;">
-            <button id="createRoomBtn" class="restart-btn" style="flex: 1;">創建房間</button>
-            <button id="joinRoomBtn" class="restart-btn" style="flex: 1; background: linear-gradient(45deg, #2c3e50, #3498db);">加入房間</button>
-        </div>
-    </div>
-</div>
-
-<!-- ====== 【新增】等待室 Modal ====== -->
-<div class="notification-modal" id="battleWaitingModal">
-    <div class="notification-content info">
-        <h2 class="notification-title">等待對手加入...</h2>
-        <p class="notification-message">房間號碼: <strong id="displayRoomId" style="font-size: 1.5em; letter-spacing: 3px; color: #3b82f6;"></strong></p>
-        <p>請將此號碼分享給你的朋友。</p>
-        <div id="countdownArea" style="font-size: 3em; font-weight: bold; margin-top: 20px;"></div>
-    </div>
-</div>
-
-<!-- ====== 【新增】對戰結果 Modal ====== -->
-<div class="game-over-modal" id="battleResultModal">
-    <div class="game-over-content">
-        <h2 id="battleResultTitle" class="game-over-title">對戰結束</h2>
-        <div class="game-over-stats" id="battleResultStats">
-            <!-- 結果會由 JS 動態填入 -->
-        </div>
-        <button class="restart-btn" id="rematchBtn">再戰一局</button>
-        <button class="restart-btn" id="exitBattleBtn" style="background: linear-gradient(45deg, #6c757d, #343a40); margin-top: 10px;">返回主選單</button>
     </div>
 </div>
 
