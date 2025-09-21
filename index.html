@@ -4110,11 +4110,11 @@ function setupParticlePools() {
                 };
             }
            const sounds = {
-                perfect: createSound(523.25, 'sine', 0.15, 0.7), // 原為 0.3
-                great: createSound(392.00, 'sine', 0.15, 0.6),  // 原為 0.25
-                good: createSound(329.63, 'sine', 0.15, 0.5),   // 原為 0.2
-                miss: createSound(220.00, 'square', 0.2, 0.4),  // 原為 0.15
-                combo: createSound(659.25, 'triangle', 0.1, 0.5) // 原為 0.2
+                perfect: createSound(523.25, 'sine', 0.15, 1.5), // 原為 0.7，強力放大
+                great: createSound(392.00, 'sine', 0.15, 1.2),  // 原為 0.6，強力放大
+                good: createSound(329.63, 'sine', 0.15, 1.0),   // 原為 0.5，放大至標準音量
+                miss: createSound(220.00, 'square', 0.2, 0.8),  // 原為 0.4，顯著放大
+                combo: createSound(659.25, 'triangle', 0.1, 1.0) // 原為 0.5，放大至標準音量
             };
 
             // --- Local Storage Management ---
@@ -6246,14 +6246,22 @@ function updateCdCover(songUrl) {
                 if (e.target === unlockModal) unlockModal.classList.remove('active');
             });
 
-            // 【修訂】使用 'input' 事件來實現即時音量更新，並確保能到達 0 和 100
-            volumeControlModal.addEventListener('input', () => {
-                const value = parseFloat(volumeControlModal.value);
+            // 【修訂】為音樂音量滑桿添加事件監聽，並即時更新CSS變數
+            volumeControlModal.addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
                 audio.volume = isNaN(value) ? 0.7 : value;
+                // 更新CSS變數來控制背景填充
+                const percent = value * 100;
+                e.target.style.background = `linear-gradient(to right, #3b82f6 ${percent}%, #4a5568 ${percent}%)`;
             });
-            sfxVolumeControl.addEventListener('input', () => {
-                const value = parseFloat(sfxVolumeControl.value);
+
+            // 【修訂】為音效音量滑桿添加事件監聽，並即時更新CSS變數
+            sfxVolumeControl.addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
                 sfxVolume = isNaN(value) ? 0.5 : value;
+                // 更新CSS變數來控制背景填充
+                const percent = value * 100;
+                e.target.style.background = `linear-gradient(to right, #3b82f6 ${percent}%, #4a5568 ${percent}%)`;
             });
             
             startBtn.addEventListener('click', startGame);
