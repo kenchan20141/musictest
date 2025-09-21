@@ -5491,15 +5491,21 @@ function endQuiz(success) {
     lyricsQuizModal.classList.remove('active');
 
     if (success) {
-        // 【核心修改】如果成功，遍歷佇列並授予所有獎勵
-        const rewardsToGrant = [...quizRewardsQueue]; // 複製佇列以防萬一
+        // 成功邏輯保持不變
+        const rewardsToGrant = [...quizRewardsQueue];
         if (rewardsToGrant.length > 0) {
              showNotification('success', '測驗通過！', '恭喜您通過歌詞測驗，所有獎勵正在發放中！');
-             grantAllRewards(rewardsToGrant); // 使用通用函數來發放
+             grantAllRewards(rewardsToGrant);
         }
     } else {
-        // 如果失敗，顯示統一的失敗訊息
-        showNotification('info', '挑戰失敗', '歌詞測驗未通過，本次無法獲得任何獎勵。下次請再接再厲！');
+        // 【核心修改】根據失敗的目標類型，顯示不同的通知
+        const wasTryingForLeaderboard = quizRewardsQueue.some(reward => reward.type === 'leaderboard');
+
+        if (wasTryingForLeaderboard) {
+            showNotification('info', '排行榜挑戰失敗', '歌詞測驗未通過，本次無法登上排行榜。下次請再接再厲！');
+        } else {
+            showNotification('info', '解鎖失敗', '歌詞測驗未通過，無法解鎖新內容。下次請再接再厲！');
+        }
     }
 
     // 清空佇列和狀態
