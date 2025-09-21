@@ -4053,6 +4053,7 @@ let pureHitScore = 0; // 新增：純擊打分數，用於解鎖計算
             let combo = 0;
             let notificationQueue = [];      // 我們的通知「待辦清單」
 let isNotificationActive = false; // 一個旗標，用來判斷是否已有通知正在顯示
+            let currentNotificationObject = null; // <--- 請將這一行加在這裡
             let maxCombo = 0;
             let notes = [];
             let noteSpeed = 3000;
