@@ -3230,6 +3230,126 @@
         padding: 10px; /* 在手機上減少邊距 */
     }
 }
+
+/* ======================================================================== */
+/* ====== 【全新獨立設計】"溫潤白玉" 遊戲結束視窗 (Warm Jade Theme) ====== */
+/* ======================================================================== */
+
+/* --- 1. 定義主題顏色變數，方便統一管理 --- */
+:root {
+    --jade-bg: linear-gradient(145deg, #fdfaf6 0%, #f4f1ec 100%); /* 溫暖、柔和的米白漸層背景 */
+    --jade-text-primary: #5c554a;   /* 溫暖的深棕灰色，比純黑更柔和且易讀 */
+    --jade-text-secondary: #a19685; /* 用於次要說明的淺棕灰色 */
+    --jade-accent: #b48f5a;         /* 精緻、不刺眼的啞光金色，用於分數和重點 */
+    --jade-border-color: rgba(180, 143, 90, 0.3); /* 半透明的金色邊框 */
+    --jade-shadow-color: rgba(110, 95, 75, 0.15); /* 更柔和的棕色陰影 */
+}
+
+/* --- 2. 視窗主容器樣式 --- */
+.game-over-modal .game-over-content {
+    /* 【設計】套用全新的顏色和背景 */
+    background: var(--jade-bg);
+    color: var(--jade-text-primary);
+    
+    /* 【設計】更大的圓角與精緻的邊框 */
+    border-radius: 20px;
+    border: 1px solid var(--jade-border-color);
+    
+    /* 【設計】柔和的雙層陰影，營造輕盈的懸浮感 */
+    box-shadow: 0 4px 15px var(--jade-shadow-color), 0 0 1px var(--jade-border-color);
+    
+    /* 【佈局】增加內邊距，讓內容更舒展 */
+    padding: 35px 45px;
+
+    /* 【動畫】保留原有的流暢彈出動畫 */
+    transform: scale(0.8);
+    opacity: 0;
+    transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.4s ease;
+}
+
+/* --- 3. 標題 "遊戲結束" --- */
+.game-over-title {
+    font-size: 2.5rem;
+    font-weight: 600; /* 使用適中的字重，不過於粗重 */
+    color: var(--jade-text-primary);
+    /* 移除舊的金色和文字陰影，追求簡潔 */
+    text-shadow: none; 
+    margin-bottom: 25px;
+}
+
+/* --- 4. 分數統計區域 --- */
+.game-over-stats {
+    gap: 20px; /* 拉開分數與連擊的間距 */
+    margin: 30px 0;
+}
+
+.game-over-stat {
+    /* 移除舊的深色背景，讓其與主背景融為一體 */
+    background: none; 
+    padding: 0;
+    border-radius: 0;
+}
+
+/* --- 5. 統計標籤 (最終分數 / 最高連擊) --- */
+.stat-label {
+    font-size: 1.1rem;
+    color: var(--jade-text-secondary); /* 使用較淺的次要文字顏色 */
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+/* --- 6. 統計數字 --- */
+.stat-number {
+    font-size: 2.8rem;
+    font-weight: 700;
+    color: var(--jade-accent); /* 使用精緻的啞光金色 */
+}
+
+/* --- 7. "再玩一次" 按鈕 --- */
+.restart-btn {
+    /* 【設計】全新的按鈕顏色與樣式 */
+    background: var(--jade-accent);
+    color: #ffffff;
+    
+    /* 【設計】圓潤的藥丸形狀 */
+    border-radius: 50px;
+    border: none;
+    
+    font-size: 1.1rem;
+    font-weight: bold;
+    padding: 14px 40px;
+    margin-top: 25px;
+    
+    text-shadow: none;
+    
+    /* 【互動】更細膩的陰影和位移效果 */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 15px rgba(180, 143, 90, 0.3);
+}
+
+.restart-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 7px 20px rgba(180, 143, 90, 0.4);
+}
+
+/* --- 8. 響應式設計調整 (確保在手機上同樣優雅) --- */
+@media (max-width: 480px) {
+    .game-over-modal .game-over-content {
+        padding: 25px 20px;
+    }
+    .game-over-title {
+        font-size: 2.2rem;
+    }
+    .stat-number {
+        font-size: 2.5rem;
+    }
+    .restart-btn {
+        padding: 12px 35px;
+        font-size: 1rem;
+    }
+}
+
+        
         
     </style>
 
