@@ -2045,6 +2045,98 @@
 
 
 
+.lyrics-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1; /* 在背景圖上方，但低於遊戲內容 */
+    display: flex; /* 保留 flex 以自動排列 */
+    flex-wrap: wrap; /* 自動換行，填滿畫面 */
+    align-content: flex-start; /* 從頂部開始，無垂直間距 */
+    justify-content: space-around; /* 均勻分散，填滿左右 */
+    gap: 2px; /* 統一小間距（2px），所有設備一致 */
+    margin: 0; /* 確保容器無邊距 */
+    padding: 0; /* 確保容器無內距 */
+    opacity: 0.25; /* 保留半透明 */
+    color: #fff; /* 保留白色文字 */
+    font-size: 5rem; /* 預設大小，media query 會調整 */
+    pointer-events: none; /* 不擋互動 */
+    text-align: center;
+    overflow: hidden; /* 防止溢出產生空白或重疊 */
+    display: none; /* 預設隱藏，由 JS 控制 */
+}
+
+.lyrics-background span {
+    margin: 0; /* 移除邊距 */
+    padding: 0; /* 移除內距 */
+    line-height: 1.1; /* 修訂：統一為 1.1，讓行距一致（平衡值：手機不太大，電腦不太密；可調成 1.05 以更緊密） */
+    word-spacing: 0; /* 正常字距 */
+    letter-spacing: 0; /* 正常字母間距 */
+    white-space: nowrap; /* 防止換行，讓文字連續 */
+    flex: 0 0 auto; /* 自動調整大小 */
+    min-width: 10%; /* 預設每行約 10 個，media query 會調整 */
+    min-height: 10vh; /* 最小高度，防止垂直壓縮重疊 */
+    display: inline-flex; /* 內聯 flex，讓文字緊貼 */
+    align-items: center;
+    justify-content: center;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5); /* 保留陰影，提升可讀性 */
+    word-break: break-word; /* 正常斷詞，避免過長重疊 */
+    overflow: hidden; /* 隱藏溢出文字，強制防止重疊 */
+}
+
+        
+@media (max-width: 1024px) { /* 平板：中等密集，每行約 8 個 */
+    .lyrics-background {
+        font-size: 4rem; /* 稍減小字體，避免重疊 */
+        justify-content: space-around; /* 均勻填滿左右 */
+        gap: 2px; /* 統一間距 */
+    }
+    .lyrics-background span {
+        min-width: 12.5%; /* 每行約 8 個，密集但有空間 */
+        min-height: 12vh; /* 增加垂直緩衝 */
+        line-height: 1.1; /* 統一行距 */
+    }
+}
+
+@media (max-width: 768px) { /* 手機：稍鬆，每行約 6 個 */
+    .lyrics-background {
+        font-size: 3.5rem; /* 修訂：介於 3-4rem，讓手機行距不太大（平衡密度） */
+        justify-content: space-around; /* 均勻填滿左右 */
+        gap: 2px; /* 統一間距 */
+    }
+    .lyrics-background span {
+        min-width: 16.66%; /* 每行約 6 個，確保不擠 */
+        min-height: 15vh; /* 增加垂直緩衝 */
+        line-height: 1.1; /* 統一行距 */
+    }
+}
+
+@media (max-width: 480px) { /* 小手機：更鬆，每行約 4 個 */
+    .lyrics-background {
+        font-size: 3rem; /* 修訂：減小為 3rem，讓手機行距更小（但不重疊） */
+        justify-content: space-around; /* 均勻填滿左右 */
+        gap: 2px; /* 統一間距 */
+    }
+    .lyrics-background span {
+        min-width: 25%; /* 每行約 4 個，足夠空間 */
+        min-height: 20vh; /* 最大垂直緩衝 */
+        line-height: 1.1; /* 統一行距 */
+    }
+}
+
+@media (min-width: 1025px) { /* 電腦大屏：更密，每行約 12 個 */
+    .lyrics-background {
+        font-size: 4.5rem; /* 修訂：稍減為 4.5rem，讓電腦不太密（平衡行距） */
+        gap: 2px; /* 統一間距 */
+    }
+    .lyrics-background span {
+        min-width: 8.33%; /* 每行約 12 個，密集但不重疊 */
+        min-height: 8vh; /* 減小垂直，增加密度 */
+        line-height: 1.1; /* 統一行距 */
+    }
+}
 
         .track.flash-effect {
     animation: trackFlashStrong 0.3s ease-out; /* 新增強版閃光 */
@@ -3230,126 +3322,6 @@
         padding: 10px; /* 在手機上減少邊距 */
     }
 }
-
-/* ======================================================================== */
-/* ====== 【全新獨立設計】"溫潤白玉" 遊戲結束視窗 (Warm Jade Theme) ====== */
-/* ======================================================================== */
-
-/* --- 1. 定義主題顏色變數，方便統一管理 --- */
-:root {
-    --jade-bg: linear-gradient(145deg, #fdfaf6 0%, #f4f1ec 100%); /* 溫暖、柔和的米白漸層背景 */
-    --jade-text-primary: #5c554a;   /* 溫暖的深棕灰色，比純黑更柔和且易讀 */
-    --jade-text-secondary: #a19685; /* 用於次要說明的淺棕灰色 */
-    --jade-accent: #b48f5a;         /* 精緻、不刺眼的啞光金色，用於分數和重點 */
-    --jade-border-color: rgba(180, 143, 90, 0.3); /* 半透明的金色邊框 */
-    --jade-shadow-color: rgba(110, 95, 75, 0.15); /* 更柔和的棕色陰影 */
-}
-
-/* --- 2. 視窗主容器樣式 --- */
-.game-over-modal .game-over-content {
-    /* 【設計】套用全新的顏色和背景 */
-    background: var(--jade-bg);
-    color: var(--jade-text-primary);
-    
-    /* 【設計】更大的圓角與精緻的邊框 */
-    border-radius: 20px;
-    border: 1px solid var(--jade-border-color);
-    
-    /* 【設計】柔和的雙層陰影，營造輕盈的懸浮感 */
-    box-shadow: 0 4px 15px var(--jade-shadow-color), 0 0 1px var(--jade-border-color);
-    
-    /* 【佈局】增加內邊距，讓內容更舒展 */
-    padding: 35px 45px;
-
-    /* 【動畫】保留原有的流暢彈出動畫 */
-    transform: scale(0.8);
-    opacity: 0;
-    transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.4s ease;
-}
-
-/* --- 3. 標題 "遊戲結束" --- */
-.game-over-title {
-    font-size: 2.5rem;
-    font-weight: 600; /* 使用適中的字重，不過於粗重 */
-    color: var(--jade-text-primary);
-    /* 移除舊的金色和文字陰影，追求簡潔 */
-    text-shadow: none; 
-    margin-bottom: 25px;
-}
-
-/* --- 4. 分數統計區域 --- */
-.game-over-stats {
-    gap: 20px; /* 拉開分數與連擊的間距 */
-    margin: 30px 0;
-}
-
-.game-over-stat {
-    /* 移除舊的深色背景，讓其與主背景融為一體 */
-    background: none; 
-    padding: 0;
-    border-radius: 0;
-}
-
-/* --- 5. 統計標籤 (最終分數 / 最高連擊) --- */
-.stat-label {
-    font-size: 1.1rem;
-    color: var(--jade-text-secondary); /* 使用較淺的次要文字顏色 */
-    margin-bottom: 10px;
-    font-weight: 500;
-}
-
-/* --- 6. 統計數字 --- */
-.stat-number {
-    font-size: 2.8rem;
-    font-weight: 700;
-    color: var(--jade-accent); /* 使用精緻的啞光金色 */
-}
-
-/* --- 7. "再玩一次" 按鈕 --- */
-.restart-btn {
-    /* 【設計】全新的按鈕顏色與樣式 */
-    background: var(--jade-accent);
-    color: #ffffff;
-    
-    /* 【設計】圓潤的藥丸形狀 */
-    border-radius: 50px;
-    border: none;
-    
-    font-size: 1.1rem;
-    font-weight: bold;
-    padding: 14px 40px;
-    margin-top: 25px;
-    
-    text-shadow: none;
-    
-    /* 【互動】更細膩的陰影和位移效果 */
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 4px 15px rgba(180, 143, 90, 0.3);
-}
-
-.restart-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 7px 20px rgba(180, 143, 90, 0.4);
-}
-
-/* --- 8. 響應式設計調整 (確保在手機上同樣優雅) --- */
-@media (max-width: 480px) {
-    .game-over-modal .game-over-content {
-        padding: 25px 20px;
-    }
-    .game-over-title {
-        font-size: 2.2rem;
-    }
-    .stat-number {
-        font-size: 2.5rem;
-    }
-    .restart-btn {
-        padding: 12px 35px;
-        font-size: 1rem;
-    }
-}
-
-        
         
     </style>
 
@@ -3359,7 +3331,7 @@
     
 </head>
 <body>
- 
+    <div class="lyrics-background" id="lyricsBackground"></div>  <!-- 移到這裡 -->
     <!-- Background Image -->
     <div class="background-image"></div>
     <div class="container">
@@ -3426,7 +3398,32 @@
                                 <option value="下一枝的惆悵.mp3">下一枝的惆悵</option>
                                 <option value="餘燼落入虛無.mp3">餘燼落入虛無</option>
                                 <option value="老屋回憶.mp3">老屋回憶</option>
-                                
+                                <option value="battle-abysswalker.mp3">The Abysswalker</option>
+                                <option value="Battle-Rosemoon.mp3">都戰乙女</option>
+                                <option value="Battle-deadly.mp3">五大罪</option>
+                                <option value="Battle-rapier.mp3">繼承劍的少女</option>
+                                <option value="Ariadne-Battle.mp3">不屈意志之刃</option>
+                                <option value="battle-arms.mp3">西部戰鬥</option>
+                                <option value="Battle.mp3">Battle Theme</option>
+                                <option value="Wanderers-City.mp3">流浪城鎮</option>
+                                <option value="Remotest-Liblary.mp3">沉睡的記憶</option>
+                                <option value="Nostalgia.mp3">麥田懷舊</option>
+                                <option value="sunbeams.mp3">放學後</option>
+                                <option value="village.mp3">鄉村生活</option>
+                                <option value="Take-a-Rest.mp3">休息一下</option>
+                                <option value="winter-snow.mp3">雪鄉</option>
+                                <option value="Forgotten-Place.mp3">被遺忘的地方</option>
+                                <option value="Rest-in-Peace.mp3">安息</option>
+                                <option value="Farewell.mp3">告別</option>
+                                <option value="reminiscence.mp3">回憶</option>
+                                <option value="starry-night.mp3">星夜</option>
+                                <option value="last-wish.mp3">當思念傳到某人耳畔</option>
+                                <option value="sorrow.mp3">超越悲傷</option>
+                                <option value="hotarumichi.mp3">螢火蟲之路</option>
+                                <option value="Sky-Airship.mp3">飛艇</option>
+                                <option value="Voyage_SE.mp3">跨越神秘之海</option>
+                                <option value="main-theme01.mp3">盼望</option>
+                                <option value="saikai637.mp3">約定之地</option>
                             </select>
                             <svg class="music-icon" viewBox="0 0 24 24">
                                 <path d="M12,3V13.55C11.41,13.21 10.73,13 10,13C7.79,13 6,14.79 6,17C6,19.21 7.79,21 10,21C12.21,21 14,19.21 14,17V7H18V3H12Z" />
@@ -4009,7 +4006,7 @@ let quizQuestions = []; // 將儲存當前測驗的所有題目
 let currentQuizQuestion = null; // 儲存當前的問題物件
 let questionsAnsweredCorrectly = 0; // 追蹤已答對的題數
 let totalQuestionsInQuiz = 0; // 測驗開始時的總題數
-let quizRewardsQueue = []; // 【修改】用於儲存所有待處理的獎勵
+let quizUnlockTarget = null; // 用於儲存測驗成功後要解鎖的目標
 
 // --- 【新增】獲取測驗視窗的 DOM 元素 ---
 const lyricsQuizModal = document.getElementById('lyricsQuizModal');
@@ -4028,7 +4025,6 @@ let pureHitScore = 0; // 新增：純擊打分數，用於解鎖計算
             let combo = 0;
             let notificationQueue = [];      // 我們的通知「待辦清單」
 let isNotificationActive = false; // 一個旗標，用來判斷是否已有通知正在顯示
-            let currentNotificationObject = null; // <--- 請將這一行加在這裡
             let maxCombo = 0;
             let notes = [];
             let noteSpeed = 3000;
@@ -4285,14 +4281,18 @@ function checkAndUnlockDifficulties(songUrl, difficulty, pureHitScore) {
 
 
 function processNotificationQueue() {
+    // 如果當前已有通知正在顯示，或者隊列是空的，就直接返回
     if (isNotificationActive || notificationQueue.length === 0) {
         return;
     }
 
+    // 標記為「正在顯示通知」
     isNotificationActive = true;
-    const notification = notificationQueue.shift();
-    currentNotificationObject = notification; // 【新增】記錄當前通知物件
 
+    // 從隊列的頭部取出第一個通知
+    const notification = notificationQueue.shift();
+
+    // --- 以下是原 showNotification 函數的核心顯示邏輯 ---
     const content = notificationModal.querySelector('.notification-content');
     notificationTitle.textContent = notification.title;
     notificationMessage.innerHTML = notification.message;
@@ -4308,18 +4308,14 @@ function processNotificationQueue() {
     
     notificationModal.classList.add('active');
 
+    // 設定計時器，在通知結束後觸發下一個
     notificationTimer = setTimeout(() => {
         notificationModal.classList.remove('active');
-        isNotificationActive = false;
-        
-        // 【新增】在通知結束後，檢查並執行回呼函式
-        if (notification.callback) {
-            notification.callback();
-        }
-
-        processNotificationQueue();
+        isNotificationActive = false; // 標記為「通知已結束」
+        processNotificationQueue();   // 再次呼叫經理，檢查隊列中是否還有下一個
     }, notification.duration || 5000);
 }
+// ▲▲▲ 新增函數結束 ▲▲▲
 
 
             
@@ -4327,14 +4323,13 @@ function processNotificationQueue() {
 
 let notificationTimer = null;
 
-function showNotification(type, title, message, duration = 5000, onCloseCallback = null) {
-    // 步驟 1: 將通知任務（包含回呼函式）打包，添加到隊列的末尾
+function showNotification(type, title, message, duration = 5000) {
+    // 步驟 1: 將通知任務打包，添加到隊列的末尾
     notificationQueue.push({
         type: type,
         title: title,
         message: message,
-        duration: duration,
-        callback: onCloseCallback // 【新增】將回呼函式儲存起來
+        duration: duration
     });
 
     // 步驟 2: 呼叫我們的「經理」來處理隊列
@@ -4345,17 +4340,11 @@ function showNotification(type, title, message, duration = 5000, onCloseCallback
            // 【修改後的樣子】
 closeNotification.addEventListener('click', () => {
     if (notificationTimer) {
-        clearTimeout(notificationTimer);
+        clearTimeout(notificationTimer); // 清除當前的計時器
     }
     notificationModal.classList.remove('active');
-    isNotificationActive = false;
-    
-    // 【新增】玩家手動關閉時，同樣檢查並執行回呼函式
-    if (currentNotificationObject && currentNotificationObject.callback) {
-        currentNotificationObject.callback();
-    }
-    
-    processNotificationQueue();
+    isNotificationActive = false;      // 立刻標記為「通知已結束」
+    processNotificationQueue();        // 立刻呼叫經理，顯示下一個通知
 });
 
 
@@ -4580,9 +4569,6 @@ async function handlePlayerName() {
                 localStorage.setItem('musicGamePlayerName', playerName);
                 
                 showNotification('success', '儲存成功', `你的新名稱「<strong>${playerName}</strong>」已成功設定！`);
-
- // 【新增】成功儲存名稱後，自動關閉【排行榜視窗】
-                leaderboardModal.classList.remove('active');
             }
         } catch (error) {
             console.error("檢查名稱時發生錯誤:", error);
@@ -4635,72 +4621,123 @@ function displayLeaderboard(songUrl, difficulty) {
     });
 }
 
+/**
+ * 提交分數到 Firebase 排行榜（修訂後版本）
+ * - 支援前三名上榜
+ * - 阻止在同一榜單上使用重複的玩家名稱
+ * @param {string} songUrl 
+ * @param {string} difficulty 
+ * @param {number} finalScore 
+ */
 async function submitScoreToLeaderboard(songUrl, difficulty, finalScore) {
+    // 步驟 1: 確認玩家已設定名稱，否則不執行任何操作
     if (!playerName) {
         console.log("玩家未設定名稱，不提交分數至排行榜。");
+        // 你也可以在這裡加上一個 showNotification() 來提醒玩家去設定名稱
         return;
     }
 
     const songId = sanitizeFirebaseKey(songUrl);
     const leaderboardRef = database.ref(`leaderboards/${songId}/${difficulty}`);
 
+    // 步驟 2: 使用 Firebase 的 Transaction（交易）功能
+    // 這是一個安全的操作，能防止多位玩家同時提交分數時造成資料錯亂。
+    // 我們將「讀取、修改、寫回」這三個動作綁在一起，確保其原子性。
     try {
         const { committed, snapshot } = await leaderboardRef.transaction((currentData) => {
+            // 如果資料庫中還沒有這個排行榜，就初始化為一個空陣列
             if (currentData === null) {
                 currentData = [];
             }
-            
-            const isNameTakenByOther = currentData.some(entry => entry.name === playerName);
-            let selfIndex = currentData.findIndex(entry => entry.name === playerName);
 
+            // ==========================================================
+            // ====== 其二：避免玩家設定相同的名稱 (核心邏輯) ======
+            // ==========================================================
+            
+            // 檢查這個名字是否已經被榜上「其他人」使用
+            const isNameTakenByOther = currentData.some(entry => entry.name === playerName);
+
+            // 尋找「自己」是否已經在榜上
+            let selfIndex = -1;
+            for (let i = 0; i < currentData.length; i++) {
+                if (currentData[i].name === playerName) {
+                    selfIndex = i;
+                    break;
+                }
+            }
+
+            // 【規則】如果名字被佔用，而且佔用者不是自己 -> 提交失敗
             if (isNameTakenByOther && selfIndex === -1) {
+                // 返回 undefined 會安全地中止這次的 transaction，不會寫入任何資料
                 console.warn(`提交失敗：名稱 "${playerName}" 已被此排行榜上的其他玩家使用。`);
                 return; 
             }
 
+            // ========================================================
+            // ====== 其一：排行榜擴充至前三名 (核心邏輯) ======
+            // ========================================================
+            
+            // 找出榜單上的最低分 (如果榜單未滿三人，則最低分為 0)
             const lowestScoreOnBoard = currentData.length < 3 ? 0 : currentData[currentData.length - 1].score;
 
             if (selfIndex !== -1) {
+                // --- 情況 A: 我已經在榜上 ---
+                // 只有在新分數更高時，才更新我的分數
                 if (finalScore > currentData[selfIndex].score) {
                     currentData[selfIndex].score = finalScore;
                 } else {
+                    // 分數沒有更高，不需要更新，中止 transaction
                     return;
                 }
             } else {
+                // --- 情況 B: 我還沒上榜 ---
+                // 如果分數不夠高 (且榜單已滿 3 人)，就無法上榜
                 if (finalScore <= lowestScoreOnBoard && currentData.length >= 3) {
-                    return; 
+                    return; // 中止 transaction
                 }
+                // 分數夠高，將我的新紀錄加入陣列中
                 currentData.push({ name: playerName, score: finalScore });
             }
 
+            // 【關鍵步驟】對所有紀錄依分數由高到低重新排序
             currentData.sort((a, b) => b.score - a.score);
-            return currentData.slice(0, 3);
+            
+            // 【關鍵步驟】只保留排序後的前三名紀錄
+            const newData = currentData.slice(0, 3);
+            
+            // 返回最終要寫入資料庫的新排行榜資料
+            return newData;
         });
 
-        // ▼▼▼ 【核心修訂】在這裡新增上榜通知 ▼▼▼
+        // 步驟 3: 根據 transaction 的執行結果，給予玩家明確的回饋
         if (committed) {
+            // Transaction 成功提交，代表資料已更新
             const finalBoard = snapshot.val() || [];
-            const onFinalBoard = finalBoard.some(entry => entry.name === playerName);
+            // 再次確認自己是否真的在最終的榜單上
+            const onFinalBoard = finalBoard.some(entry => entry.name === playerName && entry.score === finalScore);
             
             if (onFinalBoard) {
-                // 如果玩家的名字在最終的排行榜上，顯示成功訊息
+                // 只有成功上榜，才顯示成功通知
                 const difficultyText = difficultySelect.querySelector(`option[value="${difficulty}"]`).textContent;
-                showNotification('success', '成功登上排行榜！', `恭喜！你在「<strong>${difficultyText}</strong>」難度的分數已成功登上排行榜！`);
+                showNotification('success', '登上排行榜！', `恭喜！你在「<strong>${difficultyText}</strong>」難度的分數已成功登上排行榜！`);
             } else {
-                // 如果提交了，但分數不夠高，被擠出榜外
+                // 雖然提交成功，但因為分數不夠高而被擠出榜外
                 showNotification('info', '再接再厲', '你的分數已成功提交，但未達到目前排行榜前三名的標準。');
             }
         } else {
-            // 如果因為名稱重複等原因交易被中止
+            // Transaction 被中止，通常是因為我們在前面手動中止了它（例如名稱重複）
              showNotification('info', '提交失敗', '你的名稱可能已被此排行榜上的其他玩家使用，請更換名稱後再試一次。');
         }
-        // ▲▲▲ 修訂結束 ▲▲▲
 
     } catch (error) {
+        // 如果發生網路錯誤等問題
         console.error("提交分數時發生錯誤: ", error);
         showNotification('info', '提交錯誤', '與伺服器連線時發生問題，請稍後再試。');
     }
 }
+// ==============================================================
+// ====== 【新增函數結束】 ======================================
+// ==============================================================
 
             // --- Game Logic ---
             function generateNote(noteData) {
@@ -5018,6 +5055,107 @@ function updateUnlockMeter() {
                 return difficultySettings[difficultySelect.value] || difficultySettings.normal;
             }
 
+          async function startGame() {
+    const selectedSong = musicSelect.value;
+    const selectedDifficulty = difficultySelect.value;
+
+    if (!isSongUnlocked(selectedSong)) {
+        showUnlockModal(`在普通模式下達到 ${SONG_UNLOCK_SCORE} 分以解鎖下一首歌曲。`);
+        return;
+    }
+    if (!isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
+        let reqScore = 0;
+        let reqDiff = '';
+        if (selectedDifficulty === 'hard') {
+            reqScore = DIFFICULTY_UNLOCK_SCORE_NORMAL_TO_HARD;
+            reqDiff = '普通';
+        } else if (selectedDifficulty === 'hell') {
+            reqScore = DIFFICULTY_UNLOCK_SCORE_HARD_TO_HELL;
+            reqDiff = '困難';
+        }
+        showUnlockModal(`在 ${reqDiff} 模式下達到 ${reqScore} 分以解鎖此難度。`);
+        return;
+    }
+
+    if (gameActive) return;
+    gameActive = true;
+    startBtn.disabled = true;
+    musicSelect.disabled = true;
+    difficultySelect.disabled = true;
+
+    // ▼▼▼ 【核心修訂】無條件設定兩條合格線的位置 ▼▼▼
+    mainGameContainer.classList.add('game-running'); 
+    
+    // 根據預設的百分比常數，設定兩條線的 left 屬性
+    songUnlockMarker.style.left = `${SONG_UNLOCK_PERCENTAGE * 100}%`;
+    difficultyUnlockMarker.style.left = `${DIFFICULTY_UNLOCK_PERCENTAGE * 100}%`;
+    // ▲▲▲ 修訂結束 ▲▲▲
+    
+    // 新增：初始化進度條高度和寬度，確保顯示正常（修復無法顯示的BUG）
+    unlockProgressBar.style.height = '100%';
+    unlockProgressBar.style.width = '0%';
+    unlockProgressBar.classList.remove('glowing');
+
+    startBtn.innerHTML = `<svg class="start-button-svg" viewBox="0 0 40 40" style="width:40px;height:40px;">
+        <circle cx="20" cy="20" r="18" stroke="#ff8a00" stroke-width="3" fill="none" stroke-dasharray="89" stroke-dashoffset="20">
+            <animateTransform attributeName="transform" type="rotate" from="0 20 20" to="360 20 20" dur="1s" repeatCount="indefinite" />
+        </circle>
+    </svg>`;
+    
+    const difficulty = getCurrentDifficulty();
+    const beatTimestamps = await analyzeAudioForBeats(selectedSong);
+    startBtn.innerHTML = originalStartButtonSVG;
+ 
+    progressContainerDiv.style.display = 'block';
+    trackCooldownUntil.fill(0); 
+    audio.src = selectedSong;
+    audio.volume = volumeControlModal.value;
+    currentSongDuration = await getAudioDuration(selectedSong);
+    noteSpeed = Math.floor(4000 / difficulty.speedMultiplier);
+    // ▼▼▼ [修訂] 生成基於歌曲和難度的固定種子 ▼▼▼
+const songAndDifficultyString = selectedSong + selectedDifficulty;
+let seed = 0;
+for (let i = 0; i < songAndDifficultyString.length; i++) {
+    const char = songAndDifficultyString.charCodeAt(i);
+    seed = ((seed << 5) - seed) + char;
+    seed |= 0; // Convert to 32bit integer
+}
+// 確保種子為正數
+seed = Math.abs(seed) || 1; // 避免種子為 0
+console.log(`Generating notes for ${selectedSong} (${selectedDifficulty}) with seed: ${seed}`);
+// ▲▲▲ [修訂結束] ▲▲▲
+
+// ▼▼▼ [修訂] 傳入種子 ▼▼▼
+noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed); // 傳入 noteSpeed
+// ▲▲▲ [修訂結束] ▲▲▲
+
+    // ▼▼▼ 【修訂後的核心邏輯】 ▼▼▼
+    // 在生成音符後，動態計算不含連擊獎勵的理論最高分
+  const maxBaseScorePerNote = 100; // 修正為 "Perfect" 的實際基礎分數 55
+maxScoreForCurrentLevel = noteQueue.length * maxBaseScorePerNote;
+
+    // 如果計算結果為 0 (例如歌曲沒有音符)，則提供一個預設值以避免錯誤
+    if (maxScoreForCurrentLevel === 0) {
+        maxScoreForCurrentLevel = 300000; // 設置一個後備值
+    }
+    // ▲▲▲ 【修訂結束】 ▲▲▲
+
+    await audio.play().catch(e => console.log("音訊播放失敗:", e));
+    gameStartTime = Date.now();
+    generateNotesContinuously();
+    gameLoop();
+    progressInterval = setInterval(updateProgress, 100);
+    setTimeout(() => { if (gameActive) endGame(); }, currentSongDuration * 1000 + 2000);
+
+    // 新增：載入並初始化遊戲歌詞顯示
+    const lyricsLeft = document.querySelector('.lyrics-left');
+    const lyricsRight = document.querySelector('.lyrics-right');
+    if (lyricsLeft && lyricsRight) {
+        lyricsLeft.classList.remove('hidden');
+        lyricsRight.classList.remove('hidden');
+    }
+}
+
 
 // 新增輔助函數：分析節拍間隔，估算基本時間單位（如十六分音符長度）
 function analyzeBeatIntervals(beatTimestamps) {
@@ -5270,28 +5408,34 @@ function shuffleArray(array) {
     return array;
 }
 
-function startLyricsQuiz(rewards, songUrlForQuiz) {
+/**
+ * 開始歌詞填充測驗
+ * @param {string} unlockType - 解鎖類型 ('song' 或 'difficulty')
+ * @param {any} unlockValue - 要解鎖的目標值
+ * @param {string} songUrlForQuiz - 用於生成測驗題目的歌曲 URL
+ */
+function startLyricsQuiz(unlockType, unlockValue, songUrlForQuiz) {
+    // 從 songData 中獲取預設的題目
     const predefinedQuestions = songData[songUrlForQuiz]?.quiz || [];
 
     if (predefinedQuestions.length === 0) {
-        // 這個檢查理論上在 processPostGameRewards 中已經做過，但作為安全備用
-        console.warn(`歌曲 ${songUrlForQuiz} 沒有預設題目，自動授予獎勵。`);
-        grantAllRewards(rewards);
-        return;
-    }
-    
-    const shuffledPool = shuffleArray([...predefinedQuestions]);
-    quizQuestions = shuffledPool.slice(0, 5);
-    totalQuestionsInQuiz = quizQuestions.length;
-
-    if (totalQuestionsInQuiz === 0) {
-        grantAllRewards(rewards);
+        console.warn(`歌曲 ${songUrlForQuiz} 沒有預設題目，自動授予解鎖。`);
+        showNotification('info', '自動解鎖', '由於此歌曲無歌詞可供測驗，已為您直接解鎖新內容！');
+        if (unlockType === 'song') {
+            unlockNextSong(unlockValue);
+        } else if (unlockType === 'difficulty') {
+            unlockDifficulty(unlockValue.song, unlockValue.difficulty);
+        }
         return;
     }
     
     isQuizActive = true;
-    quizRewardsQueue = rewards; // 【修改】儲存整個獎勵佇列
+    quizUnlockTarget = { type: unlockType, value: unlockValue };
     questionsAnsweredCorrectly = 0;
+    
+    // 複製並打亂題庫，避免影響原始資料
+    quizQuestions = shuffleArray([...predefinedQuestions]); 
+    totalQuestionsInQuiz = quizQuestions.length;
     
     lyricsQuizModal.classList.add('active');
     displayNextQuizQuestion();
@@ -5348,59 +5492,130 @@ function checkQuizAnswer() {
 }
 
 
+/**
+ * 結束測驗，並根據結果執行最終操作
+ * @param {boolean} success - 測驗是否成功
+ */
 function endQuiz(success) {
-    if (!isQuizActive) return;
+    if (!isQuizActive) return; // 防止重複執行
 
     isQuizActive = false;
     lyricsQuizModal.classList.remove('active');
 
     if (success) {
-        // 成功邏輯保持不變
-        const rewardsToGrant = [...quizRewardsQueue];
-        if (rewardsToGrant.length > 0) {
-             showNotification('success', '測驗通過！', '恭喜您通過歌詞測驗，所有獎勵正在發放中！');
-             grantAllRewards(rewardsToGrant);
+        // 如果成功，則執行真正的解鎖操作
+        const { type, value } = quizUnlockTarget;
+        if (type === 'song') {
+            unlockNextSong(value); 
+        } else if (type === 'difficulty') {
+            unlockDifficulty(value.song, value.difficulty);
         }
     } else {
-        // 【核心修改】根據失敗的目標類型，顯示不同的通知
-        const wasTryingForLeaderboard = quizRewardsQueue.some(reward => reward.type === 'leaderboard');
-
-        if (wasTryingForLeaderboard) {
-            showNotification('info', '排行榜挑戰失敗', '歌詞測驗未通過，本次無法登上排行榜。下次請再接再厲！');
-        } else {
-            showNotification('info', '解鎖失敗', '歌詞測驗未通過，無法解鎖新內容。下次請再接再厲！');
-        }
+        // 如果失敗或中途關閉，顯示提示訊息
+        showNotification('info', '解鎖失敗', '歌詞測驗未通過，下次請再接再厲！');
     }
 
-    // 清空佇列和狀態
-    quizRewardsQueue = [];
+    // 重置測驗狀態以備下次使用
     quizQuestions = [];
     currentQuizQuestion = null;
     questionsAnsweredCorrectly = 0;
     totalQuestionsInQuiz = 0;
+    quizUnlockTarget = null;
 }
 
+/**
+ * 檢查解鎖條件並觸發測驗或顯示提示 (核心邏輯函數)
+ * @param {string} songUrl - 當前歌曲 URL
+ * @param {string} difficulty - 當前難度
+ * @param {number} pureHitScore - 純粹的擊打分數 (不含 Combo 加成)
+ */
+function checkAndShowQuizOrInfo(songUrl, difficulty, pureHitScore) {
+    // ▼▼▼ 【修訂處】檢查 songData 中是否有 quiz 屬性 ▼▼▼
+    const hasQuiz = songData[songUrl]?.quiz && songData[songUrl].quiz.length > 0;
+    // ▲▲▲ 修訂結束 ▲▲▲
+    let potentialUnlock = null;
+
+    // 檢查1: 是否滿足解鎖【新歌曲】的條件 (僅在普通難度下)
+    if (difficulty === 'normal') {
+        const allSongs = Array.from(musicSelect.options).map(opt => opt.value);
+        const lastUnlockedSong = saveData.unlockedSongs[saveData.unlockedSongs.length - 1];
+        
+        // 必須玩的是當前已解鎖的最後一首歌
+        if (songUrl === lastUnlockedSong) {
+            const currentIndex = allSongs.indexOf(lastUnlockedSong);
+            if (currentIndex >= 0 && currentIndex < allSongs.length - 1) {
+                const nextSong = allSongs[currentIndex + 1];
+                if (!isSongUnlocked(nextSong)) {
+                    const requiredScore = maxScoreForCurrentLevel * SONG_UNLOCK_PERCENTAGE;
+                    if (pureHitScore >= requiredScore) {
+                        potentialUnlock = { type: 'song', value: songUrl, songForQuiz: songUrl };
+                    } else {
+                        const remainingScore = Math.ceil(requiredScore - pureHitScore);
+                        showNotification('info', '目標差一點！', `您在「普通」難度下還差 <strong>${remainingScore.toLocaleString()}</strong> 分就能挑戰解鎖下一首歌曲了。再加把勁！`, 6000);
+                    }
+                }
+            }
+        }
+    }
+
+    // 如果已滿足解鎖歌曲條件，則優先處理，並終止後續檢查
+    if (potentialUnlock) {
+        if (hasQuiz) {
+            startLyricsQuiz(potentialUnlock.type, potentialUnlock.value, potentialUnlock.songForQuiz);
+        } else {
+            console.warn(`歌曲 ${potentialUnlock.songForQuiz} 無法觸發測驗，因為沒有預設題目。將直接解鎖。`);
+            unlockNextSong(potentialUnlock.value);
+        }
+        return; 
+    }
+
+    // 檢查2: 是否滿足解鎖【困難】難度的條件 (從普通難度挑戰)
+    if (difficulty === 'normal' && !isDifficultyUnlocked(songUrl, 'hard')) {
+        const requiredScore = maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE;
+        if (pureHitScore >= requiredScore) {
+            potentialUnlock = { type: 'difficulty', value: { song: songUrl, difficulty: 'hard' }, songForQuiz: songUrl };
+        }
+    }
+
+    // 檢查3: 是否滿足解鎖【地獄】難度的條件 (從困難難度挑戰)
+    if (difficulty === 'hard' && !isDifficultyUnlocked(songUrl, 'hell')) {
+        const requiredScore = maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE;
+        if (pureHitScore >= requiredScore) {
+            potentialUnlock = { type: 'difficulty', value: { song: songUrl, difficulty: 'hell' }, songForQuiz: songUrl };
+        }
+    }
+    
+    // 如果滿足解鎖難度的條件，觸發相應操作
+    if (potentialUnlock) {
+         if (hasQuiz) {
+            startLyricsQuiz(potentialUnlock.type, potentialUnlock.value, potentialUnlock.songForQuiz);
+         } else {
+            console.warn(`歌曲 ${potentialUnlock.songForQuiz} 無法觸發測驗，因為沒有預設題目。將直接解鎖。`);
+            unlockDifficulty(potentialUnlock.value.song, potentialUnlock.value.difficulty);
+         }
+    }
+}
 
 
             
 
 
 
-// ▼▼▼ 請將此函數完整複製，並替換掉您現有的 updateGameLyrics 函數 ▼▼▼
 function updateGameLyrics(currentTime) {
     const selectedSong = musicSelect.value;
     const lyrics = songData[selectedSong]?.lyrics || [];
-    const verticalLyricElement = document.getElementById('game-lyric-text');
-
-    if (!verticalLyricElement) return; // 如果找不到元素，直接退出
-
-    // 如果這首歌沒有歌詞，就清空文字
+    
+    // 如果這首歌沒有歌詞，就直接結束，不做任何事
     if (lyrics.length === 0) {
-        verticalLyricElement.textContent = '';
+        // 同時也確保垂直歌詞是空的
+        const verticalLyricElement = document.getElementById('game-lyric-text');
+        if (verticalLyricElement) {
+            verticalLyricElement.textContent = '';
+        }
         return;
     }
 
-    // 找出當前應該顯示哪一句歌詞
+    // 1. 找出當前應該顯示哪一句歌詞
     let currentIndex = -1;
     for (let i = 0; i < lyrics.length; i++) {
         if (lyrics[i].time <= currentTime) {
@@ -5409,59 +5624,59 @@ function updateGameLyrics(currentTime) {
             break;
         }
     }
-    const currentLyricText = (currentIndex >= 0) ? lyrics[currentIndex].text : '';
+    const currentLyricText = (currentIndex >= 0 && lyrics[currentIndex]) ? lyrics[currentIndex].text : '';
 
-    // 將找到的歌詞文字，更新到我們的垂直歌詞元素中
-    verticalLyricElement.textContent = currentLyricText;
-}
-// ====================================================================
-// ====== 【最終修正版】確保在點擊開始時，直接檢查儲存的最新名稱 ======
-// ====================================================================
-async function startGame() {
-    console.log("--- startGame function initiated ---");
-    
-    // 【核心修正】在點擊開始的瞬間，直接從 localStorage 獲取最新的玩家名稱
-    // 這能確保我們使用的是最準確的資料，而不是頁面剛載入時的舊資料
-    const currentName = localStorage.getItem('musicGamePlayerName');
-    console.log(`檢查 localStorage 中的名稱: "${currentName}"`);
-
-    // 【強化版守門員】這個檢查現在更加直接且可靠
-    if (!currentName || currentName.trim() === '') {
-        console.error("錯誤：玩家名稱未設定。已阻止遊戲開始。");
-
-        // 1. 顯示一個清晰的引導通知
-        showNotification(
-            'info',
-            '請先設定玩家名稱',
-            '為了開始遊戲並記錄您的成績，請先在排行榜中設定您的顯示名稱。',
-            7000
-        );
-        
-        // 2. 強制彈出【排行榜視窗】
-        leaderboardModal.classList.add('active');
-        
-        // 3. 自動聚焦到輸入框
-        const playerNameInput = document.getElementById('playerNameInput');
-        if (playerNameInput) {
-            playerNameInput.focus();
-        }
-
-        // 4. 【最重要】立即中止函數，不執行後續任何遊戲啟動程式碼
-        return; 
+    // 2. 【核心新增】將找到的歌詞文字，更新到我們新的垂直歌詞元素中
+    const verticalLyricElement = document.getElementById('game-lyric-text');
+    if (verticalLyricElement) {
+        verticalLyricElement.textContent = currentLyricText;
     }
 
-    // --- 只有在通過名稱檢查後，才會執行以下的遊戲邏輯 ---
-    console.log("名稱檢查通過，遊戲正常啟動。");
-    
+    // 3. (保留) 繼續執行您原有的滿版背景歌詞功能
+    const lyricsBackground = document.getElementById('lyricsBackground');
+    if (lyricsBackground && lyricsBackground.style.display !== 'none') {
+        lyricsBackground.innerHTML = ''; // 清空舊內容
+        if (currentLyricText) {
+            const fontSize = parseFloat(getComputedStyle(lyricsBackground).fontSize);
+            const approxCharWidth = fontSize * 0.6;
+            const lineHeight = fontSize * 1.2;
+            const lyricWidth = currentLyricText.length * approxCharWidth;
+            const spanWidth = Math.max(lyricWidth, window.innerWidth * 0.1);
+            const spanHeight = lineHeight;
+            const horizontalCount = Math.ceil(window.innerWidth / spanWidth);
+            const verticalCount = Math.ceil(window.innerHeight / spanHeight);
+            const densityFactor = 1.2;
+            const totalSpans = Math.ceil(horizontalCount * verticalCount * densityFactor);
+            
+            for (let i = 0; i < totalSpans; i++) {
+                const span = document.createElement('span');
+                span.textContent = currentLyricText;
+                lyricsBackground.appendChild(span);
+            }
+        }
+    }
+}
+// ▲▲▲ 替換結束 ▲▲▲
+// 修訂：startGame（顯示新背景容器）
+async function startGame() {
     const selectedSong = musicSelect.value;
     const selectedDifficulty = difficultySelect.value;
 
     if (!isSongUnlocked(selectedSong)) {
-        showNotification('info', '歌曲未解鎖', '此歌曲尚未解鎖。');
+        showUnlockModal(`在普通模式下達到 ${SONG_UNLOCK_SCORE} 分以解鎖下一首歌曲。`);
         return;
     }
     if (!isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
-        showNotification('info', '難度未解鎖', '此難度尚未解鎖。');
+        let reqScore = 0;
+        let reqDiff = '';
+        if (selectedDifficulty === 'hard') {
+            reqScore = DIFFICULTY_UNLOCK_SCORE_NORMAL_TO_HARD;
+            reqDiff = '普通';
+        } else if (selectedDifficulty === 'hell') {
+            reqScore = DIFFICULTY_UNLOCK_SCORE_HARD_TO_HELL;
+            reqDiff = '困難';
+        }
+        showUnlockModal(`在 ${reqDiff} 模式下達到 ${reqScore} 分以解鎖此難度。`);
         return;
     }
 
@@ -5471,13 +5686,17 @@ async function startGame() {
     musicSelect.disabled = true;
     difficultySelect.disabled = true;
 
+    // ▼▼▼ 【核心修訂】無條件設定兩條合格線的位置 ▼▼▼
     mainGameContainer.classList.add('game-running'); 
-    unlockProgressBar.style.height = '100%';
-    unlockProgressBar.style.width = '0%';
-    unlockProgressBar.classList.remove('glowing');
+    // 初始化進度條高度和寬度，確保顯示正常
+unlockProgressBar.style.height = '100%';
+unlockProgressBar.style.width = '0%';
+unlockProgressBar.classList.remove('glowing');
     
+    // 根據預設的百分比常數，設定兩條線的 left 屬性
     songUnlockMarker.style.left = `${SONG_UNLOCK_PERCENTAGE * 100}%`;
     difficultyUnlockMarker.style.left = `${DIFFICULTY_UNLOCK_PERCENTAGE * 100}%`;
+    // ▲▲▲ 修訂結束 ▲▲▲
     
     startBtn.innerHTML = `<svg class="start-button-svg" viewBox="0 0 40 40" style="width:40px;height:40px;">
         <circle cx="20" cy="20" r="18" stroke="#ff8a00" stroke-width="3" fill="none" stroke-dasharray="89" stroke-dashoffset="20">
@@ -5495,24 +5714,33 @@ async function startGame() {
     audio.volume = volumeControlModal.value;
     currentSongDuration = await getAudioDuration(selectedSong);
     noteSpeed = Math.floor(4000 / difficulty.speedMultiplier);
+    // ▼▼▼ [修訂] 生成基於歌曲和難度的固定種子 ▼▼▼
+const songAndDifficultyString = selectedSong + selectedDifficulty;
+let seed = 0;
+for (let i = 0; i < songAndDifficultyString.length; i++) {
+    const char = songAndDifficultyString.charCodeAt(i);
+    seed = ((seed << 5) - seed) + char;
+    seed |= 0; // Convert to 32bit integer
+}
+// 確保種子為正數
+seed = Math.abs(seed) || 1; // 避免種子為 0
+console.log(`Generating notes for ${selectedSong} (${selectedDifficulty}) with seed: ${seed}`);
+// ▲▲▲ [修訂結束] ▲▲▲
 
-    const songAndDifficultyString = selectedSong + selectedDifficulty;
-    let seed = 0;
-    for (let i = 0; i < songAndDifficultyString.length; i++) {
-        const char = songAndDifficultyString.charCodeAt(i);
-        seed = ((seed << 5) - seed) + char;
-        seed |= 0;
-    }
-    seed = Math.abs(seed) || 1;
-    
-    noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed);
+// ▼▼▼ [修訂] 傳入種子 ▼▼▼
+noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed); // 傳入 noteSpeed
+// ▲▲▲ [修訂結束] ▲▲▲
 
-    const maxBaseScorePerNote = 100;
+    // ▼▼▼ 【修訂後的核心邏輯】 ▼▼▼
+    // 在生成音符後，動態計算不含連擊獎勵的理論最高分
+    const maxBaseScorePerNote = 100; // "Perfect" 的基礎分數是 100
     maxScoreForCurrentLevel = noteQueue.length * maxBaseScorePerNote;
 
+    // 如果計算結果為 0 (例如歌曲沒有音符)，則提供一個預設值以避免錯誤
     if (maxScoreForCurrentLevel === 0) {
-        maxScoreForCurrentLevel = 300000;
+        maxScoreForCurrentLevel = 300000; // 設置一個後備值
     }
+    // ▲▲▲ 【修訂結束】 ▲▲▲
 
     await audio.play().catch(e => console.log("音訊播放失敗:", e));
     gameStartTime = Date.now();
@@ -5520,119 +5748,16 @@ async function startGame() {
     gameLoop();
     progressInterval = setInterval(updateProgress, 100);
     setTimeout(() => { if (gameActive) endGame(); }, currentSongDuration * 1000 + 2000);
-}
 
-
-// ====================================================================
-// ====== 【最終版】統一的遊戲後獎勵處理函數 (支援前置通知) ======
-// ====================================================================
-async function processPostGameRewards(songUrl, difficulty, score, pureHitScore) {
-    const rewardsQueue = [];
-    const hasQuiz = songData[songUrl]?.quiz && songData[songUrl].quiz.length > 0;
-
-    // --- 檢查所有可能的獎勵並加入佇列 (這部分邏輯不變) ---
-    // 檢查 1: 新歌曲解鎖
-    if (difficulty === 'normal') {
-        const allSongs = Array.from(musicSelect.options).map(opt => opt.value);
-        const lastUnlockedSong = saveData.unlockedSongs[saveData.unlockedSongs.length - 1];
-        if (songUrl === lastUnlockedSong) {
-            const currentIndex = allSongs.indexOf(lastUnlockedSong);
-            if (currentIndex >= 0 && currentIndex < allSongs.length - 1) {
-                const nextSong = allSongs[currentIndex + 1];
-                if (!isSongUnlocked(nextSong)) {
-                    const requiredScore = maxScoreForCurrentLevel * SONG_UNLOCK_PERCENTAGE;
-                    if (pureHitScore >= requiredScore) {
-                        rewardsQueue.push({ type: 'song', value: songUrl });
-                    }
-                }
-            }
-        }
-    }
-    // 檢查 2: 新難度解鎖
-    if (difficulty === 'normal' && !isDifficultyUnlocked(songUrl, 'hard')) {
-        if (pureHitScore >= maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE) {
-            rewardsQueue.push({ type: 'difficulty', value: { song: songUrl, difficulty: 'hard' } });
-        }
-    }
-    if (difficulty === 'hard' && !isDifficultyUnlocked(songUrl, 'hell')) {
-        if (pureHitScore >= maxScoreForCurrentLevel * DIFFICULTY_UNLOCK_PERCENTAGE) {
-            rewardsQueue.push({ type: 'difficulty', value: { song: songUrl, difficulty: 'hell' } });
-        }
-    }
-    // 檢查 3: 排行榜資格 (異步)
-    if (playerName) {
-        const songId = sanitizeFirebaseKey(songUrl);
-        const leaderboardRef = database.ref(`leaderboards/${songId}/${difficulty}`);
-        try {
-            const snapshot = await leaderboardRef.once('value');
-            const board = snapshot.val() || [];
-            const lowestScoreOnBoard = board.length < 3 ? 0 : board[board.length - 1].score;
-            const selfEntry = board.find(e => e.name === playerName);
-            if (score > lowestScoreOnBoard || (selfEntry && score > selfEntry.score)) {
-                rewardsQueue.push({ type: 'leaderboard', value: { songUrl, difficulty, score } });
-            }
-        } catch (error) { console.error("檢查排行榜資格時出錯:", error); }
-    }
-
-    // --- 【核心修改】根據佇列內容，決定下一步行動 ---
-    if (rewardsQueue.length > 0) {
-        if (hasQuiz) {
-            // 如果有獎勵且有測驗，則顯示前置通知，並將「啟動測驗」作為回呼
-            const hasLeaderboardReward = rewardsQueue.some(reward => reward.type === 'leaderboard');
-            const hasUnlockReward = rewardsQueue.some(reward => reward.type !== 'leaderboard');
-
-            let title = '恭喜！表現出色！';
-            let message = '只要通過接下來的歌詞測驗，';
-
-            if (hasLeaderboardReward && hasUnlockReward) {
-                message += '你的名字就能登上排行榜，並解鎖新內容！';
-            } else if (hasLeaderboardReward) {
-                message += '你的名字就能登上排行榜！';
-            } else if (hasUnlockReward) {
-                message += '就能解鎖新的內容！';
-            }
-
-            // 呼叫升級後的通知函數
-            showNotification(
-                'success',          // 類型
-                title,              // 標題
-                message,            // 我們動態生成的消息
-                6000,               // 顯示時長 (6秒)
-                () => {             // 這是回呼函式，會在通知結束後執行
-                    startLyricsQuiz(rewardsQueue, songUrl);
-                }
-            );
-        } else {
-            // 如果有獎勵但沒有測驗，則直接授予所有獎勵
-            showNotification('info', '自動授予獎勵', '由於此歌曲無歌詞測驗，所有已達成的獎勵將自動授予給您。');
-            grantAllRewards(rewardsQueue);
-        }
+    // 新增：顯示背景歌詞容器
+    const lyricsBackground = document.getElementById('lyricsBackground');
+    if (lyricsBackground) {
+        lyricsBackground.style.display = 'grid';
     }
 }
-
-/**
- * 直接授予所有獎勵 (用於沒有測驗的歌曲)
- * @param {Array} rewards - 獎勵佇列
- */
-function grantAllRewards(rewards) {
-    rewards.forEach(reward => {
-        switch (reward.type) {
-            case 'song':
-                unlockNextSong(reward.value);
-                break;
-            case 'difficulty':
-                unlockDifficulty(reward.value.song, reward.value.difficulty);
-                break;
-            case 'leaderboard':
-                submitScoreToLeaderboard(reward.value.songUrl, reward.value.difficulty, reward.value.score);
-                break;
-        }
-    });
-}
-            
 
 function endGame() {
-    if (!gameActive) return;
+    if (!gameActive) return; // 防止重複觸發
 
     gameActive = false;
     audio.pause();
@@ -5644,6 +5769,7 @@ function endGame() {
     musicSelect.disabled = false;
     difficultySelect.disabled = false;
 
+    // 隱藏遊戲中的 UI 元素
     mainGameContainer.classList.remove('game-running'); 
     unlockProgressBar.style.width = '0%';
     unlockProgressBar.classList.remove('glowing');
@@ -5651,14 +5777,26 @@ function endGame() {
     notes.forEach(note => note.element.remove());
     notes = [];
 
+    const lyricsBackground = document.getElementById('lyricsBackground');
+    if (lyricsBackground) {
+        lyricsBackground.style.display = 'none';
+        lyricsBackground.innerHTML = '';
+    }
+
+    // --- 遊戲後結算 ---
     const selectedSong = musicSelect.value;
     const selectedDifficulty = difficultySelect.value;
     updatePersonalHighScore(selectedSong, selectedDifficulty, score);
 
-    // 【核心修改】呼叫統一的獎勵處理函數
-    // 函數內部會處理所有檢查、測驗觸發和獎勵發放
-    processPostGameRewards(selectedSong, selectedDifficulty, score, pureHitScore);
+    // 【核心修訂】
+    // 將所有解鎖判斷統一交給 checkAndShowQuizOrInfo 函數。
+    checkAndShowQuizOrInfo(selectedSong, selectedDifficulty, pureHitScore);
+    
+    // ====== 【新增】提交分數到全球排行榜 ======
+    submitScoreToLeaderboard(selectedSong, selectedDifficulty, score);
+    // ==========================================
 
+    // 顯示遊戲結束畫面
     showGameOver();
 }
 
@@ -6366,8 +6504,8 @@ disclaimerModal.addEventListener('click', (e) => {
 <div class="lyrics-quiz-modal" id="lyricsQuizModal">
     <div class="quiz-content">
         <h2 class="quiz-title">歌詞填充測驗</h2>
-        <p class="quiz-instructions">連續答對五題即可解鎖新內容或登入排行榜！</p>
-        <div class="quiz-progress" id="quizProgress">連續答對: 0 / 5</div>
+        <p class="quiz-instructions">連續答對五題即可解鎖新內容！</p>
+        <div class="quiz-progress" id="quizProgress">連續答對: 0 / 3</div>
         <div class="quiz-question-container">
             <p id="quizQuestionText"></p>
         </div>
