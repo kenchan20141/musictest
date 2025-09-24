@@ -2365,74 +2365,7 @@
     }
 }
 
-        /* ====== 【新增】排行榜相關樣式 ====== */
-
-/* 排行榜列表項目 */
-.leaderboard-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 15px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    margin-bottom: 8px;
-    border-left: 4px solid #ffcc00;
-    transition: background 0.3s ease, transform 0.2s ease;
-}
-
-.leaderboard-item:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateX(5px);
-}
-
-/* 排名 */
-.leaderboard-rank {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: #ffcc00;
-    flex-basis: 15%;
-}
-
-/* 玩家名稱 */
-.leaderboard-name {
-    font-size: 1.1rem;
-    color: #f0f0f0;
-    flex-basis: 55%;
-    text-align: left;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* 分數 */
-.leaderboard-score {
-    font-size: 1.3rem;
-    font-weight: bold;
-    color: #00c9ff;
-    flex-basis: 30%;
-    text-align: right;
-}
-
-/* 列表第一名的特殊樣式 */
-.leaderboard-item:first-child {
-    border-left-color: #ff8a00;
-    box-shadow: 0 0 15px rgba(255, 138, 0, 0.3);
-}
-.leaderboard-item:first-child .leaderboard-rank {
-    color: #ff8a00;
-    transform: scale(1.1);
-}
-
-/* 響應式設計 */
-@media (max-width: 480px) {
-    .leaderboard-name {
-        font-size: 1rem;
-    }
-    .leaderboard-score {
-        font-size: 1.1rem;
-    }
-}
-
+ 
         /* =================================================================== */
 /* ====== 【全新設計】所有彈出視窗的統一風格 (Clean HUD Theme) ====== */
 /* =================================================================== */
@@ -3705,60 +3638,6 @@ font-size: 12px;
     }
 }
 
-        /* ====== 【新增】對戰排行榜列表樣式 ====== */
-/* 讓列表項目前面的數字 (排名) 更突出 */
-#battleRankingsList {
-    list-style: none;
-    padding-left: 0;
-    counter-reset: rank-counter; /* 初始化排名計數器 */
-}
-
-.battle-rank-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 15px;
-    margin-bottom: 10px;
-    background: var(--rank-item-bg, rgba(235, 237, 238, 0.5));
-    border-radius: 10px;
-    border-left: 5px solid transparent;
-    transition: all 0.3s ease;
-}
-
-.battle-rank-item:hover {
-    background: var(--rank-item-hover-bg, rgba(255, 255, 255, 0.9));
-    transform: scale(1.02);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-}
-
-/* 使用 ::before 偽元素來顯示排名 */
-.battle-rank-item::before {
-    counter-increment: rank-counter; /* 排名+1 */
-    content: "#" counter(rank-counter);
-    font-weight: bold;
-    font-size: 1.2rem;
-    color: var(--starlight-text-secondary, #8c7d6b);
-    margin-right: 15px;
-}
-
-/* 第一名的特殊皇冠樣式 */
-.battle-rank-item:first-child::before {
-    content: '👑'; /* 皇冠 Emoji */
-    font-size: 1.6rem;
-}
-
-.battle-rank-name {
-    font-size: 1.1rem;
-    font-weight: 500;
-    color: var(--starlight-text-primary, #3a332a);
-    flex-grow: 1; /* 佔據中間的剩餘空間 */
-}
-
-.battle-rank-score {
-    font-size: 1.4rem;
-    font-weight: bold;
-    color: var(--starlight-accent, #b48f5a);
-}
 
         /* ====== 【第二項修訂】對戰排行榜「我的排名」樣式 ====== */
 /* ====== 【第一項修訂】修正個人排名區塊寬度 ====== */
@@ -3783,26 +3662,176 @@ font-size: 12px;
     margin: 0 8px;
 }
 
-        .battle-rank-item.is-me {
-    border-left-color: #ffc107; /* 金色高亮邊框 */
+/* ======================================================================== */
+/* ====== 【全新統一設計】"星塵榮耀" 排行榜主題 ========================== */
+/* ======================================================================== */
+
+/* --- 1. 定義主題顏色變數，方便未來統一修改 --- */
+:root {
+    --rank-gold: #D4AF37;   /* 榮耀金 (第一名) */
+    --rank-silver: #C0C0C0; /* 典雅銀 (第二名) */
+    --rank-bronze: #CD7F32; /* 沉穩銅 (第三名) */
+    --rank-item-bg: rgba(235, 237, 238, 0.5); /* 列表項目背景，帶有輕微透明感 */
+    --rank-item-hover-bg: rgba(255, 255, 255, 0.9); /* 懸停時的背景 */
+    --rank-icon-shadow: 0 2px 4px rgba(0, 0, 0, 0.15); /* 圖示陰影 */
+}
+
+
+/* --- 2. 列表項目的統一樣式 --- */
+/* 核心：同時為 .leaderboard-item 和 .battle-rank-item 套用此樣式 */
+.leaderboard-item,
+.battle-rank-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+    background: var(--rank-item-bg);
+    border: 1px solid transparent;
+    border-left-width: 5px; /* 左側邊框加粗 */
+    transition: all 0.3s ease;
+    gap: 15px; /* 內部元素間距 */
+}
+
+.leaderboard-item:hover,
+.battle-rank-item:hover {
+    background: var(--rank-item-hover-bg);
+    transform: scale(1.03);
+    border-color: var(--starlight-border);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* --- 3. 排名顯示的統一樣式 (使用圖示) --- */
+/* 核心：同時選取 .leaderboard-rank 和 .battle-rank-item::before */
+.leaderboard-rank,
+.battle-rank-item::before {
+    flex-basis: 50px; /* 固定寬度 */
+    flex-shrink: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--starlight-text-secondary);
+    /* 移除 battle-rank-item 的數字計數器 */
+    content: '' !important; 
+}
+
+/* --- 4. 玩家名稱與分數的統一樣式 --- */
+.leaderboard-name,
+.battle-rank-name {
+    flex-grow: 1; /* 佔據剩餘空間 */
+    font-size: 1.1rem;
+    color: var(--starlight-text-primary);
+    font-weight: 500;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.leaderboard-score,
+.battle-rank-score {
+    flex-basis: 100px; /* 固定寬度 */
+    flex-shrink: 0;
+    font-size: 1.4rem;
     font-weight: bold;
+    color: var(--starlight-accent);
+    text-align: right;
 }
 
-        /* 1. 為第二名添加銀牌圖示 */
+/* --- 5. 前三名特殊樣式，增加榮譽感 --- */
+
+/* 第一名：榮耀金 + 皇冠 */
+.leaderboard-item:nth-child(1),
+.battle-rank-item:nth-child(1) {
+    background: linear-gradient(100deg, rgba(212, 175, 55, 0.15), transparent 70%);
+    border-color: var(--rank-gold);
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
+}
+.leaderboard-item:nth-child(1) .leaderboard-rank,
+.battle-rank-item:nth-child(1)::before {
+    content: '👑' !important; /* 強制使用皇冠圖示 */
+    font-size: 1.8rem;
+    filter: drop-shadow(var(--rank-icon-shadow));
+    color: var(--rank-gold);
+}
+
+/* 第二名：典雅銀 + 銀牌 */
+.leaderboard-item:nth-child(2),
+.battle-rank-item:nth-child(2) {
+    background: linear-gradient(100deg, rgba(192, 192, 192, 0.15), transparent 70%);
+    border-color: var(--rank-silver);
+}
+.leaderboard-item:nth-child(2) .leaderboard-rank,
 .battle-rank-item:nth-child(2)::before {
-    content: '🥈'; /* 銀牌 Emoji */
+    content: '🥈' !important; /* 強制使用銀牌圖示 */
     font-size: 1.6rem;
+    filter: drop-shadow(var(--rank-icon-shadow));
+    color: var(--rank-silver);
 }
 
-/* 2. 為第三名添加銅牌圖示 */
+/* 第三名：沉穩銅 + 銅牌 */
+.leaderboard-item:nth-child(3),
+.battle-rank-item:nth-child(3) {
+    background: linear-gradient(100deg, rgba(205, 127, 50, 0.15), transparent 70%);
+    border-color: var(--rank-bronze);
+}
+.leaderboard-item:nth-child(3) .leaderboard-rank,
 .battle-rank-item:nth-child(3)::before {
-    content: '🥉'; /* 銅牌 Emoji */
+    content: '🥉' !important; /* 強制使用銅牌圖示 */
     font-size: 1.6rem;
+    filter: drop-shadow(var(--rank-icon-shadow));
+    color: var(--rank-bronze);
 }
 
-/* 3. (可選) 稍微調整皇冠大小以保持視覺一致 */
-.battle-rank-item:first-child::before {
-    font-size: 1.6rem; 
+/* --- 6. 第四名及以後的排名數字樣式 --- */
+/* 為 battle-rank-item 恢復數字計數器 */
+#battleRankingsList {
+    counter-reset: rank-counter 3; /* 從 3 開始計數 */
+}
+.battle-rank-item:nth-child(n+4)::before {
+    counter-increment: rank-counter;
+    content: "#" counter(rank-counter) !important;
+    font-size: 1.2rem;
+}
+/* 為 leaderboard-item 恢復數字 */
+.leaderboard-item:nth-child(n+4) .leaderboard-rank::after {
+    counter-increment: rank-counter;
+    content: "#" counter(rank-counter);
+    font-size: 1.2rem;
+}
+
+/* --- 7. 「我的排名」高亮樣式 --- */
+.battle-rank-item.is-me {
+    border-color: #ffc107; /* 使用更鮮明的金色高亮邊框 */
+    box-shadow: 0 0 15px rgba(255, 193, 7, 0.4);
+}
+
+
+/* --- 8. 響應式設計，確保小螢幕上同樣美觀 --- */
+@media (max-width: 480px) {
+    .leaderboard-item,
+    .battle-rank-item {
+        padding: 10px;
+        gap: 10px;
+    }
+
+    .leaderboard-rank,
+    .battle-rank-item::before {
+        flex-basis: 40px;
+    }
+
+    .leaderboard-name,
+    .battle-rank-name {
+        font-size: 1rem;
+    }
+
+    .leaderboard-score,
+    .battle-rank-score {
+        flex-basis: 80px;
+        font-size: 1.2rem;
+    }
 }
         
     </style>
