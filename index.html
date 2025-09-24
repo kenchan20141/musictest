@@ -1701,10 +1701,12 @@
                 flex-wrap: wrap;
             }
             .stats, .controls {
-                flex-shrink: 1; 
-                flex-wrap: wrap;
-                justify-content: center;
-            }
+    flex-shrink: 1; 
+    flex-wrap: wrap;
+    justify-content: center;
+    /* [核心修訂] 為分數框和控制按鈕內部元素之間新增 15px 的間距 */
+    gap: 15px;
+}
             .music-select-wrapper select {
                 padding: 6px 30px 6px 10px;
                 font-size: 0.8rem;
@@ -2116,8 +2118,9 @@
 /* 響應式調整：小螢幕減少間距 */
 @media (max-width: 768px) {
     .game-ui {
-        padding-bottom: 50px; /* [修訂] 小螢幕減少空間 */
-    }
+    /* [核心修訂] 增加手機版的底部內邊距，確保能容納所有進度條 */
+    padding-bottom: 75px; 
+}
     .game-lyrics-container {
         top: 5%;         /* [修訂] 小螢幕上移，避免擋軌道 */
         font-size: 1rem; /* [修訂] 縮小字體 */
