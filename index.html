@@ -6467,26 +6467,43 @@ function updateGameLyrics(currentTime) {
 // ====================================================================
 // ====== 【最終修正版】確保在點擊開始時，直接檢查儲存的最新名稱 ======
 // ====================================================================
+/**
+ * 啟動遊戲 (最終修正版 - 嚴格區分職責)
+ * @param {boolean} isOnlineStart - 是否由Firebase線上事件觸發，而非玩家點擊
+ */
 async function startGame(isOnlineStart = false) {
-    // 如果是線上模式，但不是由同步事件觸發的，而是由選歌者點擊觸發
+    // 職責一：如果是選歌方點擊按鈕，則只負責發送信號，然後立刻停止。
     if (gameMode === 'online' && !isOnlineStart) {
         const selectedSong = musicSelect.value;
         const selectedDifficulty = difficultySelect.value;
-        // 將選擇寫入Firebase，這將觸發雙方客戶端的 listenToRoomChanges
+        
+        // 將選擇的歌曲、難度和"開始遊戲"狀態寫入Firebase
         database.ref('rooms/' + currentRoomId).update({
             selectedSong: selectedSong,
             selectedDifficulty: selectedDifficulty,
             gameState: 'playing'
         });
-        return; // 到此為止，後續的啟動將由監聽器完成
+        
+        // 發送信號後，函數任務完成，立刻返回。
+        // 真正的遊戲啟動將交由Firebase監聽器來觸發。
+        return; 
     }
 
-    // --- 以下是原有的 startGame 邏輯，適用於單機或被線上事件觸發 ---
+    // 職責二：執行遊戲啟動。只有單人模式或收到Firebase信號時，才會執行到這裡。
+    
+    // 遊戲啟動前的最終安全檢查
+    if (gameActive) return; // 如果遊戲已在運行，則不重複啟動
+
+    // 鎖定狀態，防止重複執行
+    gameActive = true;
+    
+    // --- 以下是您原有的、正確的遊戲初始化邏輯，保持不變 ---
+    
     console.log("--- startGame function initiated ---");
     
     const currentName = localStorage.getItem('musicGamePlayerName');
     if (gameMode === 'single' && (!currentName || currentName.trim() === '')) {
-        console.error("錯誤：玩家名稱未設定。已阻止遊戲開始。");
+        gameActive = false; // 發生錯誤，重置狀態
         showNotification(
             'info',
             '請先設定玩家名稱',
@@ -6500,16 +6517,16 @@ async function startGame(isOnlineStart = false) {
     const selectedDifficulty = difficultySelect.value;
 
     if (!isSongUnlocked(selectedSong)) {
+        gameActive = false; // 發生錯誤，重置狀態
         showNotification('info', '歌曲未解鎖', '此歌曲尚未解鎖。');
         return;
     }
     if (!isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
+        gameActive = false; // 發生錯誤，重置狀態
         showNotification('info', '難度未解鎖', '此難度尚未解鎖。');
         return;
     }
 
-    if (gameActive) return;
-    gameActive = true;
     startBtn.disabled = true;
     musicSelect.disabled = true;
     difficultySelect.disabled = true;
@@ -6570,6 +6587,7 @@ async function startGame(isOnlineStart = false) {
     audio.play().catch(e => {
         console.log("音訊播放失敗:", e);
         audio.removeEventListener('play', onAudioPlay);
+        gameActive = false; // 播放失敗時也要重置狀態
     });
 
     setTimeout(() => { if (gameActive) endGame(); }, currentSongDuration * 1000 + 2000);
