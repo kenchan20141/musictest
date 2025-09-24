@@ -4190,6 +4190,15 @@ font-size: 12px;
 // ==========================================================
 // ====== 【新增】線上對戰相關的全域變數與DOM元素 ======
 // ==========================================================
+            // ==========================================================
+// ====== 【新增】對戰歌詞測驗專用變數 ======
+// ==========================================================
+let battleQuizTimer = null;           // 用於儲存每題 20 秒的計時器
+let battleQuizScore = 0;            // 測驗期間的本地分數
+let battleQuizQuestions = [];       // 本次測驗的 5 道題目
+let battleQuizCurrentIndex = 0;     // 當前作答到第幾題
+let isBattleQuizActive = false;     // 標記對戰測驗是否正在進行中
+// ==========================================================
 let gameMode = 'single'; // 'single' 或 'online'
 let playerId = localStorage.getItem('musicGamePlayerId');
 if (!playerId) {
@@ -4230,6 +4239,9 @@ const closeBattleRankingsModal = document.getElementById('closeBattleRankingsMod
 const battleRankingsList = document.getElementById('battleRankingsList');
 const battleRankingsLoading = document.getElementById('battleRankingsLoading');
             const myBattleRankDisplay = document.getElementById('myBattleRankDisplay');
+
+
+            
             
 // ==========================================================
 // ====== 【新增結束】 ========================================
@@ -7434,23 +7446,25 @@ function grantAllRewards(rewards) {
 function endGame() {
     if (!gameActive) return;
 
-    // ▼▼▼ 【修訂】遊戲結束時，移除 online-mode class ▼▼▼
     mainGameContainer.classList.remove('online-mode');
-    // ▲▲▲ 修訂結束 ▲▲▲
-
+    
+    // ▼▼▼ 【核心修訂】區分單人與對戰模式的結束流程 ▼▼▼
     if (gameMode === 'online' && currentRoomId) {
+        // 對戰模式：
+        // 停止本地計時器並發送最終的遊戲分數
         if (scoreUpdateTimeout) clearTimeout(scoreUpdateTimeout);
         scoreUpdateTimeout = null;
         sendScoreUpdate(); 
-
-        // ▼▼▼ 請在這裡添加下面這一行 ▼▼▼
         database.ref(`rooms/${currentRoomId}/${isHost ? 'player1' : 'player2'}`).update({ maxCombo: maxCombo });
-        // ▲▲▲ 添加結束 ▲▲▲
         
+        // 由房主 (Host) 負責將遊戲狀態推進到「準備測驗」(pre_quiz)
         if (isHost) { 
-            database.ref(`rooms/${currentRoomId}`).update({ gameState: 'game_over' });
+            database.ref(`rooms/${currentRoomId}`).update({ gameState: 'pre_quiz' });
         }
+        // 注意：此處不再直接顯示結算畫面，而是等待 Firebase 狀態變更
+
     } else {
+        // 單人模式 (流程維持不變)：
         gameActive = false;
         audio.pause();
         audio.currentTime = 0;
@@ -7472,11 +7486,170 @@ function endGame() {
         const selectedDifficulty = difficultySelect.value;
         updatePersonalHighScore(selectedSong, selectedDifficulty, score);
 
+        // 單人模式依然走原有的解鎖測驗流程
         processPostGameRewards(selectedSong, selectedDifficulty, score, pureHitScore);
 
         showGameOver();
     }
+    // ▲▲▲ 修訂結束 ▲▲▲
 }
+
+
+// ====================================================================
+// ====== 【全新】對戰歌詞測驗核心功能 (共 5 個函數) ======
+// ====================================================================
+
+/**
+ * 1. 啟動對戰歌詞測驗
+ */
+function startBattleQuiz(roomData) {
+    if (isBattleQuizActive) return; // 防止重複啟動
+    isBattleQuizActive = true;
+
+    const songUrl = roomData.selectedSong;
+    const allQuestions = songData[songUrl]?.quiz || [];
+
+    // 檢查是否有足夠的題目
+    if (allQuestions.length < 5) {
+        console.warn(`歌曲 ${songUrl} 題庫不足5題，將跳過測驗。`);
+        // 如果題目不夠，直接判定雙方完成測驗並給予 0 分
+        const playerKey = isHost ? 'player1' : 'player2';
+        database.ref(`rooms/${currentRoomId}/${playerKey}`).update({
+            quizScore: 0,
+            quizFinished: true
+        });
+        return;
+    }
+
+    // 初始化測驗狀態
+    battleQuizScore = 0;
+    battleQuizCurrentIndex = 0;
+    battleQuizQuestions = shuffleArray([...allQuestions]).slice(0, 5); // 洗牌並取出 5 題
+
+    // 更新並顯示 Modal 視窗
+    document.getElementById('quizTitle').textContent = '對戰歌詞測驗';
+    document.getElementById('quizInstructions').textContent = '每題20秒作答時間，答對+1000分，答錯-1000分。';
+    document.getElementById('battleQuizTimerContainer').style.display = 'block';
+    
+    lyricsQuizModal.classList.add('active');
+    
+    // 在 Firebase 中初始化玩家的測驗狀態
+    const playerKey = isHost ? 'player1' : 'player2';
+    database.ref(`rooms/${currentRoomId}/${playerKey}`).update({
+        quizScore: 0,
+        quizFinished: false
+    });
+
+    displayNextBattleQuestion();
+}
+
+/**
+ * 2. 顯示下一道對戰測驗題目，並啟動計時器
+ */
+function displayNextBattleQuestion() {
+    // 檢查是否已答完 5 題
+    if (battleQuizCurrentIndex >= 5) {
+        finishBattleQuiz();
+        return;
+    }
+
+    const questionData = battleQuizQuestions[battleQuizCurrentIndex];
+    
+    // 更新 UI
+    quizProgress.textContent = `第 ${battleQuizCurrentIndex + 1} / 5 題`;
+    const questionLine = questionData.line.replace(/__/g, '<span class="quiz-blank"></span>');
+    quizQuestionText.innerHTML = questionLine;
+    quizAnswerInput.value = '';
+    quizAnswerInput.classList.remove('correct', 'incorrect');
+    quizAnswerInput.disabled = false;
+    quizSubmitBtn.disabled = false;
+    quizAnswerInput.focus();
+
+    // 重置並啟動 20 秒倒數計時器
+    const timerBar = document.getElementById('battleQuizTimerBar');
+    timerBar.style.transition = 'none'; // 先移除動畫效果
+    timerBar.style.width = '100%';    // 立刻填滿
+    
+    // 強制瀏覽器重繪，讓樣式立即生效
+    void timerBar.offsetWidth; 
+    
+    timerBar.style.transition = 'width 20s linear'; // 重新加上 20 秒的動畫
+    timerBar.style.width = '0%';                     // 開始縮減
+
+    // 設定計時器，20秒後自動判定為答錯
+    battleQuizTimer = setTimeout(() => {
+        handleBattleQuizAnswer(true); //傳入 true 代表是超時
+    }, 20000);
+}
+
+/**
+ * 3. 處理玩家的答案 (無論是提交還是超時)
+ */
+function handleBattleQuizAnswer(isTimeout = false) {
+    clearTimeout(battleQuizTimer); // 清除計時器，防止重複觸發
+    
+    const correctAnswer = battleQuizQuestions[battleQuizCurrentIndex].answer;
+    const userAnswer = quizAnswerInput.value.trim();
+
+    quizAnswerInput.disabled = true;
+    quizSubmitBtn.disabled = true;
+
+    if (!isTimeout && userAnswer === correctAnswer) {
+        // 答對
+        battleQuizScore += 1000;
+        quizAnswerInput.classList.add('correct');
+        showNotification('success', '+1000 分', '答案正確！', 1500);
+    } else {
+        // 答錯或超時
+        battleQuizScore -= 1000;
+        quizAnswerInput.classList.add('incorrect');
+        quizAnswerInput.value = `正確答案: ${correctAnswer}`; // 顯示正確答案
+        showNotification('info', '-1000 分', isTimeout ? '作答超時！' : '答案錯誤！', 1500);
+    }
+
+    battleQuizCurrentIndex++; // 移至下一題
+    
+    // 延遲 1.8 秒後，顯示下一題或結束測驗
+    setTimeout(displayNextBattleQuestion, 1800);
+}
+
+
+/**
+ * 4. 結束本地測驗，並將最終分數同步到 Firebase
+ */
+function finishBattleQuiz() {
+    isBattleQuizActive = false;
+    lyricsQuizModal.classList.remove('active');
+    document.getElementById('battleQuizTimerContainer').style.display = 'none';
+
+    // 將最終測驗分數上傳到 Firebase，並標記為已完成
+    const playerKey = isHost ? 'player1' : 'player2';
+    database.ref(`rooms/${currentRoomId}/${playerKey}`).update({
+        quizScore: battleQuizScore,
+        quizFinished: true
+    });
+
+    // 顯示等待畫面
+    showNotification('info', '測驗完成', '已提交你的測驗分數，請等待對手完成...', 10000);
+}
+
+
+/**
+ * 5. 輔助函數：Fisher-Yates 洗牌演算法 (沿用你已有的即可)
+ */
+function shuffleArray(array) {
+    let currentIndex = array.length, randomIndex;
+    while (currentIndex !== 0) {
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+        [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+    }
+    return array;
+}
+// ====================================================================
+
+
+            
             // ================================================================
 // ====== 【全新】線上對戰核心功能 (參考範例代碼) ======
 // ================================================================
@@ -7730,69 +7903,50 @@ function handleReadyUpState(roomData) {
             
 
 /**
- * 核心監聽器，監聽房間內所有狀態變化 (集成斷線處理的最終完整版)
+ * 核心監聽器，監聽房間內所有狀態變化 (支援對戰測驗流程)
  */
 function listenToRoomChanges() {
-    // 步驟 1: 清理舊的監聽器，防止重複觸發
     if (roomListener) {
         database.ref('rooms/' + currentRoomId).off('value', roomListener);
     }
     const roomRef = database.ref('rooms/' + currentRoomId);
     
-    // 步驟 2: 設定 onDisconnect 句柄。這是告訴 Firebase 伺服器：
-    // "如果我這個客戶端的連線突然中斷，請幫我自動執行以下操作。"
     const myPlayerKey = isHost ? 'player1' : 'player2';
-    const myPlayerRef = roomRef.child(myPlayerKey);
-    // 當我斷線時，在我的玩家資料中寫入 { disconnected: true }
+    myPlayerRef = roomRef.child(myPlayerKey);
     myPlayerRef.onDisconnect().update({ disconnected: true });
-    // 同時，立刻寫入 { disconnected: false } 來表明我當前是連線狀態。
-    // onDisconnect 的操作只會在連線真正中斷時觸發。
     myPlayerRef.update({ disconnected: false });
 
-
-    // 步驟 3: 建立對整個房間數據的持續監聽
     roomListener = roomRef.on('value', (snapshot) => {
-        // --- 情況 A: 房間不存在 ---
-        // 這通常意味著對手點擊了「結束遊戲」或因斷線獲勝後清理了房間。
         if (!snapshot.exists()) {
-            // 如果遊戲還在進行中，說明是對手中途離開了。
-            if(gameActive){ 
+            if(gameActive || isBattleQuizActive){ // 如果在遊戲或測驗中斷
                 showNotification('info', '對戰已結束', '對手已離開房間，您已返回主選單。');
             } else {
                 showNotification('info', '對戰已結束', '房間已被解散。');
             }
-            resetToMainMenu(); // 無論如何都重置回主選單
-            return; // 終止後續所有操作
+            resetToMainMenu();
+            return;
         }
 
-        // --- 情況 B: 房間存在，處理數據 ---
         const roomData = snapshot.val();
         const opponentKey = isHost ? 'player2' : 'player1';
         
-        // --- 核心斷線處理邏輯 ---
-        // 檢查對手的資料是否存在，並且 disconnected 標記是否為 true
-        if (roomData[opponentKey] && roomData[opponentKey].disconnected === true && gameActive) {
-            gameActive = false; // 立刻停止本地遊戲
+        if (roomData[opponentKey] && roomData[opponentKey].disconnected === true && (gameActive || isBattleQuizActive)) {
+            gameActive = false; 
+            isBattleQuizActive = false; // 也要停止測驗
             
-            // 獲取雙方資料用於更新總分
             const myData = roomData[myPlayerKey];
             const opponentData = roomData[opponentKey];
-
-            // 為自己加分，為斷線的對手扣分
             updateBattleScore(myData.playerId, myData.playerName, 1000);
             updateBattleScore(opponentData.playerId, opponentData.playerName, -500);
             
-            // 清晰地通知玩家
             showNotification('success', '對手已斷線', '對手中途離開遊戲，系統判定您獲勝！');
             
-            // 作為獲勝方，負責清理戰場（刪除房間）
             roomRef.remove(); 
-            // 返回主選單
             resetToMainMenu();
-            return; // 中斷後續的所有 switch 判斷
+            return;
         }
-
-        // --- 正常遊戲中的 UI 更新 ---
+        
+        // --- UI 更新 (保持不變) ---
         if (roomData[opponentKey]) {
             opponentStats.style.display = 'block';
             const opponentScore = roomData[opponentKey].score;
@@ -7811,14 +7965,30 @@ function listenToRoomChanges() {
             opponentProgressBar.style.width = '0%';
         }
         
-        // --- 遊戲狀態機 (State Machine) ---
-        // 根據雲端同步的 gameState，執行對應的客戶端操作
-        
-        // 狀態轉換：由房主檢查是否雙方都已準備就緒
-        if (isHost && roomData.gameState === 'readying_up' && roomData.player1?.isReady && roomData.player2?.isReady) {
-            roomRef.update({ gameState: 'countdown' });
+        // ▼▼▼ 【核心修訂】狀態機加入測驗處理邏輯 ▼▼▼
+
+        // --- 狀態檢查與推進 (由房主負責) ---
+        if (isHost) {
+            // 檢查是否從「準備」進入「倒數」
+            if (roomData.gameState === 'readying_up' && roomData.player1?.isReady && roomData.player2?.isReady) {
+                roomRef.update({ gameState: 'countdown' });
+            }
+            // 檢查雙方是否都完成了測驗
+            if (roomData.gameState === 'pre_quiz' && roomData.player1?.quizFinished && roomData.player2?.quizFinished) {
+                // 計算最終總分
+                const finalP1Score = roomData.player1.score + roomData.player1.quizScore;
+                const finalP2Score = roomData.player2.score + roomData.player2.quizScore;
+
+                // 更新分數並推進到最終的「遊戲結束」狀態
+                roomRef.update({
+                    'player1/score': finalP1Score,
+                    'player2/score': finalP2Score,
+                    gameState: 'game_over'
+                });
+            }
         }
         
+        // --- 根據狀態執行客戶端操作 ---
         switch (roomData.gameState) {
             case 'selecting_song':
                 handleSongSelectionState(roomData);
@@ -7829,34 +7999,37 @@ function listenToRoomChanges() {
                 break;
 
             case 'countdown':
-                // 觸發倒數計時，倒數結束後會自動調用 startGame()
                 handleCountdown();
                 break;
 
+            case 'pre_quiz': // 【新增狀態】
+                // 收到此狀態後，每個客戶端各自啟動測驗
+                startBattleQuiz(roomData);
+                break;
+
             case 'playing':
-                // 遊戲進行中，主要邏輯由本地的 gameLoop 處理
+                // 遊戲進行中，由本地 gameLoop 處理
                 break;
 
             case 'game_over':
-                // 只有在遊戲還在本地運行時才觸發結束邏輯，防止重複執行
-                if (gameActive) {
+                if (gameActive || isBattleQuizActive) {
+                    isBattleQuizActive = false; // 確保測驗狀態被重設
                     handleOnlineGameOver(roomData);
                 }
                 break;
                 
             case 'rematch_reset':
                  resetForRematch();
-                 // 由房主負責將狀態推回選歌階段
                  if(isHost){
                     database.ref(`rooms/${currentRoomId}`).update({ gameState: 'selecting_song' });
                  }
                 break;
         }
         
-        // 處理重賽請求的 UI 提示
         if (roomData.gameState === 'game_over') {
             handleRematchStatus(roomData);
         }
+         // ▲▲▲ 修訂結束 ▲▲▲
     });
 }
 /**
@@ -8962,6 +9135,14 @@ roomIdInput.addEventListener('input', (e) => {
         <h2 class="quiz-title">歌詞填充測驗</h2>
         <p class="quiz-instructions">連續答對五題即可解鎖新內容或登入排行榜！</p>
         <div class="quiz-progress" id="quizProgress">連續答對: 0 / 5</div>
+
+
+<!-- ▼▼▼ 【新增】對戰測驗專用計時器 ▼▼▼ -->
+<div id="battleQuizTimerContainer" style="display: none; width: 100%; height: 8px; background-color: #e9ecef; border-radius: 4px; margin-bottom: 20px; overflow: hidden;">
+    <div id="battleQuizTimerBar" style="width: 100%; height: 100%; background-color: #17a2b8; transition: width 0.1s linear;"></div>
+</div>
+<!-- ▲▲▲ 新增結束 ▲▲▲ -->
+        
         <div class="quiz-question-container">
             <p id="quizQuestionText"></p>
         </div>
