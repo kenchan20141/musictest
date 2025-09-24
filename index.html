@@ -3552,13 +3552,21 @@ font-size: 12px;
     box-shadow: 0 6px 20px rgba(129, 199, 132, 0.4);
 }
 
-/* 3. 「對戰排行榜」: 改為高雅的淡紫色 */
+/* ====== 【第四項修訂】對戰排行榜按鈕 - 活力珊瑚粉 ====== */
 #showBattleRankingsBtn {
-    background: linear-gradient(45deg, #b39ddb, #9575cd);
-    box-shadow: 0 4px 15px rgba(149, 117, 205, 0.3);
+    /* 使用從淺珊瑚粉到略深一點的漸變 */
+    background: linear-gradient(45deg, #ffccbc, #ffab91);
+    
+    /* 確保白色文字在這種背景下依然清晰 */
+    color: white; 
+    
+    /* 搭配一個溫暖的橘粉色光暈 */
+    box-shadow: 0 4px 15px rgba(255, 171, 145, 0.35);
+    border: none; /* 這個顏色組合不需要邊框 */
 }
+
 #showBattleRankingsBtn:hover {
-    box-shadow: 0 6px 20px rgba(149, 117, 205, 0.4);
+    box-shadow: 0 6px 20px rgba(255, 171, 145, 0.45);
 }
 
 /* ====== 【全新修訂】對手分數部件 "赤色對手" 主題 ====== */
@@ -8959,7 +8967,7 @@ roomIdInput.addEventListener('input', (e) => {
         </div>
         
         <div class="setting-group">
-            <input type="text" id="roomIdInput" class="setting-control" placeholder="輸入4位數房間號碼 (可選)" maxlength="4" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.5em;">
+            <input type="text" id="roomIdInput" class="setting-control" placeholder="輸入四位房間號碼" maxlength="4" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.5em;">
         </div>
 
         <div class="setting-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
