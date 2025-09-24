@@ -37,20 +37,21 @@
     transform: translateY(0); /* [修訂] 改為 Y 軸方向的滑入動畫 */
 }
 
-      .unlock-progress-container {
+    /* 4. 玩家分數進度條 (最上層) */
+.unlock-progress-container {
     position: absolute;
-    /* [修訂] 重新計算 bottom 值：音樂進度條 bottom 10px + 高度 12px + 間距 5px = 27px */
-    bottom: 27px; 
+    /* [定位] 計算位置：對手進度條 bottom 27px + 高度 12px + 間距 5px = 44px */
+    bottom: 44px;
     left: 10px;
     right: 10px;
     width: auto;
-    height: 12px;         /* [修訂] 加粗進度條 */
+    height: 12px;         
     transform: translateY(100%); 
-    background: rgba(255, 255, 255, 0.1); /* [修訂] 將背景改為與歌曲進度條一致 */
+    background: rgba(0, 0, 0, 0.4);
     border-radius: 6px;   
     border: 1px solid rgba(255, 255, 255, 0.2);
     overflow: hidden;
-    z-index: 50;
+    z-index: 10;
     opacity: 0;
     transition: opacity 0.5s ease, transform 0.5s ease;
     display: flex;
@@ -179,7 +180,8 @@
             flex-direction: column;
             gap: 10px; /* Reduced gap */
         }
-     .game-ui {
+     /* 1. 遊戲 UI 主容器：增加足夠的底部空間容納三個進度條 */
+.game-ui {
     position: relative; 
     display: flex;
     flex-wrap: wrap; 
@@ -189,8 +191,8 @@
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px; 
     padding: 10px; 
-    /* [修訂] 增加底部內邊距，為三個進度條騰出空間 (原 60px) */
-    padding-bottom: 77px; 
+    /* [核心修訂] 增加底部內邊距，為三個進度條和它們之間的間距騰出空間 */
+    padding-bottom: 70px; 
     backdrop-filter: blur(10px);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); 
 }
@@ -346,17 +348,19 @@
             color: #888;
             cursor: not-allowed;
         }
-      .progress-container {
-    position: absolute;   /* [新增] 改為絕對定位 */
-    bottom: 10px;         /* [新增] 定位在容器底部 */
-    left: 10px;           /* [新增] 與父容器邊距對齊 */
-    right: 10px;          /* [新增] 與父容器邊距對齊 */
-    width: auto;          /* [修訂] 讓 left/right 決定寬度 */
-    height: 12px;         /* [修訂] 加粗進度條 */
+     /* 2. 音樂進度條 (最底層) */
+.progress-container {
+    position: absolute;   
+    /* [定位] 放在最底部 */
+    bottom: 10px;         
+    left: 10px;           
+    right: 10px;          
+    width: auto;          
+    height: 12px;         
     background: rgba(255, 255, 255, 0.1);
-    border-radius: 6px;   /* [修訂] 配合新的高度調整圓角 */
+    border-radius: 6px;   
     overflow: hidden;
-    margin-top: 0;        /* [修訂] 移除 margin-top */
+    z-index: 10;
 }
         .progress-bar {
             height: 100%;
@@ -2055,11 +2059,11 @@
     flex-direction: row;
 }
 
-        /* [新增] 對手進度條的容器 */
+/* 3. 對手分數進度條 (中間層) */
 .opponent-progress-container {
     position: absolute;
-    /* [定位] 將其放在玩家進度條和音樂進度條之間 */
-    bottom: 22px; 
+    /* [定位] 計算位置：音樂進度條 bottom 10px + 高度 12px + 間距 5px = 27px */
+    bottom: 27px; 
     left: 10px;
     right: 10px;
     height: 12px;
@@ -2069,7 +2073,7 @@
     overflow: hidden;
     z-index: 10;
     
-    /* [動畫] 預設為隱藏，效果與玩家進度條一致 */
+    /* 預設隱藏，等待對戰時由 JS 添加的 class 來觸發顯示 */
     opacity: 0;
     transform: translateY(100%);
     transition: opacity 0.5s ease, transform 0.5s ease;
