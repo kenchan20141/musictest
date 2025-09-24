@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -5,10 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>詞海拾心 </title>
 
-  <!-- ▼▼▼ 步驟 1：貼上或替換為這段新的 CSP 規則 ▼▼▼ -->
-   <meta http-equiv="Content-Security-Policy" content="
+  <!-- ▼▼▼ 請用這段完整的程式碼，取代你舊的 CSP meta 標籤 ▼▼▼ -->
+<meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
-    script-src 'self' 'unsafe-inline' https://www.gstatic.com;
+    script-src 'self' 'unsafe-inline' https://www.gstatic.com https://*.firebaseio.com;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     font-src 'self' https://fonts.gstatic.com;
     img-src 'self' https: data:;
@@ -1144,19 +1145,19 @@
     max-width: 800px;
     text-align: center;
     padding: 30px;
-    /* [修訂] 調整背景透明度與陰影，使其在亮色背景下更清晰 */
-    background: rgba(255, 255, 255, 0.25); /* 提高亮度 */
-    backdrop-filter: blur(30px); /* 增強模糊效果 */
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(30px);
     -webkit-backdrop-filter: blur(30px);
     border-radius: 20px;
     border: 1px solid rgba(230, 180, 80, 0.5);
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2), 0 0 20px rgba(230, 180, 80, 0.2);
-    /* ▼▼▼ 新增以下樣式以啟用滾動 ▼▼▼ */
-    max-height: 90vh; /* 限制最大高度為視窗的90% */
-    overflow-y: auto; /* 內容超出時顯示垂直滾動條 */
+    /* [修訂 1] 移除 max-height，改用 height: 100% */
+    height: 100%;
+    /* [修訂 2] 新增 box-sizing，確保 padding 不會導致容器溢出 */
+    box-sizing: border-box; 
+    overflow-y: auto;
     display: flex;
-    flex-direction: column; /* 將子元素垂直排列 */
-    /* ▲▲▲ 新增結束 ▲▲▲ */
+    flex-direction: column;
 }
         .music-player-header {
             display: flex;
@@ -1242,6 +1243,14 @@
     background: rgba(255, 255, 255, 0.4); /* [修訂] 懸停時更亮 */
 }
 
+/* [新增] 當播放模式按鈕處於 active (例如隨機播放) 狀態時的樣式 */
+.player-btn.active {
+    background: rgba(23, 162, 184, 0.4); /* 使用主題中的青色作為高亮背景 */
+    color: #fff;
+    box-shadow: 0 0 10px rgba(23, 162, 184, 0.5); /* 添加柔和的光暈效果 */
+}
+        
+
 /* 進度條軌道 */
 .progress-slider {
     width: 100%;
@@ -1316,10 +1325,21 @@
     background: rgba(255, 255, 255, 0.1);
 }
 .playlist-item.active {
-    /* [修訂] 使用新的配色方案 */
-    background: rgba(23, 162, 184, 0.2); /* 青色的半透明背景 */
-    color: #2c3e50; /* 深灰藍色文字 */
+    /* [修訂] 使用帶有半透明效果的紅黃橙線性漸變 */
+    background: linear-gradient(90deg, 
+        rgba(255, 107, 107, 0.8), /* 半透明的紅色 */
+        rgba(255, 159, 67, 0.8), /* 半透明的橙色 */
+        rgba(255, 221, 87, 0.8)  /* 半透明的黃色 */
+    );
+    
+    /* 為了在半透明背景下依然清晰，保留白色文字和陰影 */
+    color: white;
     font-weight: bold;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    
+    /* [優化] 添加一個細緻的邊框，讓選中項在背景複雜時更突出 */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 15px rgba(255, 159, 67, 0.3); /* 添加柔和的橙色光暈 */
 }
         .playlist-item.locked {
              color: #888;
@@ -3375,6 +3395,23 @@ font-size: 14px;
 font-size: 12px;
 }
 }  
+
+        /* ====== 響應式微調：針對螢幕較高的裝置，給予播放列表更多空間 ====== */
+@media (min-height: 800px) and (min-width: 769px) {
+    .lyrics-container {
+        /* 在高螢幕上，讓歌詞區可以收縮，但不要無限增長 */
+        flex-grow: 1;
+        flex-shrink: 1;
+    }
+    .playlist {
+        /* 在高螢幕上，讓播放列表優先佔據固定高度，最高可達 350px */
+        flex-grow: 0;  /* 不允許增長 */
+        flex-shrink: 0; /* 不允許收縮 */
+        height: 350px;
+    }
+}
+
+        
         
     </style>
 
@@ -3456,12 +3493,15 @@ font-size: 12px;
                                 <option value="不會太悲傷.mp3">不會太悲傷</option>
                                 <option value="背著你說再見.mp3">背著你說再見</option>
                                 <option value="開始懂了.mp3">開始懂了</option>
-                                <option value="就在你身旁.mp3">就在你身旁</option>
-                                <option value="擁抱風.mp3">擁抱風</option>
+                                <option value="就在你身旁.mp3">就在你身旁</option> 
                                 <option value="阿公的海.mp3">阿公的海</option>
                                 <option value="貝殼的夢囈.mp3">貝殼的夢囈</option>
                                 <option value="被翻開的日記.mp3">被翻開的日記</option>
                                 <option value="畫顏.mp3">畫顏</option>
+                                <option value="玻璃盞.mp3">玻璃盞</option>
+                                <option value="善意的謊言.mp3">善意的謊言</option>
+                             
+                              
                                 
                             </select>
                             <svg class="music-icon" viewBox="0 0 24 24">
@@ -3616,6 +3656,13 @@ font-size: 12px;
     </button>
     <!-- ▲▲▲ 新增結束 ▲▲▲ -->
 
+
+                <!-- ▼▼▼ 【新增】播放模式 (循序/隨機) 按鈕 ▼▼▼ -->
+<button class="player-btn" id="playbackModeBtn" title="循序播放">
+    <!-- 圖示會由 JS 動態填入 -->
+</button>
+<!-- ▲▲▲ 新增結束 ▲▲▲ -->
+
                 
                 <button class="player-btn" id="prevBtn" title="上一首" disabled>&#9664;&#9664;</button>
                 <button class="player-btn play-pause-btn" id="playPauseBtn" title="播放/暫停">&#9658;</button>
@@ -3665,6 +3712,7 @@ const firebaseConfig = {
   messagingSenderId: "800604129840",
   appId: "1:800604129840:web:ddd3ca5f5d4d5ff81a3bf5"
 };
+
 
 // 初始化 Firebase
 firebase.initializeApp(firebaseConfig);
@@ -4016,7 +4064,7 @@ const songData = {
     "不完美的共生.mp3": {
         "lyrics": [
             { "time": 5, "text": "暗房裡紅燈閃爍" },
-            { "time": 7, "text": "他在寂靜中沖洗器具" },
+            { "time": 7, "text": "他在寂靜中清洗器具" },
             { "time": 10, "text": "曾以為影像會永恆銘記" },
             { "time": 16, "text": "窗外暴雨傾盆" },
             { "time": 17, "text": "他欣賞著水流的光暈" },
@@ -4032,7 +4080,7 @@ const songData = {
             { "time": 57, "text": "照片裡的妻子笑靨如花" },
             { "time": 63, "text": "那時的兒子還未長大" },
             { "time": 85, "text": "暗房裡紅燈閃爍" },
-            { "time": 87, "text": "他在寂靜中沖洗幾許" },
+            { "time": 87, "text": "他在寂靜中清洗器具" },
             { "time": 91, "text": "曾以為影像會永恆銘記" },
             { "time": 95, "text": "窗外暴雨傾盆" },
             { "time": 97, "text": "他欣賞著水流的光暈" },
@@ -4044,7 +4092,7 @@ const songData = {
         ],
         "quiz": [
             { "line": "暗房裡紅燈__", "answer": "閃爍" },
-            { "line": "他在寂靜中沖洗__", "answer": "器具" },
+            { "line": "他在寂靜中清洗__", "answer": "器具" },
             { "line": "曾以為影像會永恆__", "answer": "銘記" },
             { "line": "窗外暴雨__", "answer": "傾盆" },
             { "line": "他欣賞著水流的__", "answer": "光暈" },
@@ -4104,10 +4152,9 @@ const songData = {
         ]
  },
 
-    "背著你說再見": {
+    "背著你說再見.mp3": {
         "lyrics": [
-            {
-                "time": 13,
+            { "time": 13,
                 "text": "海邊的浪花還在翻湧"
             },
             {
@@ -4143,39 +4190,39 @@ const songData = {
                 "text": "生命中最完整的畫面"
             },
             {
-                "time": 116,
+                "time": 76,
                 "text": "如今啊我終於能理解"
             },
             {
-                "time": 122,
+                "time": 82,
                 "text": "生命啊不該有太多掛礙"
             },
             {
-                "time": 127,
+                "time": 87,
                 "text": "你給我的愛 我一生深領會"
             },
             {
-                "time": 134,
+                "time": 94,
                 "text": "就像你希望的那樣樂觀純粹"
             },
             {
-                "time": 140,
+                "time": 100,
                 "text": "我想我還是選擇記住你的笑臉"
             },
             {
-                "time": 146,
+                "time": 106,
                 "text": "就像你從前總是愛揚起臉"
             },
             {
-                "time": 151,
+                "time": 111,
                 "text": "也許你的一生如流星般"
             },
             {
-                "time": 155,
+                "time": 115,
                 "text": "劃落，卻是我"
             },
             {
-                "time": 159,
+                "time": 119,
                 "text": "生命中最完整的畫面"
             }
         ],
@@ -4317,42 +4364,7 @@ const songData = {
     ]
   },
 
-  "擁抱風.mp3": {
-    "lyrics": [
-      { "time": 13, "text": "第一次看你學騎自行車" },
-      { "time": 17, "text": "有些緊張還有些膽怯" },
-      { "time": 22, "text": "那时候的你還需要人扶著" },
-      { "time": 28, "text": "可是轉眼你已經能騎很遠" },
-      { "time": 33, "text": "記得那天風有點大" },
-      { "time": 37, "text": "你扶著車把搖搖晃晃" },
-      { "time": 43, "text": "爸爸在後面扶著車座" },
-      { "time": 47, "text": "你還是有點害怕" },
-      { "time": 63, "text": "你說風很大你有點害怕" },
-      { "time": 68, "text": "爸爸說勇敢的孩子別怕" },
-      { "time": 73, "text": "你說爸爸你不要放手啊" },
-      { "time": 78, "text": "我會努力學會騎它" },
-      { "time": 83, "text": "你說風很大你能行的" },
-      { "time": 88, "text": "爸爸說我會一直陪著" },
-      { "time": 93, "text": "你說爸爸我學會騎它啦" },
-      { "time": 98, "text": "我能駕馭風的力量" }
-    ],
-    "quiz": [
-      { "line": "第一次看你學騎__", "answer": "自行車" },
-      { "line": "有些緊張還有些__", "answer": "膽怯" },
-      { "line": "那时候的你還需要人__", "answer": "扶著" },
-      { "line": "可是轉眼你已經能騎很__", "answer": "遠" },
-      { "line": "記得那天__有點大", "answer": "風" },
-      { "line": "你扶著車把搖搖__", "answer": "晃晃" },
-      { "line": "爸爸在後面扶著__", "answer": "車座" },
-      { "line": "你還是有點__", "answer": "害怕" },
-      { "line": "爸爸說勇敢的孩子別__", "answer": "怕" },
-      { "line": "你說爸爸你不要__啊", "answer": "放手" },
-      { "line": "我會努力__騎它", "answer": "學會" },
-      { "line": "爸爸說我會一直__", "answer": "陪著" },
-      { "line": "我能__風的力量", "answer": "駕馭" }
-    ]
-  },
- "阿公的海": {
+ "阿公的海.mp3": {
     "lyrics": [
       { "time": 3, "text": "阿公說的海啊" },
       { "time": 5, "text": "總充滿神秘色彩" },
@@ -4463,20 +4475,20 @@ const songData = {
 { "time": 69, "text": "在心底流淌" },
 { "time": 72, "text": "那本日記成了我們的和解信" },
 { "time": 77, "text": "讓彼此的心重新緊相依" },
-{ "time": 82, "text": "曾經的倔強和誤解" },
-{ "time": 85, "text": "如今已變成了美好的回憶" },
-{ "time": 109, "text": "曾以為我們的關係會疏遠" },
-{ "time": 114, "text": "彼此的內心充滿了傷感" },
-{ "time": 118, "text": "時間如流水沖淡了矛盾" },
-{ "time": 123, "text": "溫馨的回憶又浮上心間" },
-{ "time": 129, "text": "日記裡的秘密被一點點揭開" },
-{ "time": 134, "text": "才發現我們都曾用心去愛" },
-{ "time": 139, "text": "往日的爭吵和冷戰化作了淚水" },
-{ "time": 144, "text": "在心底流淌" },
-{ "time": 148, "text": "那本日記成了我們的和解信" },
-{ "time": 152, "text": "讓彼此的心重新緊相依" },
-{ "time": 156, "text": "曾經的倔強和誤解" },
-{ "time": 159, "text": "如今已變成了美好的回憶" }
+{ "time": 80, "text": "曾經的倔強和誤解" },
+{ "time": 83, "text": "如今已變成了美好的回憶" },
+{ "time": 107, "text": "曾以為我們的關係會疏遠" },
+{ "time": 112, "text": "彼此的內心充滿了傷感" },
+{ "time": 116, "text": "時間如流水沖淡了矛盾" },
+{ "time": 120, "text": "溫馨的回憶又浮上心間" },
+{ "time": 126, "text": "日記裡的秘密被一點點揭開" },
+{ "time": 131, "text": "才發現我們都曾用心去愛" },
+{ "time": 136, "text": "往日的爭吵和冷戰化作了淚水" },
+{ "time": 140, "text": "在心底流淌" },
+{ "time": 144, "text": "那本日記成了我們的和解信" },
+{ "time": 149, "text": "讓彼此的心重新緊相依" },
+{ "time": 153, "text": "曾經的倔強和誤解" },
+{ "time": 155, "text": "如今已變成了美好的回憶" }
 ],
 "quiz": [
 { "line": "桌上的燈照亮__的臉", "answer": "疲憊" },
@@ -4507,16 +4519,16 @@ const songData = {
       { "time": 41, "text": "我們曾經一起度過多少時間" },
       { "time": 47, "text": "一滴淚落在畫上暈開一片藍" },
       { "time": 52, "text": "這是妳的畫 這是妳的遺憾" },
-      { "time": 59, "text": "妳走後我把悲傷悄悄隱藏" },
-      { "time": 65, "text": "害怕回憶起妳那慈祥的模樣" },
-      { "time": 71, "text": "永遠留在畫中寫下妳的名字" },
-      { "time": 77, "text": "讓我再呼喚妳 讓我再抱抱" },
-      { "time": 81, "text": "妳肩膀" },
-      { "time": 84, "text": "修復好那幅妳未完成的畫卷" },
-      { "time": 89, "text": "把妳畫得更美麗比原來好看" },
-      { "time": 95, "text": "把我們的故事寫進每一筆顏" },
-      { "time": 101, "text": "讓我再懷念妳 讓我再貼近" },
-      { "time": 105, "text": "妳耳畔" }
+      { "time": 69, "text": "妳走後我把悲傷悄悄隱藏" },
+      { "time": 75, "text": "害怕回憶起妳那慈祥的模樣" },
+      { "time": 81, "text": "永遠留在畫中寫下妳的名字" },
+      { "time": 87, "text": "讓我再呼喚妳 讓我再抱抱" },
+      { "time": 91, "text": "妳肩膀" },
+      { "time": 94, "text": "修復好那幅妳未完成的畫卷" },
+      { "time": 99, "text": "把妳畫得更美麗比原來好看" },
+      { "time": 105, "text": "把我們的故事寫進每一筆顏" },
+      { "time": 111, "text": "讓我再懷念妳 讓我再貼近" },
+      { "time": 115, "text": "妳耳畔" }
     ],
     "quiz": [
       { "line": "夢裡又回到那間熟悉的__", "answer": "病房" },
@@ -4534,6 +4546,114 @@ const songData = {
       { "line": "把我們的故事寫進每一筆__", "answer": "顏" },
       { "line": "讓我再懷念妳 讓我再貼近妳__", "answer": "耳畔" }
     ]
+  },
+
+     "玻璃盞.mp3": {
+    "lyrics": [
+      { "time": 17, "text": "有時爭吵後沈默的夜晚" },
+      { "time": 22, "text": "你摔門而去淚濕了一衫" },
+      { "time": 26, "text": "獨坐沙發心冷如冰寒" },
+      { "time": 30, "text": "這場婚姻已千瘡百孔不堪" },
+      { "time": 35, "text": "回想從前我們也曾幸福美滿" },
+      { "time": 40, "text": "怎麼如今變成互相傷害的局面" },
+      { "time": 44, "text": "是我太倔強 還是你太善變" },
+      { "time": 48, "text": "一次次的爭吵讓愛漸行漸遠" },
+      { "time": 52, "text": "我們的婚姻像破碎的玻璃盞" },
+      { "time": 57, "text": "憤怒之下被丟棄再找碎片" },
+      { "time": 60, "text": "傷痕清晰可見" },
+      { "time": 64, "text": "心全迷失走遠" },
+      { "time": 66, "text": "誰能來救救我們" },
+      { "time": 68, "text": "這破碎的原因" },
+      { "time": 70, "text": "像破碎的玻璃盞" },
+      { "time": 74, "text": "憤怒之下被丟棄再找碎片" },
+      { "time": 77, "text": "傷痕清晰可見" },
+      { "time": 81, "text": "心全迷失走遠" },
+      { "time": 83, "text": "誰能來救救我們" },
+      { "time": 85, "text": "這破碎的緣" },
+      { "time": 104, "text": "回想從前我們也曾幸福美滿" },
+      { "time": 108, "text": "怎麼如今變成互相傷害的局面" },
+      { "time": 112, "text": "是我太倔強 還是你太善變" },
+      { "time": 117, "text": "一次次的爭吵讓愛漸行漸遠" },
+      { "time": 121, "text": "我們的婚姻像破碎的玻璃盞" },
+      { "time": 125, "text": "憤怒之下被丟棄再找碎片" },
+      { "time": 129, "text": "傷痕清晰可見" },
+      { "time": 132, "text": "心全迷失走遠" },
+      { "time": 135, "text": "誰能來救救我們" },
+      { "time": 137, "text": "這破碎的原因" },
+      { "time": 139, "text": "像破碎的玻璃盞" },
+      { "time": 142, "text": "憤怒之下被丟棄再找碎片" },
+      { "time": 146, "text": "傷痕清晰可見" },
+      { "time": 149, "text": "心全迷失走遠" },
+      { "time": 152, "text": "誰能來救救我們" },
+      { "time": 154, "text": "這破碎的緣" }
+    ],
+    "quiz": [
+      { "line": "有時爭吵後__的夜晚", "answer": "沈默" },
+      { "line": "你甩門而去__了一衫", "answer": "淚濕" },
+      { "line": "獨坐沙發心冷如__", "answer": "冰寒" },
+      { "line": "唇上回憶已__不堪", "answer": "千瘡百孔" },
+      { "line": "回想從前我們也曾__美滿", "answer": "幸福" },
+      { "line": "怎麼如今變成互相__的局面", "answer": "傷害" },
+      { "line": "是我太倔強 還是你太__", "answer": "善變" },
+      { "line": "一次次的爭吵讓愛__", "answer": "漸行漸遠" },
+      { "line": "我們的情感像破碎的__", "answer": "玻璃盞" },
+      { "line": "__之下被丟棄再找不著碎片", "answer": "憤怒" },
+      { "line": "__清晰可見", "answer": "傷痕" },
+      { "line": "心全__走遠", "answer": "迷失" },
+      { "line": "誰能來__我們", "answer": "救救" },
+      { "line": "這破碎的__", "answer": "情緣" }
+    ]
+  },
+
+     "善意的謊言.mp3": {
+    "lyrics": [
+      { "time": 18, "text": "你說我講的故事都太淒涼" },
+      { "time": 23, "text": "沒有一絲快樂或歡暢" },
+      { "time": 27, "text": "但你卻來聽我講的每一章" },
+      { "time": 32, "text": "甚至重複了好多遍" },
+      { "time": 37, "text": "你不知道其實我也很徬徨" },
+      { "time": 41, "text": "害怕故事結局太悲傷" },
+      { "time": 46, "text": "可我更害怕你會失去希望" },
+      { "time": 51, "text": "所以我只能編下去啊" },
+      { "time": 54, "text": "編下去" },
+      { "time": 55, "text": "我給你講的故事裡總有熱湯" },
+      { "time": 60, "text": "就像我想給你的人生一樣有暖陽" },
+      { "time": 64, "text": "你顫抖的雙手和那濕潤的眼眶" },
+      { "time": 69, "text": "是我見過最心碎的模樣" },
+      { "time": 74, "text": "我給你講的故事裡總有熱湯" },
+      { "time": 78, "text": "就像我想給你的人生裡一直有燭光" },
+      { "time": 83, "text": "可你不知道那些故事都不是真的" },
+      { "time": 88, "text": "只是我用善意的謊言編織的真相" },
+      { "time": 98, "text": "你不知道其實我也很徬徨" },
+      { "time": 102, "text": "害怕故事結局太悲傷" },
+      { "time": 107, "text": "可我更害怕你會失去希望" },
+      { "time": 112, "text": "所以我只能編下去啊" },
+      { "time": 116, "text": "編下去" },
+      { "time": 118, "text": "我給你講的故事裡總有熱湯" },
+      { "time": 122, "text": "就像我想給你的人生一直有燭光" },
+      { "time": 126, "text": "可你不知道那些故事都不是真的" },
+      { "time": 132, "text": "只是我用善意的謊言編織的真相" },
+      { "time": 141, "text": "我給你講的故事裡總有熱湯" },
+      { "time": 145, "text": "就像我想給你的人生一直有燭光" },
+      { "time": 150, "text": "可你不知道那些故事都不是真的" },
+      { "time": 155, "text": "只是我用善意的謊言編織的真相" }
+    ],
+    "quiz": [
+      { "line": "你說我講的故事都太__", "answer": "淒涼" },
+      { "line": "沒有一絲快樂或__", "answer": "歡暢" },
+      { "line": "甚至重複了好多__", "answer": "遍" },
+      { "line": "你不知道其實我也很__", "answer": "徬徨" },
+      { "line": "害怕故事結局太__", "answer": "悲傷" },
+      { "line": "可我更害怕你會失去__", "answer": "希望" },
+      { "line": "所以我只能__下去啊", "answer": "編" },
+      { "line": "我給你講的故事裡總有__", "answer": "熱湯" },
+      { "line": "你__的雙手和那濕潤的眼眶", "answer": "顫抖" },
+      { "line": "是我見過最__的模樣", "answer": "心碎" },
+      { "line": "就像我想給你的人生裡一直有__", "answer": "燭光" },
+      { "line": "可你不知道那些故事都不是__", "answer": "真的" },
+      { "line": "只是我用善意的謊言__的真相", "answer": "編織" },
+      { "line": "只是我用善意的__編織的真相", "answer": "謊言" }
+    ]
   }
 
 };
@@ -4545,6 +4665,21 @@ const songCovers = {
     "白影.mp3": "白影.png",
     "等待.mp3": "等待.png",
    "餘燼落入虛無.mp3": "餘燼落入虛無.png",
+    "下一枝的惆然.mp3": "下一枝的惆悵.png",
+    "老屋回憶.mp3": "老屋回憶.png",
+    "生命之書.mp3": "生命之書.png",
+    "不完美的共生.mp3": "不完美的共生.png",
+    "不會太悲傷.mp3": "不會太悲傷.png",
+    "背著你說再見.mp3": "背著你說再見.png",
+    "開始懂了.mp3": "開始懂了.png",
+    "就在你身旁.mp3": "就在你身旁.png",
+    "擁抱風.mp3": "擁抱風.png",
+    "阿公的海.mp3": "阿公的海.png",
+    "貝殼的夢囈.mp3": "貝殼的夢囈.png",
+    "被翻開的日記.mp3": "被翻開的日記.png",
+    "畫顏.mp3": "畫顏.png",
+    "玻璃盞.mp3": "玻璃盞.png",
+    "善意的謊言.mp3": "善意的謊言.png",
     // 為其他歌曲添加封面，格式為 "歌曲文件名.mp3": "圖片URL"
     // 如果沒有特定封面，可以使用一個通用的默認封面
     "default": "標準.png" // 默認封面
@@ -4605,6 +4740,9 @@ const leaderboardLoading = document.getElementById('leaderboardLoading');
             const playlist = document.getElementById('playlist');
 //【新增】獲取循環按鈕的 DOM 元素
             const loopBtn = document.getElementById('loopBtn');
+            // ▼▼▼ 【新增】獲取播放模式按鈕的 DOM 元素 ▼▼▼
+const playbackModeBtn = document.getElementById('playbackModeBtn');
+// ▲▲▲ 新增結束 ▲▲▲
 
             
             const unlockModal = document.getElementById('unlockModal');
@@ -4696,6 +4834,14 @@ let currentNoteParticleIndex = 0;
             let lyricsInterval = null;
             let isUpdatingSlider = false; // Flag to prevent slider update conflicts
 
+            // ▼▼▼ 【新增】播放模式相關變數與圖示 ▼▼▼
+let playbackMode = 'sequential'; // 預設為 'sequential' (循序播放)
+
+// 定義兩種模式的 SVG 圖示
+const sequentialIcon = `<svg viewBox="0 0 24 24" fill="currentColor" style="width: 24px; height: 24px;"><path d="M4 6H20V8H4V6M4 11H20V13H4V11M4 16H20V18H4V16Z"></path></svg>`;
+const shuffleIcon = `<svg viewBox="0 0 24 24" fill="currentColor" style="width: 24px; height: 24px;"><path d="M10.59 9.17L5.41 4L4 5.41L9.17 10.59L10.59 9.17M14.83 13.41L13.41 14.83L18.59 20L20 18.59L14.83 13.41M5.41 20L4 18.59L18.59 4L20 5.41L5.41 20Z"></path></svg>`;
+// ▲▲▲ 新增結束 ▲▲▲
+
 
 //【新增】循環播放的狀態變數
             let loopMode = 'list';
@@ -4721,6 +4867,31 @@ const loopIconNone = `<svg viewBox="0 0 24 24" fill="currentColor" style="width:
             document.body.addEventListener('touchstart', startAudioContext, { once: true });
 
 
+// ▼▼▼ 【新增】更新播放模式按鈕外觀的函數 ▼▼▼
+function updatePlaybackModeButtonUI() {
+    if (playbackMode === 'shuffle') {
+        playbackModeBtn.innerHTML = shuffleIcon;
+        playbackModeBtn.classList.add('active');
+        playbackModeBtn.title = '隨機播放';
+    } else { // sequential
+        playbackModeBtn.innerHTML = sequentialIcon;
+        playbackModeBtn.classList.remove('active');
+        playbackModeBtn.title = '循序播放';
+    }
+}
+
+// ▼▼▼ 【新增】為新按鈕綁定點擊事件 ▼▼▼
+playbackModeBtn.addEventListener('click', () => {
+    // 切換模式
+    playbackMode = (playbackMode === 'sequential') ? 'shuffle' : 'sequential';
+    // 更新按鈕外觀
+    updatePlaybackModeButtonUI();
+    // 保存設定
+    savePlayerSettings();
+});
+
+
+            
 // ▼▼▼ 【新增】設定粒子池的函數 ▼▼▼
 function setupParticlePools() {
     // 清空並重建 hitParticlePool
@@ -4836,67 +5007,79 @@ let playerSettings = JSON.parse(localStorage.getItem(PLAYER_STORAGE_KEY)) || {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
 }
 
-// ▼▼▼ 【請在這裡貼上新的函數】 ▼▼▼
+// 【修正版】請用這段程式碼完整替換舊的 checkAndApplyAdminUnlocks 函數
 async function checkAndApplyAdminUnlocks() {
-    // 1. 獲取當前玩家名稱，並檢查是否已經執行過此操作
-    const currentPlayerName = localStorage.getItem('musicGamePlayerName');
-    if (!currentPlayerName || saveData.adminUnlockApplied) {
-        // 如果沒有設置名稱，或已經解鎖過，則直接返回
-        return;
-    }
+    const allSongs = Array.from(musicSelect.options).map(opt => opt.value);
 
-    // 2. 查詢 Firebase 資料庫，看是否有針對此玩家的覆寫指令
-    try {
-        const unlockRef = database.ref(`admin/unlockOverrides/${currentPlayerName}`);
-        const snapshot = await unlockRef.once('value');
+    // 情況一：玩家已經擁有永久解鎖權限 (本地已有標記)
+    if (saveData.adminUnlockApplied === true) {
+        const allSongsAreUnlocked = allSongs.every(song => saveData.unlockedSongs.includes(song));
 
-        // 3. 如果指令存在且值為 true，則開始執行解鎖流程
-        if (snapshot.exists() && snapshot.val() === true) {
-            console.log(`偵測到玩家 ${currentPlayerName} 的管理員解鎖指令，正在執行...`);
-
-            // 獲取遊戲中所有歌曲的列表
-            const allSongs = Array.from(musicSelect.options).map(opt => opt.value);
-
-            // 解鎖所有歌曲
+        // 僅當發現有新歌時，才執行靜默更新
+        if (!allSongsAreUnlocked) {
+            console.log("偵測到新歌曲，為已授權玩家靜默解鎖...");
+            
+            // 直接用最新的歌曲列表覆蓋存檔
             saveData.unlockedSongs = [...allSongs];
-
-            // 為所有歌曲解鎖所有難度
             allSongs.forEach(songUrl => {
                 if (!saveData.unlockedDifficulties[songUrl]) {
                     saveData.unlockedDifficulties[songUrl] = {};
                 }
-                saveData.unlockedDifficulties[songUrl] = {
-                    normal: true,
-                    hard: true,
-                    hell: true
-                };
+                saveData.unlockedDifficulties[songUrl] = { normal: true, hard: true, hell: true };
+            });
+            
+            saveGame();
+            updateSongOptions();
+            if (musicPlayerModal.classList.contains('active')) {
+                initMusicPlayer();
+            }
+        }
+        
+        // 【核心修正】靜默同步完成後，直接返回，不再執行後續的 Firebase 檢查。
+        // 這能確保通知不會被重複觸發。
+        return;
+    }
+
+    // 情況二：玩家尚未被授權，此時才需要檢查 Firebase 是否有一次性指令
+    const currentPlayerName = localStorage.getItem('musicGamePlayerName');
+    if (!currentPlayerName) return;
+
+    try {
+        const unlockRef = database.ref(`admin/unlockOverrides/${currentPlayerName}`);
+        const snapshot = await unlockRef.once('value');
+
+        if (snapshot.exists() && snapshot.val() === true) {
+            console.log(`偵測到玩家 ${currentPlayerName} 的管理員解鎖指令，正在執行一次性覆寫...`);
+            
+            // 執行解鎖
+            saveData.unlockedSongs = [...allSongs];
+            allSongs.forEach(songUrl => {
+                 if (!saveData.unlockedDifficulties[songUrl]) {
+                    saveData.unlockedDifficulties[songUrl] = {};
+                }
+                saveData.unlockedDifficulties[songUrl] = { normal: true, hard: true, hell: true };
             });
 
-            // 在存檔中做下記號，防止未來重複執行
+            // 在本地存檔中打上永久標記
             saveData.adminUnlockApplied = true;
-
-            // 將更新後的存檔寫入玩家的本機儲存
             saveGame();
 
-            // 彈出通知，告知玩家操作已完成
-            showNotification('success', '管理員權限', '開發者已為您解鎖所有歌曲和難度！請重新進入播放清單查看。');
+            // 彈出【僅此一次】的通知
+            showNotification('success', '管理員權限', '開發者已為您解鎖所有歌曲和難度！');
 
-            // 立即更新遊戲介面，讓解鎖內容生效
+            // 更新介面
             updateSongOptions();
-            
-            // 如果音樂播放器是打開的，重新初始化以載入新歌曲
             if (musicPlayerModal.classList.contains('active')) {
                 initMusicPlayer();
             }
             
-            // 【重要】解鎖後，從 Firebase 刪除該玩家的指令，避免不必要的數據殘留
+            // 刪除 Firebase 上的指令
             await unlockRef.remove();
         }
     } catch (error) {
         console.error("檢查管理員解鎖時發生錯誤:", error);
     }
 }
-// ▲▲▲ 【新增函數結束】 ▲▲▲
 
 // 新增播放器設定保存函數
 function savePlayerSettings() {
@@ -4907,6 +5090,11 @@ function savePlayerSettings() {
         playerSettings.volume = playerAudio.volume || 0.7;
         playerSettings.isPlaying = playerIsPlaying;
         playerSettings.currentPlaylistIndex = currentPlaylistIndex;
+         // ▼▼▼ 在函數末尾加入這行 ▼▼▼
+    playerSettings.playbackMode = playbackMode; // 保存當前的播放模式
+    // ▲▲▲ 新增結束 ▲▲▲
+
+    localStorage.setItem(PLAYER_STORAGE_KEY, JSON.stringify(playerSettings));
     }
     
     // 保存播放清單狀態
@@ -4931,6 +5119,12 @@ function loadPlayerSettings() {
         playerAudio.volume = playerSettings.volume;
         volumeSliderPlayer.value = playerSettings.volume;
     }
+
+     // ▼▼▼ 在函數開頭加入這段 ▼▼▼
+    // 載入儲存的播放模式，如果沒有就用預設的 'sequential'
+    playbackMode = playerSettings.playbackMode || 'sequential'; 
+    updatePlaybackModeButtonUI(); // 根據載入的模式更新按鈕外觀
+    // ▲▲▲ 新增結束 ▲▲▲
 
     // 當播放器打開時，準備好上次播放的歌曲畫面，但先不播放
     if (playerSettings.currentSong && playlistItems.length > 0) {
@@ -5268,93 +5462,107 @@ function isProfane(name) {
     return profanityList.some(word => lowerCaseName.includes(word));
 }
 
+// ====================================================================
+// ====== 【請用此函數完整替換舊的 handlePlayerName 函數】 ======
+// ====================================================================
 /**
  * 處理玩家名稱的設定與儲存（修訂後版本）
  * - 增加 Firebase 全域名稱唯一性檢查
+ * - 修正了儲存後 UI 未正確鎖定的問題
  */
 async function handlePlayerName() {
-    // 【核心修訂】首先從 localStorage 獲取名稱，這是判斷是否已設定的唯一依據。
+    // 步驟 1: 檢查 localStorage 中是否已存在名稱
     const existingPlayerName = localStorage.getItem('musicGamePlayerName') || '';
 
-    // 情況一：名稱已存在於 localStorage，進入「顯示與鎖定」模式
+    // 情況 A: 名稱已存在，直接進入「顯示模式」
     if (existingPlayerName) {
         playerNameInput.value = existingPlayerName;
-        playerNameInput.disabled = true; // 鎖定輸入框
+        playerNameInput.disabled = true; // 鎖定輸入框，不允許修改
         savePlayerNameBtn.style.display = 'none'; // 隱藏儲存按鈕
 
-        // 讓輸入框填滿空間，看起來更像一個顯示標籤
+        // 讓輸入框填滿空間，使其看起來更像一個顯示標籤
         const playerNameGroup = document.getElementById('playerNameGroup');
         if (playerNameGroup) {
             playerNameInput.style.flexGrow = '1';
         }
-    } 
-    // 情況二：名稱尚未設定，進入「首次設定」模式
-    else {
-        // 確保 UI 處於可編輯狀態
-        playerNameInput.value = '';
-        playerNameInput.disabled = false;
-        savePlayerNameBtn.style.display = 'flex'; // 使用 flex 以匹配你的 CSS 佈局
-        savePlayerNameBtn.disabled = false;
-        // 【重要】恢復按鈕的圖示/文字，以防上次操作中斷
-        savePlayerNameBtn.innerHTML = '✔'; // 或者你原來的 '儲存名稱' 文字
+        return; // 結束函數，因為不需要再綁定儲存事件
+    }
 
-        // 提示玩家設定名稱
-        showNotification('info', '設定名稱', '為了登上排行榜，請先設定你的專屬名稱！');
+    // 情況 B: 名稱不存在，進入「首次設定模式」
+    // 清理並確保 UI 處於可編輯狀態
+    playerNameInput.value = '';
+    playerNameInput.disabled = false;
+    savePlayerNameBtn.style.display = 'flex'; // 確保儲存按鈕可見
+    savePlayerNameBtn.disabled = false;
+    savePlayerNameBtn.classList.remove('loading'); // 移除可能的載入狀態
+    savePlayerNameBtn.innerHTML = '✔'; // 恢復按鈕圖示
 
-        // 【核心修訂】將你所有的儲存邏輯，放在這個 else 區塊內
-        // 這樣，儲存功能就只會在玩家首次設定名稱時被觸發
-        savePlayerNameBtn.onclick = async () => {
-            const newName = playerNameInput.value.trim();
+    // 提示玩家需要設定名稱
+    showNotification('info', '設定名稱', '為了登上排行榜，請先設定你的專屬名稱！');
 
-            // 你的驗證邏輯 (保持不變)
-            if (newName.length === 0) {
-                showNotification('info', '名稱無效', '名稱不能為空！');
-                return;
-            }
-            if (isProfane(newName)) {
-                showNotification('info', '名稱不雅', '請勿使用不雅詞彙作為名稱。');
-                return;
-            }
-            
-            savePlayerNameBtn.disabled = true;
-            savePlayerNameBtn.classList.add('loading'); // 顯示讀取動畫
+    // 為儲存按鈕綁定一次性的點擊事件
+    savePlayerNameBtn.onclick = async () => {
+        const newName = playerNameInput.value.trim();
 
-            // 你的 Firebase 檢查與儲存邏輯 (保持不變)
-            // 注意：我假設 playerNamesRef 和 updates 變數在你的程式碼其他地方有定義
-            try {
-                // ... 你的 Firebase 連線檢查 ...
+        // 步驟 2: 前端基本驗證
+        if (newName.length === 0) {
+            showNotification('info', '名稱無效', '名稱不能為空！');
+            return;
+        }
+        if (newName.length > 10) {
+            showNotification('info', '名稱過長', '名稱長度不能超過 10 個字元。');
+            return;
+        }
+        if (isProfane(newName)) {
+            showNotification('info', '名稱不雅', '請勿使用不雅詞彙作為名稱。');
+            return;
+        }
+        
+        // 步驟 3: 與 Firebase 互動前，鎖定按鈕並顯示載入動畫
+        savePlayerNameBtn.disabled = true;
+        savePlayerNameBtn.classList.add('loading');
+
+        try {
+            // 步驟 4: 查詢 Firebase Database，檢查名稱是否已被佔用
+            const nameRef = database.ref(`playerNames/${newName}`);
+            const snapshot = await nameRef.once('value');
+
+            if (snapshot.exists()) {
+                // 情況 B-1: 名稱已存在
+                showNotification('info', '名稱已被使用', `「<strong>${newName}</strong>」這個名稱已經被其他玩家使用了，請換一個吧！`);
+                savePlayerNameBtn.disabled = false; // 重新啟用按鈕讓玩家重試
+            } else {
+                // 情況 B-2: 名稱可用，執行儲存操作
                 
-                // 假設檢查通過且名稱可用
-                // const updates = { ... }; // 你的更新物件
+                // 使用原子更新來同時寫入，確保資料一致性
+                const updates = {};
+                updates[`/playerNames/${newName}`] = true; // 在中央名稱庫中註冊此名稱
                 
-                // await database.ref().update(updates); // 執行更新
+                await database.ref().update(updates);
 
-                // 更新成功後
+                // Firebase 寫入成功後，才更新本地狀態
                 playerName = newName;
                 localStorage.setItem('musicGamePlayerName', playerName);
+                
                 showNotification('success', '儲存成功', `你的新名稱「<strong>${playerName}</strong>」已成功設定！此後將無法更改。`);
                 
-                // 【核心修訂】儲存成功後，立刻鎖定 UI！
+                // 儲存成功後，立刻鎖定 UI
                 playerNameInput.disabled = true;
                 savePlayerNameBtn.style.display = 'none';
-
-                // 延遲一小段時間後關閉視窗，讓玩家看到成功的提示
-                setTimeout(() => {
-                    leaderboardModal.classList.remove('active');
-                }, 1500);
-
-            } catch (error) {
-                console.error("儲存名稱時發生錯誤:", error);
-                // ... 你的錯誤處理邏輯 ...
-                
-                // 儲存失敗，重新啟用按鈕
-                savePlayerNameBtn.disabled = false;
-
-            } finally {
-                savePlayerNameBtn.classList.remove('loading'); // 移除讀取動畫
+                 const playerNameGroup = document.getElementById('playerNameGroup');
+                 if (playerNameGroup) {
+                     playerNameInput.style.flexGrow = '1';
+                 }
             }
-        };
-    }
+        } catch (error) {
+            console.error("儲存名稱時發生 Firebase 錯誤:", error);
+            showNotification('info', '連線錯誤', '無法連接到伺服器，請檢查您的網路連線後再試。');
+            savePlayerNameBtn.disabled = false; // 發生錯誤時，也要讓玩家可以重試
+        } finally {
+            // 無論成功或失敗，最後都要移除載入動畫
+            savePlayerNameBtn.classList.remove('loading');
+        }
+    };
 }
 /**
  * 顯示指定歌曲與難度的排行榜
@@ -6652,6 +6860,11 @@ function findPrevEnabledSong(currentIndex) {
 
             // --- Music Player Logic ---
             function initMusicPlayer() {
+
+  // ▼▼▼ 在函數開頭加入這行 ▼▼▼
+    updatePlaybackModeButtonUI(); 
+    // ▲▲▲ 新增結束 ▲▲▲
+                
                 // Filter playlist items to only include unlocked songs
                 const unlockedSongsSet = new Set(saveData.unlockedSongs);
                 playlistItems = Array.from(musicSelect.options)
@@ -6749,35 +6962,51 @@ playerAudio.addEventListener('pause', () => {
     savePlayerSettings(); // 保存暫停狀態
 });
              // 【修訂後】的音樂播放結束事件
-// 【修訂後】的音樂播放結束事件
+// 【全新修訂版】音樂播放結束事件
 playerAudio.addEventListener('ended', () => {
-    updatePlayingVisuals(false); // 歌曲結束時，也要更新為停止狀態的視覺
+    updatePlayingVisuals(false); // 更新視覺為停止狀態
 
-    switch (loopMode) {
-        case 'single':
-            playerAudio.currentTime = 0;
-            playerAudio.play();
-            break;
+    // 規則1：單曲循環的優先級最高
+    if (loopMode === 'single') {
+        playerAudio.currentTime = 0;
+        playerAudio.play();
+        return; // 結束後續判斷
+    }
 
-        case 'list':
-            let nextIndex = findNextEnabledSong(currentPlaylistIndex);
-            if (nextIndex === -1) {
-                nextIndex = findNextEnabledSong(-1);
-            }
-            if (nextIndex !== -1) {
-                playSong(nextIndex);
-            }
-            break;
+    // 規則2：判斷是隨機模式還是循序模式
+    if (playbackMode === 'shuffle') {
+        // --- 隨機播放邏輯 ---
+        const enabledSongs = playlistItems
+            .map((item, index) => ({ ...item, originalIndex: index }))
+            .filter(item => {
+                const li = playlist.children[item.originalIndex];
+                return li && li.dataset.enabled === 'true';
+            });
 
-        case 'none':
-        default:
-            const nextSongIndex = findNextEnabledSong(currentPlaylistIndex);
-            if (nextSongIndex !== -1) {
-                playSong(nextSongIndex);
-            } else {
-                updatePlayerUI(); // 更新UI，取消高亮
-            }
-            break;
+        if (enabledSongs.length > 1) {
+            let nextSong;
+            // 確保下一首隨機歌曲不是當前這首
+            do {
+                const randomIndex = Math.floor(Math.random() * enabledSongs.length);
+                nextSong = enabledSongs[randomIndex];
+            } while (nextSong.index === currentPlaylistIndex);
+            playSong(nextSong.index);
+        } else if (enabledSongs.length === 1) {
+            playSong(enabledSongs[0].index); // 如果只有一首歌啟用，就播那一首
+        }
+
+    } else {
+        // --- 循序播放邏輯 (預設) ---
+        let nextIndex = findNextEnabledSong(currentPlaylistIndex);
+
+        // 如果列表循環開啟且已到結尾，則從頭開始
+        if (nextIndex === -1 && loopMode === 'list') {
+            nextIndex = findNextEnabledSong(-1); // 從頭尋找第一首啟用的歌曲
+        }
+
+        if (nextIndex !== -1) {
+            playSong(nextIndex);
+        }
     }
 });
 
