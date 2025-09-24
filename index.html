@@ -37,6 +37,12 @@
     transform: translateY(0); /* [修訂] 改為 Y 軸方向的滑入動畫 */
 }
 
+        /* [新增] 當遊戲開始時，讓歌曲進度條滑入顯示 */
+.game-running .progress-container {
+    opacity: 1;
+    transform: translateY(0);
+}
+
 /* 4. 玩家分數進度條 (最上層) */
 .unlock-progress-container {
     position: absolute;
@@ -357,9 +363,9 @@
             cursor: not-allowed;
         }
      /* 2. 音樂進度條 (最底層) */
+/* 2. 音樂進度條 (最底層) */
 .progress-container {
     position: absolute;   
-    /* [定位] 放在最底部 */
     bottom: 10px;         
     left: 10px;           
     right: 10px;          
@@ -369,6 +375,10 @@
     border-radius: 6px;   
     overflow: hidden;
     z-index: 10;
+    /* [新增] 以下三行，使其預設隱藏並準備好動畫效果 */
+    opacity: 0;
+    transform: translateY(100%);
+    transition: opacity 0.5s ease, transform 0.5s ease;
 }
         .progress-bar {
             height: 100%;
@@ -1707,11 +1717,11 @@
     /* [核心修訂] 為分數框和控制按鈕內部元素之間新增 15px 的間距 */
     gap: 15px;
 }
-            .music-select-wrapper select {
-                padding: 6px 30px 6px 10px;
-                font-size: 0.8rem;
-                max-width: 120px;
-            }
+           .music-select-wrapper select {
+    padding: 6px 30px 6px 10px;
+    font-size: 0.8rem;
+    max-width: 100px; /* [修訂] 減少寬度以容納按鈕 */
+}
             .stat-box {
                 padding: 6px 10px;
                 min-width: 80px;
@@ -1724,10 +1734,10 @@
             .note, .long-note { width: 40px; }
             .hit-line { bottom: 80px; }
             .difficulty-selector select {
-                max-width: 80px;
-                font-size: 0.8rem;
-                padding: 4px 6px;
-            }
+    max-width: 70px; /* [修訂] 同樣減少寬度 */
+    font-size: 0.8rem;
+    padding: 4px 6px;
+}
             .music-player-header {
                 flex-direction: column;
                 gap: 10px;
@@ -2034,42 +2044,9 @@
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); 
 }
 
-/* 2. 音樂進度條 (最底層) */
-.progress-container {
-    position: absolute;   
-    /* [定位] 固定在距離底部 10px 的位置，作為基準 */
-    bottom: 10px;         
-    left: 10px;           
-    right: 10px;          
-    width: auto;          
-    height: 12px;         
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 6px;   
-    overflow: hidden;
-    z-index: 10;
-}
 
-/* 調整解鎖進度條位置，避免與選擇器重疊 */
-.unlock-progress-container {
-    position: absolute;
-    /* [修訂] 重新計算位置：音樂進度條(5px)+高度(12px)+間距(5px)+對手進度條(12px)+間距(5px) = 39px */
-    bottom: 39px;        
-    left: 10px;
-    right: 10px;
-    width: auto;
-    height: 12px;         
-    transform: translateY(100%); 
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 6px;   
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    overflow: hidden;
-    z-index: 10;
-    opacity: 0;
-    transition: opacity 0.5s ease, transform 0.5s ease;
-    display: flex;
-    align-items: center;
-    flex-direction: row;
-}
+
+
 
 /* 3. 對手分數進度條 (中間層) */
 .opponent-progress-container {
