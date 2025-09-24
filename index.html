@@ -9129,19 +9129,19 @@ roomIdInput.addEventListener('input', (e) => {
     </div>
 </div>
 
-<!-- ▼▼▼ 【新增】歌詞填充測驗視窗 ▼▼▼ -->
+<!-- ▼▼▼ 【修正】歌詞填充測驗視窗 (已加入 ID) ▼▼▼ -->
 <div class="lyrics-quiz-modal" id="lyricsQuizModal">
     <div class="quiz-content">
-        <h2 class="quiz-title">歌詞填充測驗</h2>
-        <p class="quiz-instructions">連續答對五題即可解鎖新內容或登入排行榜！</p>
+        <!-- 【修訂】在這兩行加入了 id 屬性 -->
+        <h2 class="quiz-title" id="quizTitle">歌詞填充測驗</h2>
+        <p class="quiz-instructions" id="quizInstructions">連續答對五題即可解鎖新內容或登入排行榜！</p>
+        
         <div class="quiz-progress" id="quizProgress">連續答對: 0 / 5</div>
-
-
-<!-- ▼▼▼ 【新增】對戰測驗專用計時器 ▼▼▼ -->
-<div id="battleQuizTimerContainer" style="display: none; width: 100%; height: 8px; background-color: #e9ecef; border-radius: 4px; margin-bottom: 20px; overflow: hidden;">
-    <div id="battleQuizTimerBar" style="width: 100%; height: 100%; background-color: #17a2b8; transition: width 0.1s linear;"></div>
-</div>
-<!-- ▲▲▲ 新增結束 ▲▲▲ -->
+        
+        <!-- 【新增】對戰測驗專用計時器 -->
+        <div id="battleQuizTimerContainer" style="display: none; width: 100%; height: 8px; background-color: #e9ecef; border-radius: 4px; margin-bottom: 20px; overflow: hidden;">
+            <div id="battleQuizTimerBar" style="width: 100%; height: 100%; background-color: #17a2b8; transition: width 0.1s linear;"></div>
+        </div>
         
         <div class="quiz-question-container">
             <p id="quizQuestionText"></p>
@@ -9151,7 +9151,7 @@ roomIdInput.addEventListener('input', (e) => {
         <button id="quizCloseBtn" class="quiz-close-btn">&times;</button>
     </div>
 </div>
-<!-- ▲▲▲ 新增結束 ▲▲▲ -->
+<!-- ▲▲▲ 修正結束 ▲▲▲ -->
 
     <!-- ====== 【新增】排行榜 Modal ====== -->
 <div class="settings-modal" id="leaderboardModal">
