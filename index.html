@@ -7022,6 +7022,11 @@ function startGameFromOnline(song, difficulty) {
  * 處理線上模式的遊戲結束
  */
 function handleOnlineGameOver(roomData) {
+    // 【核心修正】檢查遊戲是否處於活躍狀態，如果不是，則直接返回避免重複執行
+    if (!gameActive) return;
+    // 【核心修正】立刻將遊戲狀態旗標重置為 false，這是修復重賽問題的關鍵
+    gameActive = false;
+
     cancelAnimationFrame(animationFrame);
     clearTimeout(generateNotesTimer);
     clearInterval(progressInterval);
@@ -7038,10 +7043,12 @@ function handleOnlineGameOver(roomData) {
     }
 
     finalScoreDisplay.textContent = myScore.toLocaleString();
-    finalComboDisplay.textContent = maxCombo; // maxCombo 是本地計算的
+    finalComboDisplay.textContent = maxCombo;
     
     restartBtnSingle.style.display = 'none';
     onlineRematchControls.style.display = 'flex';
+    // 【新增】確保重賽按鈕在每局結束時都是可用的
+    rematchBtn.disabled = false;
     rematchStatus.textContent = '';
     gameOverModal.classList.add('active');
 }
@@ -7072,6 +7079,9 @@ function handleRematchStatus(roomData) {
 function resetForRematch() {
     gameOverModal.classList.remove('active');
     
+    // 【核心修正】在重置UI時，再次確保 gameActive 狀態為 false
+    gameActive = false;
+    
     // 重置分數和UI
     score = 0;
     pureHitScore = 0;
@@ -7089,7 +7099,6 @@ function resetForRematch() {
     musicSelect.disabled = false;
     difficultySelect.disabled = false;
 }
-
 /**
  * 重置所有狀態回到主菜單
  */
@@ -7097,6 +7106,9 @@ function resetToMainMenu() {
     if (roomListener) {
         database.ref('rooms/' + currentRoomId).off('value', roomListener);
     }
+    
+    // 【核心修正】返回主菜單時，也必須重置 gameActive 狀態
+    gameActive = false;
     gameMode = 'single';
     currentRoomId = null;
     isHost = false;
