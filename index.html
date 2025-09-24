@@ -8061,12 +8061,13 @@ function startGameFromOnline(song, difficulty) {
 }
 
 /**
- * 處理線上模式的遊戲結束畫面顯示 (修正分數計算)
+ * 處理線上模式的遊戲結束畫面顯示 (修正版：包含測驗分數)
  * @param {object} roomData - 從 Firebase 獲取的房間資料
  */
 function handleOnlineGameOver(roomData) {
-    if (!gameActive) return;
+    if (!gameActive && !isBattleQuizActive) return; // 防止重複執行
     gameActive = false;
+    isBattleQuizActive = false;
 
     audio.pause();
     cancelAnimationFrame(animationFrame);
@@ -8079,17 +8080,21 @@ function handleOnlineGameOver(roomData) {
     const myData = roomData[myPlayerKey];
     const opponentData = roomData[opponentPlayerKey];
     
+    // ▼▼▼ 【核心修訂】使用包含測驗分數的最終成績來判斷勝負 ▼▼▼
+    // 注意：roomData 內的 score 已經是加總後的分數了
+    const myFinalScore = myData.score; 
+    const opponentFinalScore = opponentData.score;
+
     let myScoreChange = 0;
     let opponentScoreChange = 0;
     let iAmWinner = false;
 
-    // === 核心修改：修正分數計算邏輯 ===
-    if (myData.score > opponentData.score) {
+    if (myFinalScore > opponentFinalScore) {
         gameOverTitle.textContent = "勝利！";
         myScoreChange = 1000;       // 勝方得 1000 分
         opponentScoreChange = -500; // 敗方失 500 分
         iAmWinner = true;
-    } else if (myData.score < opponentData.score) {
+    } else if (myFinalScore < opponentFinalScore) {
         gameOverTitle.textContent = "惜敗！";
         myScoreChange = -500;       // 敗方失 500 分
         opponentScoreChange = 1000; // 勝方得 1000 分
@@ -8097,27 +8102,25 @@ function handleOnlineGameOver(roomData) {
         gameOverTitle.textContent = "平局！";
         // 平局分數不變 (0)
     }
+    // ▲▲▲ 修訂結束 ▲▲▲
 
-
-    // 更新雙方的對戰總分
+    // 使用修正後的積分變化來更新雙方的對戰總分
     updateBattleScore(myData.playerId, myData.playerName, myScoreChange);
     updateBattleScore(opponentData.playerId, opponentData.playerName, opponentScoreChange);
 
-    // === 核心修改：動態生成「玩家卡片」佈局的 HTML ===
+    // --- 顯示結算畫面的 UI 邏輯 (保持不變) ---
     const statsContainer = gameOverModal.querySelector('.game-over-stats');
     
-    // 根據勝負結果，為對應的卡片添加 'winner' class
     const myCardClass = iAmWinner ? 'stats-player-card your-card winner' : 'stats-player-card your-card';
-    const opponentCardClass = !iAmWinner && (myData.score < opponentData.score) ? 'stats-player-card opponent-card winner' : 'stats-player-card opponent-card';
+    const opponentCardClass = !iAmWinner && (myFinalScore < opponentFinalScore) ? 'stats-player-card opponent-card winner' : 'stats-player-card opponent-card';
 
     statsContainer.innerHTML = `
-        <!-- 您的成績卡片 -->
         <div class="${myCardClass}">
             <h3 class="stats-player-title">您的成績</h3>
             <div class="stats-data-container">
                 <div class="stats-data-item">
                     <span class="stats-data-label">最終分數</span>
-                    <span class="stats-data-value">${myData.score.toLocaleString()}</span>
+                    <span class="stats-data-value">${myFinalScore.toLocaleString()}</span>
                 </div>
                 <div class="stats-data-item">
                     <span class="stats-data-label">最高連擊</span>
@@ -8125,14 +8128,12 @@ function handleOnlineGameOver(roomData) {
                 </div>
             </div>
         </div>
-
-        <!-- 對手的成績卡片 -->
         <div class="${opponentCardClass}">
             <h3 class="stats-player-title">對手成績</h3>
             <div class="stats-data-container">
                 <div class="stats-data-item">
                     <span class="stats-data-label">最終分數</span>
-                    <span class="stats-data-value">${opponentData.score.toLocaleString()}</span>
+                    <span class="stats-data-value">${opponentFinalScore.toLocaleString()}</span>
                 </div>
                 <div class="stats-data-item">
                     <span class="stats-data-label">最高連擊</span>
@@ -8142,7 +8143,6 @@ function handleOnlineGameOver(roomData) {
         </div>
     `;
     
-    // 顯示線上對戰專用的按鈕
     restartBtnSingle.style.display = 'none';
     onlineRematchControls.style.display = 'flex';
     rematchBtn.disabled = false;
