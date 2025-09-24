@@ -6487,6 +6487,7 @@ function updateGameLyrics(currentTime) {
 }
 
 
+
 /**
  * 【全新函數】準備線上遊戲，等待玩家手動同步開始
  * @param {string} song - 伺服器指定的歌曲
@@ -6532,22 +6533,24 @@ function prepareOnlineGame(song, difficulty) {
     showNotification('info', '準備開始！', '對手已選好歌曲！請點擊「同步開始」按鈕進入遊戲。', 8000);
 }
 
-
-
             
 // ====================================================================
 // ====== 【最終修正版】確保在點擊開始時，直接檢查儲存的最新名稱 ======
 // ====================================================================
-====
+/**
+/**
+// ====================================================================
+// ====== 【最終修正版】確保在點擊開始時，直接檢查儲存的最新名稱 ======
+// ====================================================================
 /**
 /**
  * 啟動遊戲 (最終修正版 - 增加UI清理和解鎖邏輯修正)
  * @param {boolean} isOnlineStart - 是否由Firebase線上事件觸發
  */
 async function startGame(isOnlineStart = false) {
-    // 【新增此行】確保 startBtn 變數永遠指向當前頁面上的按鈕實例
-    const startBtn = document.getElementById('startBtn'); 
 
+     // 【新增此行】確保 startBtn 變數永遠指向當前頁面上的按鈕實例
+    const startBtn = document.getElementById('startBtn'); 
     // 職責一：如果是選歌方點擊，則只發送信號
     if (gameMode === 'online' && !isOnlineStart) {
         const selectedSong = musicSelect.value;
@@ -7022,6 +7025,9 @@ function randomMatch() {
 }
 
 /**
+ * 核心監聽器，監聽房間內所有狀態變化
+ * 參考範例：這是整個對戰系統的引擎，所有玩家的行為都由此函數同步。
+ */
 /**
  * 核心監聽器，監聽房間內所有狀態變化 (修訂後)
  */
