@@ -250,19 +250,19 @@
             font-weight: bold;
             color: #ffcc00;
         }
-       .stat-label {
-    font-size: 1rem;
-    /* 1. 使用一個非常深的、近乎黑色的顏色作為主體 */
-    color: #2c3e50; /* 深石板灰 */
-    opacity: 1;
-    font-weight: bold; /* 加粗以增加清晰度 */
-
-    /* 2. 【核心】使用多層 text-shadow 創建一個清晰的白色輪廓 */
-    text-shadow: 
-        -1px -1px 0 rgba(255, 255, 255, 0.8),  
-         1px -1px 0 rgba(255, 255, 255, 0.8),
-        -1px  1px 0 rgba(255, 255, 255, 0.8),
-         1px  1px 0 rgba(255, 255, 255, 0.8);
+       /* ====== 【全新修訂】標籤文字清晰化樣式 ====== */
+.stat-label {
+    font-size: 1.1rem; /* 稍微增大字體，提升可見度 */
+    font-weight: 500;  /* 使用適中的字重，不過於粗黑，顯得更精緻 */
+    
+    /* 核心：使用與「溫潤白玉」主題協調的暖棕灰色 */
+    color: var(--jade-text-primary, #5c554a); 
+    opacity: 0.9;
+    
+    /* 核心：將複雜的描邊改為單一、柔和的淺色投影，營造立體感而不模糊 */
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+    
+    transition: color 0.3s ease; /* 為可能的互動效果添加平滑過渡 */
 }
         .controls {
             display: flex;
