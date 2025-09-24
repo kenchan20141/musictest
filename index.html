@@ -270,18 +270,22 @@
             position: relative;
             display: inline-block;
         }
-        .music-select-wrapper select {
-            background: rgba(0, 0, 0, 0.3);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 8px 35px 8px 12px; /* Extra padding on the right for the icon */
-            border-radius: 50px;
-            font-size: 0.9rem; /* Adjusted */
-            min-width: 0; /* Allow shrinking */
-            flex: 1; /* Allow growing/shrinking */
-            appearance: none; /* Remove default arrow */
-            cursor: pointer;
-        }
+       /* 歌曲選擇下拉選單 */
+.music-select-wrapper select {
+    background: rgba(0, 0, 0, 0.3);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 8px 35px 8px 12px;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    min-width: 0;
+    
+    /* [核心修訂] 移除 flex: 1; 並設定一個最大寬度 */
+    max-width: 200px; 
+    
+    appearance: none;
+    cursor: pointer;
+}
         .music-select-wrapper select:disabled {
             color: #888;
             cursor: not-allowed;
@@ -336,14 +340,18 @@
             align-items: center;
             font-size: 0.9rem; /* Adjusted */
         }
-        .difficulty-selector select {
-            background: rgba(0, 0, 0, 0.3);
-            color: white;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 0.9rem;
-        }
+        /* 難度選擇下拉選單 */
+.difficulty-selector select {
+    background: rgba(0, 0, 0, 0.3);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.9rem;
+    
+    /* [核心修訂] 新增一個最大寬度 */
+    max-width: 110px;
+}
         .difficulty-selector select:disabled {
             color: #888;
             cursor: not-allowed;
