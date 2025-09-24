@@ -6493,28 +6493,41 @@ function updateGameLyrics(currentTime) {
  * 啟動遊戲 (最終修正版 - 增加UI清理)
  * @param {boolean} isOnlineStart - 是否由Firebase線上事件觸發
  */
+ * 啟動遊戲 (最終修正版 - 增加UI清理和解鎖邏輯修正)
+ * @param {boolean} isOnlineStart - 是否由Firebase線上事件觸發
+ */
 async function startGame(isOnlineStart = false) {
     // 職責一：如果是選歌方點擊，則只發送信號
     if (gameMode === 'online' && !isOnlineStart) {
         const selectedSong = musicSelect.value;
         const selectedDifficulty = difficultySelect.value;
+
+        // 【新增修正】選歌方在發起對戰前，必須先檢查自己是否已解鎖該歌曲/難度
+        if (!isSongUnlocked(selectedSong)) {
+            showNotification('info', '歌曲未解鎖', '你不能選擇一首尚未解鎖的歌曲進行對戰。');
+            return;
+        }
+        if (!isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
+            showNotification('info', '難度未解鎖', '你不能選擇一個尚未解鎖的難度進行對戰。');
+            return;
+        }
+
         database.ref('rooms/' + currentRoomId).update({
             selectedSong: selectedSong,
             selectedDifficulty: selectedDifficulty,
             gameState: 'playing'
         });
-        return;
+        return; // 選歌方的工作到此為止，等待Firebase回傳信號來同步開始遊戲
     }
 
-    // --- 職責二：執行遊戲啟動 ---
+    // --- 職責二：執行遊戲啟動 (單人模式，或線上模式接收到信號後) ---
 
-    // 【核心修正】在啟動遊戲之前，強制關閉所有通知，確保遊戲畫面可見！
+    // 在啟動遊戲之前，強制關閉所有通知，確保遊戲畫面可見！
     clearAllNotifications();
 
     if (gameActive) return;
     gameActive = true;
     
-    // --- 以下是您原有的、正確的遊戲初始化邏輯，保持不變 ---
     console.log("--- startGame function initiated ---");
     
     const currentName = localStorage.getItem('musicGamePlayerName');
@@ -6527,16 +6540,21 @@ async function startGame(isOnlineStart = false) {
     const selectedSong = musicSelect.value;
     const selectedDifficulty = difficultySelect.value;
 
-    if (!isSongUnlocked(selectedSong)) {
-        gameActive = false;
-        showNotification('info', '歌曲未解鎖', '此歌曲尚未解鎖。');
-        return;
+    // 【核心修正】只在單人模式下檢查歌曲和難度是否解鎖。
+    // 在線上模式中，客戶端無條件接受伺服器指定的歌曲。
+    if (gameMode === 'single') {
+        if (!isSongUnlocked(selectedSong)) {
+            gameActive = false;
+            showNotification('info', '歌曲未解鎖', '此歌曲尚未解鎖。');
+            return;
+        }
+        if (!isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
+            gameActive = false;
+            showNotification('info', '難度未解鎖', '此難度尚未解鎖。');
+            return;
+        }
     }
-    if (!isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
-        gameActive = false;
-        showNotification('info', '難度未解鎖', '此難度尚未解鎖。');
-        return;
-    }
+
 
     startBtn.disabled = true;
     musicSelect.disabled = true;
