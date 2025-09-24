@@ -7532,6 +7532,8 @@ function startBattleQuiz(roomData) {
     document.getElementById('battleQuizTimerContainer').style.display = 'block';
     
     lyricsQuizModal.classList.add('active');
+     // ▼▼▼ 【請在這裡加入下面這一行】 ▼▼▼
+    quizCloseBtn.style.display = 'none'; // 隱藏關閉按鈕
     
     // 在 Firebase 中初始化玩家的測驗狀態
     const playerKey = isHost ? 'player1' : 'player2';
@@ -7618,6 +7620,8 @@ function handleBattleQuizAnswer(isTimeout = false) {
  * 4. 結束本地測驗，並將最終分數同步到 Firebase
  */
 function finishBattleQuiz() {
+      // ▼▼▼ 【請在這裡加入下面這一行】 ▼▼▼
+    quizCloseBtn.style.display = 'block'; // 恢復顯示關閉按鈕
     isBattleQuizActive = false;
     lyricsQuizModal.classList.remove('active');
     document.getElementById('battleQuizTimerContainer').style.display = 'none';
@@ -9012,12 +9016,30 @@ closeBattleRankingsModal.addEventListener('click', () => {
 
             
 
-            // 【新增】綁定測驗視窗的按鈕事件
-quizSubmitBtn.addEventListener('click', checkQuizAnswer);
+          // ====================================================================
+// ====== 【全新修訂】統一的測驗答案提交邏輯 ======
+// ====================================================================
+
+/**
+ * 總管函數：根據測驗模式決定執行哪個答案處理邏輯
+ */
+function handleQuizSubmit() {
+    // 檢查是否處於對戰測驗模式
+    if (isBattleQuizActive) {
+        handleBattleQuizAnswer(); // 呼叫對戰模式的答案處理函數
+    } else {
+        checkQuizAnswer(); // 否則，呼叫單人模式的答案處理函數
+    }
+}
+
+// 綁定事件到新的總管函數
+quizSubmitBtn.addEventListener('click', handleQuizSubmit);
+
 quizAnswerInput.addEventListener('keydown', (e) => {
+    // 當按下 Enter 鍵時，也觸發同一個總管函數
     if (e.key === 'Enter') {
-        e.preventDefault(); // 防止表單提交的預設行為
-        checkQuizAnswer();
+        e.preventDefault(); 
+        handleQuizSubmit();
     }
 });
 quizCloseBtn.addEventListener('click', () => {
