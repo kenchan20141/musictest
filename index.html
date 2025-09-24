@@ -7535,13 +7535,14 @@ function startBattleQuiz(roomData) {
      // ▼▼▼ 【請在這裡加入下面這一行】 ▼▼▼
     quizCloseBtn.style.display = 'none'; // 隱藏關閉按鈕
     
-    // 在 Firebase 中初始化玩家的測驗狀態
+      // 在 Firebase 中初始化玩家的測驗狀態
     const playerKey = isHost ? 'player1' : 'player2';
     database.ref(`rooms/${currentRoomId}/${playerKey}`).update({
         quizScore: 0,
-        quizFinished: false
+        quizFinished: false,
+        // ▼▼▼ 【新增】標記正在測驗中 ▼▼▼
+        quizInProgress: true
     });
-
     displayNextBattleQuestion();
 }
 
@@ -7620,20 +7621,20 @@ function handleBattleQuizAnswer(isTimeout = false) {
  * 4. 結束本地測驗，並將最終分數同步到 Firebase
  */
 function finishBattleQuiz() {
-      // ▼▼▼ 【請在這裡加入下面這一行】 ▼▼▼
-    quizCloseBtn.style.display = 'block'; // 恢復顯示關閉按鈕
+    quizCloseBtn.style.display = 'block';
+
     isBattleQuizActive = false;
     lyricsQuizModal.classList.remove('active');
     document.getElementById('battleQuizTimerContainer').style.display = 'none';
 
-    // 將最終測驗分數上傳到 Firebase，並標記為已完成
     const playerKey = isHost ? 'player1' : 'player2';
     database.ref(`rooms/${currentRoomId}/${playerKey}`).update({
         quizScore: battleQuizScore,
-        quizFinished: true
+        quizFinished: true,
+        // ▼▼▼ 【新增】移除測驗中標記 ▼▼▼
+        quizInProgress: null // 使用 null 來移除這個鍵
     });
 
-    // 顯示等待畫面
     showNotification('info', '測驗完成', '已提交你的測驗分數，請等待對手完成...', 10000);
 }
 
@@ -8006,10 +8007,17 @@ function listenToRoomChanges() {
                 handleCountdown();
                 break;
 
-            case 'pre_quiz': // 【新增狀態】
-                // 收到此狀態後，每個客戶端各自啟動測驗
+           case 'pre_quiz':
+            // ▼▼▼ 【全新核心邏輯】▼▼▼
+            const myPlayerKey = isHost ? 'player1' : 'player2';
+            const myQuizState = roomData[myPlayerKey];
+
+            // 只有當雲端狀態是 pre_quiz，且我自己還沒有開始測驗時，才啟動
+            if (myQuizState && myQuizState.quizInProgress !== true) {
                 startBattleQuiz(roomData);
-                break;
+            }
+            break;
+        // ▲▲▲ 邏輯結束 ▲▲▲
 
             case 'playing':
                 // 遊戲進行中，由本地 gameLoop 處理
