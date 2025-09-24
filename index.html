@@ -3840,7 +3840,7 @@ let roomListener = null; // 用於儲存對房間的監聽器，方便之後移�
 let opponentScore = 0;
 let gameMode = 'single'; // 'single' 或 'multiplayer'
 let onlineGameActive = false;
-const firebaseDB = firebase.database(); // 修正：使用 database() 而不是 database
+
 
 // ▲▲▲ 新增結束 ▲▲▲
 
@@ -3861,9 +3861,11 @@ const firebaseConfig = {
   appId: "1:800604129840:web:ddd3ca5f5d4d5ff81a3bf5"
 };
 
-
-// 初始化 Firebase
-firebase.initializeApp(firebaseConfig);
+// 【核心修正】確保 Firebase App 只被初始化一次
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+// 【核心修正】在這裡統一定義 database 變數
 const database = firebase.database();
 
 // 髒話過濾列表 (可持續擴充)
@@ -5050,7 +5052,7 @@ function updateLobbyStatus(message, isError = false) {
 
 async function createRoom() {
     const newRoomId = Math.floor(1000 + Math.random() * 9000).toString();
-    const roomRef = firebaseDB.ref('rooms/' + newRoomId);
+    const roomRef = database.ref('rooms/' + newRoomId);
 
     const roomData = {
         player1: {
@@ -5084,7 +5086,7 @@ async function joinRoom() {
         return;
     }
 
-    const roomRef = firebaseDB.ref('rooms/' + roomIdToJoin);
+    const roomRef = database.ref('rooms/' + roomIdToJoin);
     try {
         const snapshot = await roomRef.once('value');
         if (!snapshot.exists()) {
@@ -5128,7 +5130,7 @@ async function joinRoom() {
 
 async function randomMatch() {
     updateLobbyStatus("正在搜尋對手...");
-    const queueRef = firebaseDB.ref('waitingQueue');
+    const queueRef = database.ref('waitingQueue');
 
     try {
         const snapshot = await queueRef.orderByChild('timestamp').limitToFirst(1).once('value');
@@ -5140,7 +5142,7 @@ async function randomMatch() {
                 waitingPlayerKey = child.key;
             });
 
-            const roomRef = firebaseDB.ref('rooms/' + waitingRoomId);
+            const roomRef = database.ref('rooms/' + waitingRoomId);
             const roomSnapshot = await roomRef.once('value');
             if (roomSnapshot.exists() && roomSnapshot.val().player1.playerId !== playerId) {
                 // 找到對手，加入房間
@@ -5169,8 +5171,8 @@ async function randomMatch() {
 
 async function createNewRoomAndWaitInQueue() {
     const newRoomId = Math.floor(1000 + Math.random() * 9000).toString();
-    const roomRef = firebaseDB.ref('rooms/' + newRoomId);
-    const queueRef = firebaseDB.ref('waitingQueue');
+    const roomRef = database.ref('rooms/' + newRoomId);
+    const queueRef = database.ref('waitingQueue');
 
     const roomData = {
         player1: { playerId: playerId, score: 0, health: 100, ready: false },
@@ -5203,10 +5205,10 @@ async function createNewRoomAndWaitInQueue() {
 
 function listenToRoomChanges() {
     if (roomListener) {
-        firebaseDB.ref('rooms/' + currentRoomId).off('value', roomListener);
+        database.ref('rooms/' + currentRoomId).off('value', roomListener);
     }
 
-    const roomRef = firebaseDB.ref('rooms/' + currentRoomId);
+    const roomRef = database.ref('rooms/' + currentRoomId);
     roomListener = roomRef.on('value', (snapshot) => {
         if (!snapshot.exists()) {
             // 房間被刪除或遊戲結束
@@ -5328,7 +5330,7 @@ function handleGameSyncStart(roomData) {
         // 真正開始遊戲的邏輯
         gameMode = 'multiplayer';
         await startGame(); // 沿用你現有的 startGame 函數
-        firebaseDB.ref('rooms/' + currentRoomId).child('gameState').set('ingame');
+        database.ref('rooms/' + currentRoomId).child('gameState').set('ingame');
     }, Math.max(0, timeUntilStart));
 }
 
@@ -5363,7 +5365,7 @@ function showMultiplayerGameOver(roomData) {
 
     document.getElementById('rematchBtn').addEventListener('click', requestRematch);
     document.getElementById('endGameBtn').addEventListener('click', () => {
-        firebaseDB.ref('rooms/' + currentRoomId).remove();
+        database.ref('rooms/' + currentRoomId).remove();
     });
 
     gameOverModal.classList.add('active');
@@ -5374,7 +5376,7 @@ function requestRematch() {
     document.getElementById('rematchStatus').textContent = '已送出重玩邀請，等待對手回應...';
     
     const myPlayerKey = isHost ? 'player1' : 'player2';
-    firebaseDB.ref(`rooms/${currentRoomId}/${myPlayerKey}/ready`).set(true);
+    database.ref(`rooms/${currentRoomId}/${myPlayerKey}/ready`).set(true);
 }
 
 function handleRematch(roomData) {
@@ -5394,7 +5396,7 @@ function handleRematch(roomData) {
                 'selectedDifficulty': null,
                 'gameStartTime': null
             };
-            firebaseDB.ref('rooms/' + currentRoomId).update(updates);
+            database.ref('rooms/' + currentRoomId).update(updates);
         }
         // 客戶端重置 UI
         gameOverModal.classList.remove('active');
@@ -5405,7 +5407,7 @@ function handleRematch(roomData) {
 
 function cleanupAfterGame() {
     if (roomListener) {
-        firebaseDB.ref('rooms/' + currentRoomId).off('value', roomListener);
+        database.ref('rooms/' + currentRoomId).off('value', roomListener);
     }
     currentRoomId = null;
     isHost = false;
@@ -6452,7 +6454,7 @@ function addScore(baseScore) {
     // 如果是多人模式，則更新分數到 Firebase
     if (gameMode === 'multiplayer' && currentRoomId) {
         const playerKey = isHost ? 'player1' : 'player2';
-        firebaseDB.ref(`rooms/${currentRoomId}/${playerKey}/score`).set(score);
+        database.ref(`rooms/${currentRoomId}/${playerKey}/score`).set(score);
     }
     
     if (combo > 5) {
@@ -6991,7 +6993,7 @@ async function startGame() {
     
     // --- 多人模式下的選歌確認邏輯 ---
     if (gameMode === 'multiplayer') {
-        const roomRef = firebaseDB.ref('rooms/' + currentRoomId);
+        const roomRef = database.ref('rooms/' + currentRoomId);
         try {
             // 在開始倒數前 3 秒設定一個伺服器時間戳
             await roomRef.update({
@@ -7190,7 +7192,7 @@ function endGame() {
     // 根據遊戲模式決定結束流程
     if (gameMode === 'multiplayer' && currentRoomId && isHost) {
         // 如果是主機，則更新遊戲狀態為 "finished"
-        firebaseDB.ref('rooms/' + currentRoomId).child('gameState').set('finished');
+        database.ref('rooms/' + currentRoomId).child('gameState').set('finished');
         // 後續的結算畫面將由 listenToRoomChanges 觸發
     } else if (gameMode === 'single') {
         // 單人模式，走原有的結束流程
@@ -7963,7 +7965,7 @@ closeLobbyModal.addEventListener('click', () => {
     document.getElementById('onlineLobbyModal').classList.remove('active');
     // 如果玩家在等待時關閉視窗，清理房間數據
     if (currentRoomId && isHost) {
-        firebaseDB.ref('rooms/' + currentRoomId).remove();
+        database.ref('rooms/' + currentRoomId).remove();
         cleanupAfterGame();
     }
 });
