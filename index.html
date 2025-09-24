@@ -3485,21 +3485,24 @@ font-size: 12px;
     box-shadow: 0 6px 20px rgba(129, 199, 132, 0.4);
 }
 
-/* ====== 【第四項修訂】對戰排行榜按鈕 - 活力珊瑚粉 ====== */
+/* ====== 【全新修訂】對戰排行榜按鈕 - 煙波藍主題 ====== */
 #showBattleRankingsBtn {
-    /* 使用從淺珊瑚粉到略深一點的漸變 */
-    background: linear-gradient(45deg, #ffccbc, #ffab91);
+    /* 使用從淺到深的煙波藍漸變，營造層次感 */
+    background: linear-gradient(45deg, #8baaaa, #6a8eae);
     
-    /* 確保白色文字在這種背景下依然清晰 */
+    /* 白色文字在這種背景下非常清晰 */
     color: white; 
     
-    /* 搭配一個溫暖的橘粉色光暈 */
-    box-shadow: 0 4px 15px rgba(255, 171, 145, 0.35);
-    border: none; /* 這個顏色組合不需要邊框 */
+    /* 搭配一個柔和的藍色光暈效果 */
+    box-shadow: 0 4px 15px rgba(106, 142, 174, 0.35);
+    border: none;
+    transition: all 0.2s ease; /* 為滑鼠懸停效果添加過渡動畫 */
 }
 
 #showBattleRankingsBtn:hover {
-    box-shadow: 0 6px 20px rgba(255, 171, 145, 0.45);
+    /* 滑鼠懸停時，光暈更強，按鈕輕微上浮 */
+    box-shadow: 0 6px 20px rgba(106, 142, 174, 0.45);
+    transform: translateY(-2px);
 }
 
 /* ====== 【全新修訂】對手分數部件 "赤色對手" 主題 ====== */
@@ -9008,7 +9011,7 @@ roomIdInput.addEventListener('input', (e) => {
         </div>
         <!-- ▼▼▼ 請將這段新的按鈕程式碼，加在「隨機配對」按鈕的下方 ▼▼▼ -->
 <div class="setting-group">
-    <button class="restart-btn" id="showBattleRankingsBtn" style="width: 100%; background: linear-gradient(45deg, #6a11cb, #2575fc);">
+    <button class="restart-btn" id="showBattleRankingsBtn" style="width: 100%;">
         對戰排行榜
     </button>
 </div>
