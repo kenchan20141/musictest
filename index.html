@@ -4208,6 +4208,7 @@ if (!playerId) {
 let currentRoomId = null;
 let isHost = false;
 let roomListener = null; // 用於儲存Firebase的監聽器，方便移除
+    
 
 const onlineMatchBtn = document.getElementById('onlineMatchBtn');
 const onlineMatchModal = document.getElementById('onlineMatchModal');
@@ -7320,6 +7321,7 @@ function resetToMainMenu() {
     currentRoomId = null;
     isHost = false;
     roomListener = null;
+      isBattleQuizActive = false; // <-- 在這裡加入
     
     // 恢復UI
     opponentStats.style.display = 'none';
@@ -7499,50 +7501,60 @@ function endGame() {
 // ====== 【全新】對戰歌詞測驗核心功能 (共 5 個函數) ======
 // ====================================================================
 
+// ====================================================================
+// ====== 【最終修訂版】啟動對戰歌詞測驗函數 ======
+// ====================================================================
 /**
- * 1. 啟動對戰歌詞測驗
+ * 啟動對戰歌詞測驗。
+ * 這個函數現在由一個本地狀態旗標 'isBattleQuizActive' 保護，
+ * 確保在同一回合中只會被執行一次。
  */
 function startBattleQuiz(roomData) {
-    if (isBattleQuizActive) return; // 防止重複啟動
-    isBattleQuizActive = true;
+    
+    // 1. 【核心】設置單次入場券旗標
+    // 一旦測驗開始，此旗標將阻止監聽器重複觸發此函數，直到回合完全重置。
+    isBattleQuizActive = true; 
 
     const songUrl = roomData.selectedSong;
     const allQuestions = songData[songUrl]?.quiz || [];
 
-    // 檢查是否有足夠的題目
+    // 2. 檢查題庫是否充足
+    // 如果題庫題目少於5題，則無法進行測驗。
     if (allQuestions.length < 5) {
-        console.warn(`歌曲 ${songUrl} 題庫不足5題，將跳過測驗。`);
-        // 如果題目不夠，直接判定雙方完成測驗並給予 0 分
+        console.warn(`歌曲 ${songUrl} 題庫不足5題，將自動跳過測驗。`);
+        // 直接在Firebase上將測驗標記為完成，分數為0，避免對手卡住。
         const playerKey = isHost ? 'player1' : 'player2';
         database.ref(`rooms/${currentRoomId}/${playerKey}`).update({
             quizScore: 0,
             quizFinished: true
         });
+        // 由於無法進行測驗，顯示提示後直接結束此函數的執行。
+        showNotification('info', '測驗跳過', '由於此歌曲題庫不足，本回合歌詞測驗將被跳過。');
         return;
     }
 
-    // 初始化測驗狀態
+    // 3. 初始化本地測驗狀態
     battleQuizScore = 0;
     battleQuizCurrentIndex = 0;
-    battleQuizQuestions = shuffleArray([...allQuestions]).slice(0, 5); // 洗牌並取出 5 題
+    // 從題庫中隨機洗牌並選取 5 題
+    battleQuizQuestions = shuffleArray([...allQuestions]).slice(0, 5); 
 
-    // 更新並顯示 Modal 視窗
+    // 4. 更新並顯示測驗 Modal 視窗
     document.getElementById('quizTitle').textContent = '對戰歌詞測驗';
     document.getElementById('quizInstructions').textContent = '每題20秒作答時間，答對+1000分，答錯-1000分。';
     document.getElementById('battleQuizTimerContainer').style.display = 'block';
-    
+    quizCloseBtn.style.display = 'none'; // 根據要求，在對戰測驗中隱藏關閉按鈕
     lyricsQuizModal.classList.add('active');
-     // ▼▼▼ 【請在這裡加入下面這一行】 ▼▼▼
-    quizCloseBtn.style.display = 'none'; // 隱藏關閉按鈕
     
-      // 在 Firebase 中初始化玩家的測驗狀態
+    // 5. 在 Firebase 中初始化玩家的測驗狀態
+    // 這會通知系統和對手，你已經正式開始作答。
     const playerKey = isHost ? 'player1' : 'player2';
     database.ref(`rooms/${currentRoomId}/${playerKey}`).update({
         quizScore: 0,
-        quizFinished: false,
-        // ▼▼▼ 【新增】標記正在測驗中 ▼▼▼
-        quizInProgress: true
+        quizFinished: false
     });
+
+    // 6. 顯示第一題並開始計時
     displayNextBattleQuestion();
 }
 
@@ -7618,21 +7630,22 @@ function handleBattleQuizAnswer(isTimeout = false) {
 
 
 /**
- * 4. 結束本地測驗，並將最終分數同步到 Firebase
+ * 4. 結束本地測驗，並將最終分數同步到 Firebase (修訂版)
  */
 function finishBattleQuiz() {
     quizCloseBtn.style.display = 'block';
 
-    isBattleQuizActive = false;
+    // ▼▼▼ 【核心修訂】刪除下面這一行！▼▼▼
+    // isBattleQuizActive = false; // <--- 刪除此行
+
     lyricsQuizModal.classList.remove('active');
     document.getElementById('battleQuizTimerContainer').style.display = 'none';
 
+    // 將最終測驗分數上傳到 Firebase (移除多餘的 quizInProgress)
     const playerKey = isHost ? 'player1' : 'player2';
     database.ref(`rooms/${currentRoomId}/${playerKey}`).update({
         quizScore: battleQuizScore,
-        quizFinished: true,
-        // ▼▼▼ 【新增】移除測驗中標記 ▼▼▼
-        quizInProgress: null // 使用 null 來移除這個鍵
+        quizFinished: true
     });
 
     showNotification('info', '測驗完成', '已提交你的測驗分數，請等待對手完成...', 10000);
@@ -8007,17 +8020,12 @@ function listenToRoomChanges() {
                 handleCountdown();
                 break;
 
-           case 'pre_quiz':
-            // ▼▼▼ 【全新核心邏輯】▼▼▼
-            const myPlayerKey = isHost ? 'player1' : 'player2';
-            const myQuizState = roomData[myPlayerKey];
-
-            // 只有當雲端狀態是 pre_quiz，且我自己還沒有開始測驗時，才啟動
-            if (myQuizState && myQuizState.quizInProgress !== true) {
+          case 'pre_quiz':
+            // 只有當本地測驗未啟動時才執行
+            if (!isBattleQuizActive) {
                 startBattleQuiz(roomData);
             }
             break;
-        // ▲▲▲ 邏輯結束 ▲▲▲
 
             case 'playing':
                 // 遊戲進行中，由本地 gameLoop 處理
@@ -8182,6 +8190,7 @@ function handleRematchStatus(roomData) {
 function resetForRematch() {
     gameOverModal.classList.remove('active');
     gameActive = false;
+    isBattleQuizActive = false; // <-- 在這裡加入
     
     // 重置分數和UI
     score = 0;
