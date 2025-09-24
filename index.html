@@ -397,11 +397,12 @@
      /* 2. 音樂進度條 (最底層) */
 
         .progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #ff8a00, #e52e71);
-            width: 0%;
-            transition: width 0.1s linear;
-        }
+    height: 100%;
+    /* ▼▼▼ 【核心修訂】請將 background 屬性修改如下 ▼▼▼ */
+    background: linear-gradient(90deg, #ffeb3b, #ffc107); /* <-- 這是新的黃色漸變 */
+    width: 0%;
+    transition: width 0.1s linear;
+}
         .game-area {
             display: flex;
             flex-direction: column;
