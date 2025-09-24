@@ -6835,13 +6835,17 @@ function joinRoom() {
 function randomMatch() {
     matchStatusText.textContent = '正在尋找對手...';
     const queueRef = database.ref('waitingQueue');
+    
+    // 【新增】一個臨時變數，用於在 transaction 內部儲存對手的資訊
+    let opponentInfo = null;
 
     queueRef.transaction(currentQueue => {
         if (currentQueue === null) {
             // 佇列是空的，成為等待者
             return { hostId: playerId, playerName: playerName || '等待中的玩家' };
         } else {
-            // 佇列有人，配對成功
+            // 【修訂】佇列有人，配對成功。在清空佇列前，先將對手資訊存起來。
+            opponentInfo = currentQueue;
             return {}; // 返回一個空對象來清空佇列
         }
     }).then(result => {
@@ -6852,21 +6856,18 @@ function randomMatch() {
         
         const postTransactionQueue = result.snapshot.val();
         if (postTransactionQueue && postTransactionQueue.hostId === playerId) {
-            // 我成為了等待者
+            // 我成為了等待者 (這部分邏輯不變)
             isHost = true;
             gameMode = 'online';
-            // 創建一個臨時房間ID，等待配對
             currentRoomId = 'queue_' + playerId.substring(7, 12); 
             database.ref('rooms/' + currentRoomId).set({
                 player1: { playerId: playerId, playerName: playerName || '玩家一', score: 0, rematch: false, isReady: false },
                 player2: null,
                 gameState: 'waiting_for_players'
             });
-            // 監聽自己的等待佇列，如果被清空代表配對成功
             queueRef.on('value', (snapshot) => {
                 if (!snapshot.exists()) {
-                    queueRef.off(); // 停止監聽
-                    // 此時另一位玩家會把正式房間ID寫入我這個臨時房間
+                    queueRef.off();
                     database.ref('rooms/' + currentRoomId + '/officialRoomId').on('value', (officialSnapshot) => {
                         if (officialSnapshot.exists()) {
                             database.ref('rooms/' + currentRoomId).off();
@@ -6879,25 +6880,29 @@ function randomMatch() {
             });
         } else {
             // 我配對到了別人
-            isHost = false;
-            gameMode = 'online';
-            const hostPlayerId = result.snapshot.child('hostId').val();
-            const hostPlayerName = result.snapshot.child('playerName').val();
-            
-            // 創建一個正式的房間
-            currentRoomId = Math.floor(1000 + Math.random() * 9000).toString();
-            
-            database.ref('rooms/' + currentRoomId).set({
-                player1: { playerId: hostPlayerId, playerName: hostPlayerName, score: 0, rematch: false, isReady: false },
-                player2: { playerId: playerId, playerName: playerName || '玩家二', score: 0, rematch: false, isReady: false },
-                gameState: 'selecting_song'
-            }).then(() => {
-                // 告訴等待者正式的房間ID
-                const tempRoomId = 'queue_' + hostPlayerId.substring(7, 12);
-                database.ref('rooms/' + tempRoomId).update({ officialRoomId: currentRoomId });
-                listenToRoomChanges();
-                onlineMatchModal.classList.remove('active');
-            });
+            // 【修訂】從我們預先儲存的 opponentInfo 中讀取對手資訊，而不是從已被清空的 result.snapshot 中讀取。
+            if (opponentInfo) {
+                isHost = false;
+                gameMode = 'online';
+                const hostPlayerId = opponentInfo.hostId;
+                const hostPlayerName = opponentInfo.playerName;
+                
+                currentRoomId = Math.floor(1000 + Math.random() * 9000).toString();
+                
+                database.ref('rooms/' + currentRoomId).set({
+                    player1: { playerId: hostPlayerId, playerName: hostPlayerName, score: 0, rematch: false, isReady: false },
+                    player2: { playerId: playerId, playerName: playerName || '玩家二', score: 0, rematch: false, isReady: false },
+                    gameState: 'selecting_song'
+                }).then(() => {
+                    const tempRoomId = 'queue_' + hostPlayerId.substring(7, 12);
+                    database.ref('rooms/' + tempRoomId).update({ officialRoomId: currentRoomId });
+                    listenToRoomChanges();
+                    onlineMatchModal.classList.remove('active');
+                });
+            } else {
+                // 備用錯誤處理
+                matchStatusText.textContent = '配對失敗，找不到對手資訊，請重試。';
+            }
         }
     });
 }
