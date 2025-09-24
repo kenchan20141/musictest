@@ -3502,30 +3502,42 @@ font-size: 12px;
     box-shadow: 0 6px 20px rgba(96, 125, 139, 0.4);
 }
 
-        /* ====== 第三項修訂：設計獨特的對手分數部件 ====== */
-/* 1. 針對對手分數的整個容器 (#opponentStats) 進行設計 */
+/* ====== 【全新修訂】對手分數部件 "冰晶" 主題 ====== */
+
+/* 1. 【核心差異】為對手部件設計一個明亮、半透明的 "毛玻璃" 背景 */
 #opponentStats {
-    /* 使用帶有冷色調的半透明背景，與玩家的預設框區分 */
-    background: rgba(50, 60, 80, 0.4);
+    /* 使用帶有微藍色的半透明背景，與玩家的深色框形成強烈對比 */
+    background: rgba(220, 235, 245, 0.35); 
     
-    /* 添加一個獨特的左側邊框作為視覺提示 */
-    border-left: 4px solid #e53935; /* 一個低調的紅色 */
+    /* 應用毛玻璃效果，增加質感 */
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px); /* 兼容 Safari */
+
+    /* 移除先前設計的左側邊框，改用更精緻的完整邊框 */
+    border: 1px solid rgba(173, 216, 230, 0.8); /* 使用淡藍色邊框 */
+
+    /* 添加柔和的內發光效果，模擬冰晶感 */
+    box-shadow: 0 0 15px rgba(173, 216, 230, 0.5) inset;
     
-    /* 讓過渡動畫更平滑 */
-    transition: background 0.3s ease, box-shadow 0.3s ease;
+    /* 確保圓角與玩家部件一致，維持整體 UI 的協調性 */
+    border-radius: 8px;
 }
 
-/* (可選) 滑鼠懸停時給予一個細微的光暈效果 */
-#opponentStats:hover {
-    box-shadow: 0 0 15px rgba(229, 57, 53, 0.4);
-}
-
-/* 2. 更改對手分數文字 (#opponentScore) 的顏色 */
+/* 2. 【核心差異】將對手的分數文字 (#opponentScore) 改為深色，以確保在淺色背景上的可讀性 */
 #opponentScore {
-    /* 使用冷色調的淺藍色，與玩家分數的暖黃色形成對比 */
-    color: #b3e5fc;
+    /* 使用一個沉穩的深藍灰色 */
+    color: #334e68; 
+    
+    /* (可選) 為數字添加細微的陰影，增加立體感 */
+    text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.5);
 }
 
+/* 3. 同樣將標籤文字 (#opponentNameLabel) 也改為深色系 */
+#opponentNameLabel {
+    color: #486581; /* 使用比分數稍淺的藍灰色 */
+    /* 覆蓋掉舊有的白色輪廓陰影，避免在淺色背景上顯得突兀 */
+    text-shadow: none;
+}
         /* ====== 第四項修訂：為線上對戰按鈕添加發光效果 ====== */
 /* 1. 定義一個名為 "pulseGlow" 的光暈動畫 */
 @keyframes pulseGlow {
