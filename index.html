@@ -179,7 +179,7 @@
             flex-direction: column;
             gap: 10px; /* Reduced gap */
         }
-      .game-ui {
+     .game-ui {
     position: relative; 
     display: flex;
     flex-wrap: wrap; 
@@ -189,7 +189,8 @@
     background: rgba(255, 255, 255, 0.1);
     border-radius: 10px; 
     padding: 10px; 
-    padding-bottom: 35px; /* [新增] 增加底部內邊距，為兩個進度條騰出空間 */
+    /* [修訂] 增加底部內邊距，為三個進度條騰出空間 (原 60px) */
+    padding-bottom: 77px; 
     backdrop-filter: blur(10px);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2); 
 }
@@ -2035,7 +2036,8 @@
 /* 調整解鎖進度條位置，避免與選擇器重疊 */
 .unlock-progress-container {
     position: absolute;
-    bottom: 22px;        /* [修訂] 重新計算位置：音樂進度條 bottom 5px + 高度 12px + 間距 5px = 22px */
+    /* [修訂] 重新計算位置：音樂進度條(5px)+高度(12px)+間距(5px)+對手進度條(12px)+間距(5px) = 39px */
+    bottom: 39px;        
     left: 10px;
     right: 10px;
     width: auto;
@@ -2045,7 +2047,7 @@
     border-radius: 6px;   
     border: 1px solid rgba(255, 255, 255, 0.2);
     overflow: hidden;
-    z-index: 10;         /* [修訂] 降低 z-index，確保在最底層 */
+    z-index: 10;
     opacity: 0;
     transition: opacity 0.5s ease, transform 0.5s ease;
     display: flex;
@@ -2053,6 +2055,43 @@
     flex-direction: row;
 }
 
+        /* [新增] 對手進度條的容器 */
+.opponent-progress-container {
+    position: absolute;
+    /* [定位] 將其放在玩家進度條和音樂進度條之間 */
+    bottom: 22px; 
+    left: 10px;
+    right: 10px;
+    height: 12px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    overflow: hidden;
+    z-index: 10;
+    
+    /* [動畫] 預設為隱藏，效果與玩家進度條一致 */
+    opacity: 0;
+    transform: translateY(100%);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+}
+
+/* [新增] 只有在對戰模式進行中，才顯示對手進度條 */
+.game-running.online-mode .opponent-progress-container {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* [新增] 對手進度條本身的樣式 */
+.opponent-progress-bar {
+    height: 100%;
+    width: 0%; /* 由 JS 控制寬度 */
+    /* [外觀] 使用與玩家不同的漸變色 (例如：激情的紅橙色) */
+    background: linear-gradient(90deg, #e52e71, #ff8a00); 
+    transition: width 0.2s ease-out; /* 動畫效果 */
+    border-radius: 6px;
+}
+
+        
 /* [新增] 遊戲中歌詞顯示容器 */
 
 
@@ -3484,6 +3523,13 @@ font-size: 12px;
 </div>
 <!-- ▲▲▲ 修訂結束 ▲▲▲ -->
 
+                        <!-- ▼▼▼ 【新增】對手分數進度條的 HTML 結構 (請加在這裡) ▼▼▼ -->
+<div id="opponentProgressContainer" class="opponent-progress-container">
+    <div id="opponentProgressBar" class="opponent-progress-bar"></div>
+</div>
+<!-- ▲▲▲ 新增結束 ▲▲▲ -->
+                    
+
 
                     </div>
 
@@ -3782,6 +3828,10 @@ const opponentStats = document.getElementById('opponentStats');
 const opponentScoreDisplay = document.getElementById('opponentScore');
             // --- ▼▼▼ 請在此處新增下面這一行 ▼▼▼ ---
 const opponentNameLabel = document.getElementById('opponentNameLabel');
+            // ▼▼▼ 【新增】請在此處加入這兩行 ▼▼▼
+const opponentProgressContainer = document.getElementById('opponentProgressContainer');
+const opponentProgressBar = document.getElementById('opponentProgressBar');
+// ▲▲▲ 新增結束 ▲▲▲
 
 const gameOverTitle = document.getElementById('gameOverTitle');
 const restartBtnSingle = document.getElementById('restartBtn'); // 單機模式按鈕
@@ -6604,11 +6654,17 @@ async function startGame() {
         }
     }
     
+    // ▼▼▼ 【修訂】根據遊戲模式添加/移除 class ▼▼▼
+    if (gameMode === 'online') {
+        mainGameContainer.classList.add('online-mode');
+    } else {
+        mainGameContainer.classList.remove('online-mode');
+    }
+    // ▲▲▲ 修訂結束 ▲▲▲
+
     gameActive = true;
     console.log("--- Game is now starting ---");
 
-    // (此處往下的所有遊戲啟動核心邏輯保持不變，無需修改)
-    
     startBtn.disabled = true;
     musicSelect.disabled = true;
     difficultySelect.disabled = true;
@@ -6665,6 +6721,7 @@ async function startGame() {
 
     setTimeout(() => { if (gameActive) endGame(); }, currentSongDuration * 1000 + 2000);
 }
+
 
             // ====================================================================
 // ====== 【第二步：創建全新的統一按鈕處理函數】 ======
@@ -6894,17 +6951,19 @@ function grantAllRewards(rewards) {
 function endGame() {
     if (!gameActive) return;
 
+    // ▼▼▼ 【修訂】遊戲結束時，移除 online-mode class ▼▼▼
+    mainGameContainer.classList.remove('online-mode');
+    // ▲▲▲ 修訂結束 ▲▲▲
+
     if (gameMode === 'online' && currentRoomId) {
-        // --- 請在此處新增以下三行 ---
         if (scoreUpdateTimeout) clearTimeout(scoreUpdateTimeout);
         scoreUpdateTimeout = null;
-        sendScoreUpdate(); // 強制發送最後的準確分數
+        sendScoreUpdate(); 
         
         if (isHost) { 
             database.ref(`rooms/${currentRoomId}`).update({ gameState: 'game_over' });
         }
     } else {
-        // --- 原有的單機模式結束邏輯 ---
         gameActive = false;
         audio.pause();
         audio.currentTime = 0;
@@ -7200,34 +7259,36 @@ function listenToRoomChanges() {
 
         const roomData = snapshot.val();
         const opponentKey = isHost ? 'player2' : 'player1';
-          // ▼▼▼ 【修訂】請用這段完整的 if/else 程式碼，取代您舊的「即時更新對手分數」區塊 ▼▼▼
-        // 即時更新對手資訊 (分數與名稱)
+        
         if (roomData[opponentKey]) {
             opponentStats.style.display = 'block';
-            opponentScoreDisplay.textContent = roomData[opponentKey].score;
-            // 【新增】從房間資料中讀取對手名稱，並更新到標籤上
+            const opponentScore = roomData[opponentKey].score;
+            opponentScoreDisplay.textContent = opponentScore;
             opponentNameLabel.textContent = roomData[opponentKey].playerName || '對手';
-        } else {
-            opponentStats.style.display = 'none';
-            // 【新增】當對手離開時，將標籤文字重設回預設值
-            opponentNameLabel.textContent = '對手分數';
-        }
-        // ▲▲▲ 修訂結束 ▲▲▲
 
-        // 即時更新對手分數
-        if (roomData[opponentKey]) {
-            opponentStats.style.display = 'block';
-            opponentScoreDisplay.textContent = roomData[opponentKey].score;
+            // ▼▼▼ 【新增】更新對手分數進度條的邏輯 ▼▼▼
+            if (gameActive && maxScoreForCurrentLevel > 0) {
+                // 根據對手分數和當前關卡的理論最高分，計算百分比
+                const opponentProgress = Math.min(100, (opponentScore / maxScoreForCurrentLevel) * 100);
+                // 更新對手進度條的 CSS width 屬性
+                opponentProgressBar.style.width = `${opponentProgress}%`;
+            } else {
+                // 如果遊戲尚未開始或已結束，則重設進度條
+                opponentProgressBar.style.width = '0%';
+            }
+            // ▲▲▲ 新增結束 ▲▲▲
+
         } else {
             opponentStats.style.display = 'none';
+            opponentNameLabel.textContent = '對手分數';
+            // 【新增】如果對手離開，也要隱藏其進度條
+            opponentProgressBar.style.width = '0%';
         }
         
-        // 由主機方檢查是否所有人都已準備就緒，並切換至倒數狀態
         if (isHost && roomData.gameState === 'readying_up' && roomData.player1?.isReady && roomData.player2?.isReady) {
             roomRef.update({ gameState: 'countdown' });
         }
         
-        // 根據遊戲狀態分派任務
         switch (roomData.gameState) {
             case 'selecting_song':
                 handleSongSelectionState(roomData);
@@ -7242,11 +7303,9 @@ function listenToRoomChanges() {
                 break;
 
             case 'playing':
-                // 遊戲中的邏輯主要在本地端 gameLoop 中處理
                 break;
 
             case 'game_over':
-                // 只有在遊戲進行中收到結束信號時，才觸發結束畫面
                 if (gameActive) {
                     handleOnlineGameOver(roomData);
                 }
@@ -7260,13 +7319,11 @@ function listenToRoomChanges() {
                 break;
         }
         
-        // 處理遊戲結束後的重賽請求
         if (roomData.gameState === 'game_over') {
             handleRematchStatus(roomData);
         }
     });
 }
-
 /**
  * 從線上同步的狀態啟動遊戲
  * 參考範例：確保雙方在收到 `gameStarted` 信號後同時進入遊戲。
@@ -7378,19 +7435,20 @@ function resetForRematch() {
 function resetToMainMenu() {
     clearAllNotifications();
 
-    // 移除Firebase監聽器，避免舊房間的訊息干擾
     if (roomListener && currentRoomId) {
         database.ref('rooms/' + currentRoomId).off('value', roomListener);
     }
     
-    // 重置所有全域狀態
     gameActive = false;
     gameMode = 'single';
     currentRoomId = null;
     isHost = false;
     roomListener = null;
     
-    // 恢復UI至單機模式的初始狀態
+    // ▼▼▼ 【修訂】重置時，移除 online-mode class ▼▼▼
+    mainGameContainer.classList.remove('online-mode');
+    // ▲▲▲ 修訂結束 ▲▲▲
+    
     opponentStats.style.display = 'none';
     restartBtnSingle.style.display = 'block';
     onlineRematchControls.style.display = 'none';
@@ -7398,6 +7456,7 @@ function resetToMainMenu() {
     musicSelect.disabled = false;
     difficultySelect.disabled = false;
     gameOverModal.classList.remove('active');
+    
     startBtn.innerHTML = originalStartButtonSVG;
 }
 // ================================================================
