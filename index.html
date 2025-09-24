@@ -6710,7 +6710,7 @@ function handleReadyUpState(roomData) {
     if (roomData[playerKey].isReady) {
         // 如果「我」已經點擊過準備，則禁用按鈕並顯示等待提示
         startBtn.disabled = true;
-        showNotification('info', '等待對手', '已送出準備，請等待對方確認...');
+    
     } else {
         // 如果「我」還沒準備，表示我是需要確認的一方
         showNotification('info', '確認對戰', '對手已選擇歌曲，請點擊「準備」開始對戰！');
@@ -7146,7 +7146,7 @@ function handleReadyUpState(roomData) {
     if (roomData[myPlayerKey].isReady) {
         // 如果我已經點擊過「準備」
         startBtn.disabled = true;
-        showNotification('info', '等待對手', '已送出準備，請等待對方確認...');
+       
     } else {
         // 如果我還未點擊「準備」
         startBtn.disabled = false;
