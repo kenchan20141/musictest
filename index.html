@@ -31,23 +31,26 @@
  /* ▼▼▼ 新增的樣式 ▼▼▼ */
 
 
-/* ▼▼▼ 【修訂】讓兩個進度條在遊戲開始時一起滑入 ▼▼▼ */
-.game-running .unlock-progress-container,
-.game-running .opponent-progress-wrapper {
+       /* 遊戲進行中，顯示解鎖進度條 */
+.game-running .unlock-progress-container {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0); /* [修訂] 改為 Y 軸方向的滑入動畫 */
 }
 
-     /* ▼▼▼ 【修訂】移除絕對定位，使其適應 Flex 佈局 ▼▼▼ */
-.unlock-progress-container {
-    position: relative; /* 從 absolute 改為 relative */
-    /* 移除 bottom, left, right, width 屬性，由父容器控制 */
-    height: 12px;
+      .unlock-progress-container {
+    position: absolute;
+    /* [修訂] 重新計算 bottom 值：音樂進度條 bottom 10px + 高度 12px + 間距 5px = 27px */
+    bottom: 27px; 
+    left: 10px;
+    right: 10px;
+    width: auto;
+    height: 12px;         /* [修訂] 加粗進度條 */
     transform: translateY(100%); 
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.1); /* [修訂] 將背景改為與歌曲進度條一致 */
     border-radius: 6px;   
     border: 1px solid rgba(255, 255, 255, 0.2);
     overflow: hidden;
+    z-index: 50;
     opacity: 0;
     transition: opacity 0.5s ease, transform 0.5s ease;
     display: flex;
@@ -55,20 +58,6 @@
     flex-direction: row;
 }
 
-/* ▼▼▼ 【修訂】對手進度條的容器樣式，並預設隱藏 ▼▼▼ */
-.opponent-progress-wrapper {
-    width: 100%;
-    height: 10px; /* 對手的可以稍微細一點以作區分 */
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 5px;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    display: none; /* 預設隱藏，由 JS 在對戰模式中顯示 */
-    opacity: 0;
-    transform: translateY(100%);
-    transition: opacity 0.5s ease, transform 0.5s ease;
-}
-        
 .unlock-progress-bar {
     height: 100%; /* [修訂] 高度填滿容器 */
     min-height: 12px; /* 確保即使 height=100% 時也有最小高度，避免容器塌陷 */
@@ -3452,18 +3441,6 @@ font-size: 12px;
 #onlineMatchModal .setting-control {
     box-sizing: border-box;
 }
-
-        /* ====== 【新增】雙進度條容器樣式 ====== */
-.dual-progress-bars-wrapper {
-    position: absolute;
-    bottom: 5px; /* 將整個容器定位在底部 */
-    left: 10px;
-    right: 10px;
-    display: flex;
-    flex-direction: column; /* 讓內部元素垂直堆疊 */
-    gap: 4px; /* 在兩個進度條之間增加 4px 的間距 */
-    z-index: 50;
-}
         
     </style>
 
@@ -3495,22 +3472,21 @@ font-size: 12px;
 <!-- ▲▲▲ 修訂結束 ▲▲▲ -->
 
 
-<!-- 雙進度條專用容器 -->
-    <div id="dualProgressBarsWrapper" class="dual-progress-bars-wrapper">
-        <!-- 玩家自己的分數/解鎖進度條 (結構不變，只是位置改變) -->
-        <div id="unlockProgressContainer" class="unlock-progress-container">
-            <div id="songUnlockMarker" class="unlock-progress-marker song-marker"></div>
-            <div id="difficultyUnlockMarker" class="unlock-progress-marker difficulty-marker"></div>
-            <div id="unlockProgressBar" class="unlock-progress-bar"></div>
-        </div>
+<!-- ▼▼▼ 【修訂】將原有的單一標記線改為兩個獨立的標記線 ▼▼▼ -->
+<div id="unlockProgressContainer" class="unlock-progress-container">
+    <!-- 歌曲解鎖線 (黃色) -->
+    <div id="songUnlockMarker" class="unlock-progress-marker song-marker"></div>
+    <!-- 難度解鎖線 (紅色) -->
+    <div id="difficultyUnlockMarker" class="unlock-progress-marker difficulty-marker"></div>
+    
+    <div id="unlockProgressBar" class="unlock-progress-bar"></div>
 
-        <!-- 對手的分數進度條 (新位置) -->
-        <div id="opponentProgressWrapper" class="opponent-progress-wrapper">
-            <div class="opponent-progress-bar" id="opponentProgressBar"></div>
-        </div>
-    </div>
 </div>
 <!-- ▲▲▲ 修訂結束 ▲▲▲ -->
+
+
+                    </div>
+
 
 
 
@@ -3806,10 +3782,6 @@ const opponentStats = document.getElementById('opponentStats');
 const opponentScoreDisplay = document.getElementById('opponentScore');
             // --- ▼▼▼ 請在此處新增下面這一行 ▼▼▼ ---
 const opponentNameLabel = document.getElementById('opponentNameLabel');
-            // --- ▼▼▼ 請在此處新增下面這一行 ▼▼▼ ---
-const opponentProgressBar = document.getElementById('opponentProgressBar');
-            // --- ▼▼▼ 請在此處新增下面這一行 ▼▼▼ ---
-const opponentProgressWrapper = document.getElementById('opponentProgressWrapper');
 
 const gameOverTitle = document.getElementById('gameOverTitle');
 const restartBtnSingle = document.getElementById('restartBtn'); // 單機模式按鈕
@@ -7235,21 +7207,10 @@ function listenToRoomChanges() {
             opponentScoreDisplay.textContent = roomData[opponentKey].score;
             // 【新增】從房間資料中讀取對手名稱，並更新到標籤上
             opponentNameLabel.textContent = roomData[opponentKey].playerName || '對手';
-            // --- ▼▼▼ 請在此處新增下面這一行 ▼▼▼ ---
-            opponentProgressWrapper.style.display = 'block'; // 顯示對手進度條的容器
-            // --- ▼▼▼ 請在此處新增以下更新邏輯 ▼▼▼ ---
-            // 只有在遊戲進行中且理論最高分已知時，才更新進度條
-            if (gameActive && maxScoreForCurrentLevel > 0) {
-                const progressPercent = Math.min(100, (opponentScore / maxScoreForCurrentLevel) * 100);
-                opponentProgressBar.style.width = `${progressPercent}%`;
-            }
-            // --- ▲▲▲ 新增結束 ▲▲▲ ---
         } else {
             opponentStats.style.display = 'none';
             // 【新增】當對手離開時，將標籤文字重設回預設值
             opponentNameLabel.textContent = '對手分數';
-             // --- ▼▼▼ 請在此處新增下面這一行 ▼▼▼ ---
-            opponentProgressWrapper.style.display = 'none'; // 隱藏對手進度條的容器
         }
         // ▲▲▲ 修訂結束 ▲▲▲
 
@@ -7402,11 +7363,6 @@ function resetForRematch() {
     maxCombo = 0;
     updateUI();
     opponentScoreDisplay.textContent = '0';
-     // --- ▼▼▼ 請在此處新增下面這一行 ▼▼▼ ---
-    opponentProgressBar.style.width = '0%';
-    // --- ▼▼▼ 請在此處新增下面這一行 ▼▼▼ ---
-    opponentProgressWrapper.style.display = 'none';
-    
     
     // 清理遊戲區域並重新初始化
     tracksContainer.innerHTML = '';
@@ -7436,11 +7392,6 @@ function resetToMainMenu() {
     
     // 恢復UI至單機模式的初始狀態
     opponentStats.style.display = 'none';
-    // --- ▼▼▼ 請在此處新增下面這一行 ▼▼▼ ---
-    opponentProgressBar.style.width = '0%';
-
-    // --- ▼▼▼ 請在此處新增下面這一行 ▼▼▼ ---
-    opponentProgressWrapper.style.display = 'none';
     restartBtnSingle.style.display = 'block';
     onlineRematchControls.style.display = 'none';
     startBtn.disabled = false;
