@@ -7278,7 +7278,7 @@ function handleReadyUpState(roomData) {
     
     } else {
         // 如果「我」還沒準備，表示我是需要確認的一方
-        showNotification('info', '確認對戰', '對手已選擇歌曲，請點擊「準備」開始對戰！');
+        showNotification('info', '確認對戰', '對手已選擇歌曲，請點擊「開始」對戰！');
         
         // 將開始按鈕變為「準備」按鈕
         startBtn.disabled = false;
@@ -7689,7 +7689,7 @@ function handleSongSelectionState(roomData) {
         musicSelect.disabled = false;
         difficultySelect.disabled = false;
         startBtn.disabled = false;
-        showNotification('info', '輪到你了！', '請選擇歌曲和難度，然後點擊「開始」按鈕確認。');
+        showNotification('info', '選擇歌曲！', '請選擇歌曲和難度，並點擊「開始」按鈕確認。');
     } else {
         // 等待對方選歌
         musicSelect.disabled = true;
