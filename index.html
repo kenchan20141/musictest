@@ -3428,18 +3428,12 @@ font-size: 12px;
         <div class="main-game-container" id="mainGameContainer">
             <div class="game-container">
                 <div class="game-ui">
-                   <div class="stats">
-    <div class="stat-box">
-        <div class="stat-value" id="score">0</div>
-        <div class="stat-label">分數</div>
-    </div>
-    <!-- ▼▼▼ 【新增】對手分數條 (預設隱藏) ▼▼▼ -->
-    <div class="stat-box" id="opponentStatBox" style="display: none;">
-        <div class="stat-value" id="opponentScore">0</div>
-        <div class="stat-label">對手分數</div>
-    </div>
-    <!-- ▲▲▲ 新增結束 ▲▲▲ -->
-</div>
+                    <div class="stats">
+                        <div class="stat-box">
+                            <div class="stat-value" id="score">0</div>
+                            <div class="stat-label">分數</div>
+                        </div>
+
 
 <!-- ▼▼▼ 【修訂】將原有的單一標記線改為兩個獨立的標記線 ▼▼▼ -->
 <div id="unlockProgressContainer" class="unlock-progress-container">
@@ -3477,14 +3471,6 @@ font-size: 12px;
                                 <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" />
                             </svg>
                         </button>
-
-                        <!-- ▼▼▼ 【新增】線上對戰按鈕 ▼▼▼ -->
-<button class="svg-button" id="onlineBattleBtn" title="線上對戰">
-    <svg class="start-button-svg" viewBox="0 0 24 24" fill="white">
-        <path d="M23,11H21V9H19V11H17V13H19V15H21V13H23V11M13,3.03C8.03,3.03 4,7.06 4,12C4,16.94 8.03,21 13,21C17.97,21 22,16.94 22,12C22,11.66 21.97,11.32 21.93,11H19.92C19.97,11.33 20,11.66 20,12C20,15.87 16.87,19 13,19C9.13,19 6,15.87 6,12C6,8.13 9.13,5 13,5C14.39,5 15.67,5.42 16.73,6.14L18.16,4.71C16.89,3.62 15.04,3.03 13,3.03M13,7C10.24,7 8,9.24 8,12C8,14.76 10.24,17 13,17C15.76,17 18,14.76 18,12C18,9.24 15.76,7 13,7Z" />
-    </svg>
-</button>
-<!-- ▲▲▲ 新增結束 ▲▲▲ -->
 
 
                         
@@ -3585,35 +3571,22 @@ font-size: 12px;
 
 
     
-    <!-- ▼▼▼ 【修訂】遊戲結束視窗，加入對戰結果 ▼▼▼ -->
-<div class="game-over-modal" id="gameOverModal">
-    <div class="game-over-content">
-        <h2 class="game-over-title" id="gameOverTitle">遊戲結束</h2>
-        <div class="game-over-stats">
-            <div class="game-over-stat">
-                <div class="stat-label">你的分數</div>
-                <div class="stat-number" id="finalScore">0</div>
+    <div class="game-over-modal" id="gameOverModal">
+        <div class="game-over-content">
+            <h2 class="game-over-title">遊戲結束</h2>
+            <div class="game-over-stats">
+                <div class="game-over-stat">
+                    <div class="stat-label">最終分數</div>
+                    <div class="stat-number" id="finalScore">0</div>
+                </div>
+                <div class="game-over-stat">
+                    <div class="stat-label">最高連擊</div>
+                    <div class="stat-number" id="finalCombo">0</div>
+                </div>
             </div>
-            <!-- 對手分數區塊 -->
-            <div class="game-over-stat" id="opponentFinalScoreBox" style="display: none;">
-                <div class="stat-label">對手分數</div>
-                <div class="stat-number" id="opponentFinalScore">0</div>
-            </div>
-            <div class="game-over-stat">
-                <div class="stat-label">最高連擊</div>
-                <div class="stat-number" id="finalCombo">0</div>
-            </div>
-        </div>
-        <!-- 單人模式按鈕 -->
-        <button class="restart-btn" id="restartBtn">再玩一次</button>
-        <!-- 多人模式按鈕 (預設隱藏) -->
-        <div id="onlineGameOverButtons" style="display: none; margin-top: 20px; gap: 15px; justify-content: center;">
-            <button class="restart-btn" id="rematchBtn">重開遊戲</button>
-            <button class="restart-btn" id="endGameBtn" style="background: linear-gradient(45deg, #6c757d, #343a40);">結束遊戲</button>
+            <button class="restart-btn" id="restartBtn">再玩一次</button>
         </div>
     </div>
-</div>
-<!-- ▲▲▲ 修訂結束 ▲▲▲ -->
     <div class="settings-modal" id="settingsModal">
         <div class="settings-content">
             <button class="close-settings" id="closeSettings">&times;</button>
@@ -3724,457 +3697,6 @@ font-size: 12px;
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-
-            // ==========================================================
-// ====== 【新增】線上對戰核心程式碼 ========================
-// ==========================================================
-
-// --- 核心變數 ---
-let playerId = null;
-let currentRoomId = null;
-let isHost = false;
-let onlineGameActive = false;
-let roomListener = null; // 用於儲存對房間的監聽，方便後續移除
-
-// --- DOM 元素獲取 ---
-const onlineBattleBtn = document.getElementById('onlineBattleBtn');
-const onlineBattleModal = document.getElementById('onlineBattleModal');
-const closeOnlineBattleModal = document.getElementById('closeOnlineBattleModal');
-const createRoomBtn = document.getElementById('createRoomBtn');
-const joinRoomBtn = document.getElementById('joinRoomBtn');
-const randomMatchBtn = document.getElementById('randomMatchBtn');
-const roomIdInput = document.getElementById('roomIdInput');
-const waitingModal = document.getElementById('waitingModal');
-const waitingTitle = document.getElementById('waitingTitle');
-const waitingMessage = document.getElementById('waitingMessage');
-const cancelMatchBtn = document.getElementById('cancelMatchBtn');
-const opponentStatBox = document.getElementById('opponentStatBox');
-const opponentScoreDisplay = document.getElementById('opponentScore');
-const gameOverTitle = document.getElementById('gameOverTitle');
-const opponentFinalScoreBox = document.getElementById('opponentFinalScoreBox');
-const opponentFinalScoreDisplay = document.getElementById('opponentFinalScore');
-const singlePlayerGameOverButton = document.getElementById('restartBtn');
-const onlineGameOverButtons = document.getElementById('onlineGameOverButtons');
-const rematchBtn = document.getElementById('rematchBtn');
-const endGameBtn = document.getElementById('endGameBtn');
-
-
-// --- 初始化函式 ---
-
-// 1. 生成或獲取玩家匿名 ID
-function initializePlayerId() {
-    playerId = sessionStorage.getItem('playerId');
-    if (!playerId) {
-        playerId = database.ref().push().key; // 使用 Firebase 的 push key 生成唯一 ID
-        sessionStorage.setItem('playerId', playerId);
-    }
-}
-
-// 2. 顯示通用等待視窗
-function showWaitingModal(title, message, showCancel = false) {
-    waitingTitle.textContent = title;
-    waitingMessage.innerHTML = message;
-    cancelMatchBtn.style.display = showCancel ? 'block' : 'none';
-    waitingModal.classList.add('active');
-}
-
-// 3. 隱藏通用等待視窗
-function hideWaitingModal() {
-    waitingModal.classList.remove('active');
-}
-
-// --- 對戰流程函式 ---
-
-// 4. 創建房間
-async function createOnlineRoom() {
-    onlineBattleModal.classList.remove('active');
-    const roomId = Math.floor(1000 + Math.random() * 9000).toString(); // 生成 4 位數房間號
-    currentRoomId = roomId;
-    isHost = true;
-    onlineGameActive = true;
-
-    const roomData = {
-        player1: {
-            playerId: playerId,
-            score: 0,
-            status: 'connected',
-            rematch: 'none' // 'none', 'requested', 'declined'
-        },
-        player2: null,
-        gameState: 'waiting_for_player2',
-        createdAt: firebase.database.ServerValue.TIMESTAMP
-    };
-
-    try {
-        await database.ref('rooms/' + roomId).set(roomData);
-        listenToRoomUpdates(roomId);
-        showWaitingModal('房間已創建', `房間代碼: <strong style="font-size: 1.5em; letter-spacing: 3px;">${roomId}</strong><br>請將代碼分享給你的朋友`, true);
-    } catch (error) {
-        console.error("創建房間失敗:", error);
-        showNotification('info', '錯誤', '創建房間失敗，請檢查網絡連線。');
-        resetOnlineState();
-    }
-}
-
-// 5. 加入房間
-async function joinOnlineRoom() {
-    const roomId = roomIdInput.value.trim();
-    if (roomId.length !== 4) {
-        showNotification('info', '錯誤', '請輸入有效的四位房間代碼。');
-        return;
-    }
-
-    const roomRef = database.ref('rooms/' + roomId);
-    try {
-        const snapshot = await roomRef.once('value');
-        if (!snapshot.exists()) {
-            showNotification('info', '錯誤', '找不到該房間。');
-            return;
-        }
-
-        const room = snapshot.val();
-        if (room.player2) {
-            showNotification('info', '錯誤', '房間已滿。');
-            return;
-        }
-
-        if (room.player1.playerId === playerId) {
-            showNotification('info', '錯誤', '你不能加入自己創建的房間。');
-            return;
-        }
-
-        onlineBattleModal.classList.remove('active');
-        currentRoomId = roomId;
-        isHost = false;
-        onlineGameActive = true;
-
-        const player2Data = {
-            playerId: playerId,
-            score: 0,
-            status: 'connected',
-            rematch: 'none'
-        };
-
-        // 隨機決定誰來選歌
-        const songSelector = Math.random() < 0.5 ? 'player1' : 'player2';
-
-        await roomRef.update({
-            player2: player2Data,
-            gameState: 'song_selection',
-            songSelector: songSelector
-        });
-
-        listenToRoomUpdates(roomId);
-        showWaitingModal('成功加入', '正在等待房主開始...');
-
-    } catch (error) {
-        console.error("加入房間失敗:", error);
-        showNotification('info', '錯誤', '加入房間失敗，請檢查網絡連線。');
-        resetOnlineState();
-    }
-}
-
-// 6. 隨機配對
-async function startRandomMatch() {
-    onlineBattleModal.classList.remove('active');
-    showWaitingModal('正在配對', '尋找線上的對手中...', true);
-
-    const queueRef = database.ref('matchmakingQueue');
-    const myQueueEntryRef = queueRef.push({ playerId: playerId, timestamp: firebase.database.ServerValue.TIMESTAMP });
-    myQueueEntryRef.onDisconnect().remove(); // 如果中途離開，自動從佇列移除
-
-    const snapshot = await queueRef.orderByChild('timestamp').limitToFirst(2).once('value');
-    
-    let opponent = null;
-    let opponentKey = null;
-
-    snapshot.forEach(child => {
-        if (child.val().playerId !== playerId) {
-            opponent = child.val();
-            opponentKey = child.key;
-        }
-    });
-
-    if (opponent) { // 找到對手
-        await queueRef.child(opponentKey).remove(); // 從佇列移除對手
-        await myQueueEntryRef.remove(); // 從佇列移除自己
-
-        isHost = true; // 先找到對手的人成為房主
-        onlineGameActive = true;
-        const roomId = Math.floor(1000 + Math.random() * 9000).toString();
-        currentRoomId = roomId;
-
-        const songSelector = Math.random() < 0.5 ? 'player1' : 'player2';
-
-        const roomData = {
-            player1: { playerId: playerId, score: 0, status: 'connected', rematch: 'none' },
-            player2: { playerId: opponent.playerId, score: 0, status: 'connected', rematch: 'none' },
-            gameState: 'song_selection',
-            songSelector: songSelector,
-            createdAt: firebase.database.ServerValue.TIMESTAMP
-        };
-        await database.ref('rooms/' + roomId).set(roomData);
-        listenToRoomUpdates(roomId);
-
-    } else { // 沒找到對手，繼續等待
-        queueRef.on('child_removed', (removedSnapshot) => {
-            if (removedSnapshot.key === myQueueEntryRef.key) {
-                // 自己被配對走了
-                queueRef.off(); // 停止監聽
-            }
-        });
-
-        queueRef.on('child_added', async (addedSnapshot) => {
-             if (addedSnapshot.val().playerId !== playerId) {
-                 // 發現新對手
-                 queueRef.off(); // 停止監聽
-                 const opponentPlayerId = addedSnapshot.val().playerId;
-                 const opponentPlayerKey = addedSnapshot.key;
-
-                 await queueRef.child(opponentPlayerKey).remove();
-                 await myQueueEntryRef.remove();
-
-                 isHost = false; // 後加入者不是房主
-                 onlineGameActive = true;
-                 
-                 // 需要從 Firebase 找到對方創建的房間 ID
-                 const roomsRef = database.ref('rooms');
-                 const roomQuery = roomsRef.orderByChild('player2/playerId').equalTo(playerId).limitToLast(1);
-                 const roomSnapshot = await roomQuery.once('value');
-
-                 if (roomSnapshot.exists()) {
-                     const rooms = roomSnapshot.val();
-                     currentRoomId = Object.keys(rooms)[0];
-                     listenToRoomUpdates(currentRoomId);
-                 }
-             }
-        });
-    }
-}
-
-// 7. 取消配對/離開房間
-function cancelMatchmaking() {
-    hideWaitingModal();
-    if (currentRoomId) {
-        database.ref('rooms/' + currentRoomId).remove();
-    }
-    const queueRef = database.ref('matchmakingQueue');
-    queueRef.orderByChild('playerId').equalTo(playerId).once('value', snapshot => {
-        snapshot.forEach(child => child.ref.remove());
-    });
-    resetOnlineState();
-}
-
-// 8. 重置所有線上狀態變數
-function resetOnlineState() {
-    if (roomListener && currentRoomId) {
-        database.ref('rooms/' + currentRoomId).off('value', roomListener);
-    }
-    onlineGameActive = false;
-    currentRoomId = null;
-    isHost = false;
-    roomListener = null;
-
-    // 還原 UI
-    opponentStatBox.style.display = 'none';
-    singlePlayerGameOverButton.style.display = 'block';
-    onlineGameOverButtons.style.display = 'none';
-    opponentFinalScoreBox.style.display = 'none';
-}
-
-
-// 9. 核心：監聽房間狀態變化
-function listenToRoomUpdates(roomId) {
-    const roomRef = database.ref('rooms/' + roomId);
-    
-    // 移除舊的監聽器
-    if(roomListener) {
-        database.ref('rooms/' + currentRoomId).off('value', roomListener);
-    }
-
-    roomListener = roomRef.on('value', async (snapshot) => {
-        if (!snapshot.exists()) {
-            showNotification('info', '房間已解散', '房主已離開遊戲。');
-            hideWaitingModal();
-            resetOnlineState();
-            return;
-        }
-
-        const room = snapshot.val();
-        const myPlayerKey = isHost ? 'player1' : 'player2';
-        const opponentPlayerKey = isHost ? 'player2' : 'player1';
-
-        // 處理對手斷線
-        if (room.player2 && room.player2.status === 'disconnected' && onlineGameActive) {
-            showNotification('info', '對手已離線', '你的對手已離開遊戲。');
-            endGame(); // 強制結束遊戲
-            return;
-        }
-
-        // 根據 gameState 執行不同操作
-        switch (room.gameState) {
-            case 'song_selection':
-                hideWaitingModal();
-                const songSelectorKey = room.songSelector;
-                if (myPlayerKey === songSelectorKey) {
-                    showNotification('info', '輪到你了', '請選擇一首歌曲開始對戰！');
-                    musicSelect.disabled = false;
-                    difficultySelect.disabled = false;
-                    startBtn.disabled = false;
-                } else {
-                    showNotification('info', '請稍候', '等待對手選擇歌曲...');
-                    musicSelect.disabled = true;
-                    difficultySelect.disabled = true;
-                    startBtn.disabled = true;
-                }
-                break;
-
-            case 'playing':
-                hideWaitingModal();
-                if (!gameActive) { // 防止重複開始遊戲
-                    // 雙方同時開始遊戲
-                    await startOnlineGame(room.currentSong, room.currentDifficulty);
-                }
-                // 同步對手分數
-                if (room[opponentPlayerKey]) {
-                    opponentScoreDisplay.textContent = room[opponentPlayerKey].score;
-                }
-                break;
-
-            case 'game_over':
-                if (gameActive) { // 如果本地遊戲還在運行，則強制結束
-                    endGame(); 
-                }
-                // 顯示最終結果
-                gameOverTitle.textContent = room.winner === myPlayerKey ? "你贏了！" : (room.winner === 'draw' ? "平局！" : "你輸了！");
-                if (room[opponentPlayerKey]) {
-                    opponentFinalScoreDisplay.textContent = room[opponentPlayerKey].score.toLocaleString();
-                }
-                break;
-            
-            case 'rematch':
-                // 處理重賽邏輯
-                if(room.player1.rematch === 'requested' && room.player2.rematch === 'requested') {
-                    // 雙方都同意重開
-                    const newSelector = Math.random() < 0.5 ? 'player1' : 'player2';
-                    if (isHost) {
-                        await database.ref('rooms/' + roomId).update({
-                            'player1/score': 0,
-                            'player2/score': 0,
-                            'player1/rematch': 'none',
-                            'player2/rematch': 'none',
-                            gameState: 'song_selection',
-                            songSelector: newSelector
-                        });
-                    }
-                    gameOverModal.classList.remove('active');
-                    initGame(); // 重置本地遊戲畫面
-                } else if (room[opponentPlayerKey].rematch === 'requested') {
-                    showNotification('info', '對手請求重賽', '對手希望再玩一局！');
-                } else if (room[opponentPlayerKey].rematch === 'declined') {
-                     showNotification('info', '重賽被拒絕', '對手已離開房間。');
-                     setTimeout(() => database.ref('rooms/' + roomId).remove(), 2000);
-                }
-                break;
-        }
-    });
-
-    // 設置斷線處理
-    const myPlayerRef = database.ref(`rooms/${roomId}/${myPlayerKey}`);
-    myPlayerRef.onDisconnect().update({ status: 'disconnected' });
-}
-
-// 10. 線上模式的開始遊戲函式
-async function startOnlineGame(songUrl, difficulty) {
-    if (gameActive) return;
-    
-    // 設置 UI
-    opponentStatBox.style.display = 'block';
-    opponentScoreDisplay.textContent = '0';
-    
-    // 禁用所有控制項
-    startBtn.disabled = true;
-    musicSelect.disabled = true;
-    difficultySelect.disabled = true;
-
-    // 從資料庫加載歌曲和難度
-    musicSelect.value = songUrl;
-    difficultySelect.value = difficulty;
-
-    // 執行與單人模式相同的遊戲啟動邏輯
-    gameActive = true;
-    mainGameContainer.classList.add('game-running');
-    unlockProgressBar.style.width = '0%';
-    unlockProgressBar.classList.remove('glowing');
-    
-    const difficultySettings = getCurrentDifficulty();
-    const beatTimestamps = await analyzeAudioForBeats(songUrl);
-
-    audio.src = songUrl;
-    audio.volume = volumeControlModal.value;
-    currentSongDuration = await getAudioDuration(songUrl);
-    noteSpeed = Math.floor(4000 / difficultySettings.speedMultiplier);
-
-    const seed = new Date().getTime(); // 在線上模式中使用時間戳作為種子確保譜面一致
-    noteQueue = generateSongData(currentSongDuration, difficultySettings, beatTimestamps, seed, noteSpeed);
-
-    maxScoreForCurrentLevel = noteQueue.length * 100;
-
-    audio.play().then(() => {
-        gameStartTime = Date.now();
-        generateNotesContinuously();
-        gameLoop();
-        progressInterval = setInterval(updateProgress, 100);
-    }).catch(e => console.error("線上遊戲音訊播放失敗:", e));
-    
-    setTimeout(() => {
-        if (gameActive) endGame();
-    }, currentSongDuration * 1000 + 2000);
-}
-
-// 11. 更新分數到 Firebase
-function updateScoreToFirebase() {
-    if (onlineGameActive && currentRoomId) {
-        const myPlayerKey = isHost ? 'player1' : 'player2';
-        database.ref(`rooms/${currentRoomId}/${myPlayerKey}/score`).set(score);
-    }
-}
-
-// --- 事件綁定 ---
-onlineBattleBtn.addEventListener('click', () => onlineBattleModal.classList.add('active'));
-closeOnlineBattleModal.addEventListener('click', () => onlineBattleModal.classList.remove('active'));
-createRoomBtn.addEventListener('click', createOnlineRoom);
-joinRoomBtn.addEventListener('click', joinOnlineRoom);
-randomMatchBtn.addEventListener('click', startRandomMatch);
-cancelMatchBtn.addEventListener('click', cancelMatchmaking);
-
-rematchBtn.addEventListener('click', async () => {
-    if (!onlineGameActive || !currentRoomId) return;
-    const myPlayerKey = isHost ? 'player1' : 'player2';
-    await database.ref(`rooms/${currentRoomId}/${myPlayerKey}/rematch`).set('requested');
-    rematchBtn.disabled = true;
-    rematchBtn.textContent = '等待對手...';
-    // 更新 gameState 觸發監聽
-    await database.ref(`rooms/${currentRoomId}/gameState`).set('rematch');
-});
-
-endGameBtn.addEventListener('click', async () => {
-    if (!onlineGameActive || !currentRoomId) return;
-    const myPlayerKey = isHost ? 'player1' : 'player2';
-    // 告知對手自己已離開
-    await database.ref(`rooms/${currentRoomId}/${myPlayerKey}/rematch`).set('declined');
-    // 刪除房間
-    await database.ref('rooms/' + currentRoomId).remove();
-    // 重置本地狀態並刷新頁面
-    resetOnlineState();
-    window.location.reload();
-});
-
-// ==========================================================
-// ====== 【新增結束】 ========================================
-// ==========================================================
-
-             initializePlayerId(); // 【新增】初始化玩家 ID
 
 // ==========================================================
 // ====== 【新增】Firebase 初始化與排行榜相關設定 ======
@@ -5902,13 +5424,9 @@ closeNotification.addEventListener('click', () => {
     }
 }
 
-            // ▼▼▼ 【修訂】updateUI 函數以同步分數 ▼▼▼
-function updateUI() {
-    scoreDisplay.textContent = score;
-    if (onlineGameActive) {
-        updateScoreToFirebase();
-    }
-}
+            function updateUI() {
+                scoreDisplay.textContent = score;
+            }
 
            function updateProgress() {
     if (gameActive && currentSongDuration > 0) {
@@ -6883,30 +6401,27 @@ function updateGameLyrics(currentTime) {
 // ====== 【最終修正版】確保在點擊開始時，直接檢查儲存的最新名稱 ======
 // ====================================================================
 async function startGame() {
-    if (gameActive) return;
+    console.log("--- startGame function initiated ---");
+    
+    // 【核心修正】在點擊開始的瞬間，直接從 localStorage 獲取最新的玩家名稱
+    // 這能確保我們使用的是最準確的資料，而不是頁面剛載入時的舊資料
+    const currentName = localStorage.getItem('musicGamePlayerName');
+    console.log(`檢查 localStorage 中的名稱: "${currentName}"`);
 
-    // 如果是線上模式，此函數的職責是 "選定歌曲"
-    if (onlineGameActive && currentRoomId) {
-        const selectedSong = musicSelect.value;
-        const selectedDifficulty = difficultySelect.value;
+    // 【強化版守門員】這個檢查現在更加直接且可靠
+    if (!currentName || currentName.trim() === '') {
+        console.error("錯誤：玩家名稱未設定。已阻止遊戲開始。");
 
-        if (!isSongUnlocked(selectedSong) || !isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
-            showNotification('info', '錯誤', '不能選擇未解鎖的歌曲或難度進行對戰。');
-            return;
-        }
+        // 1. 顯示一個清晰的引導通知
+        showNotification(
+            'info',
+            '請先設定玩家名稱',
+            '為了開始遊戲並記錄您的成績，請先在排行榜中設定您的顯示名稱。',
+            7000
+        );
         
-        // 房主將選擇的歌曲和難度寫入 Firebase，並改變遊戲狀態
-        try {
-            await database.ref('rooms/' + currentRoomId).update({
-                currentSong: selectedSong,
-                currentDifficulty: selectedDifficulty,
-                gameState: 'playing'
-            });
-            // 更新後，雙方的 listenToRoomUpdates 都會被觸發，並呼叫 startOnlineGame
-        } catch (error) {
-            console.error("更新房間歌曲失敗:", error);
-        }
-        return; // 線上模式下，後續的單人邏輯不執行
+    
+        return; 
     }
     // --- 只有在通過名稱檢查後，才會執行以下的遊戲邏輯 ---
     console.log("名稱檢查通過，遊戲正常啟動。");
@@ -7114,94 +6629,42 @@ function grantAllRewards(rewards) {
 }
             
 
-// ▼▼▼ 【修訂】endGame 函數以處理線上結算 ▼▼▼
 function endGame() {
     if (!gameActive) return;
+
     gameActive = false;
-    
-    // --- 通用清理邏輯 (單人/多人共用) ---
     audio.pause();
     audio.currentTime = 0;
     clearTimeout(generateNotesTimer);
     clearInterval(progressInterval);
-    if (animationFrame) { // 確保 animationFrame 存在再取消
-        cancelAnimationFrame(animationFrame);
-    }
+    cancelAnimationFrame(animationFrame);
     startBtn.disabled = false;
     musicSelect.disabled = false;
     difficultySelect.disabled = false;
-    mainGameContainer.classList.remove('game-running');
+
+    mainGameContainer.classList.remove('game-running'); 
     unlockProgressBar.style.width = '0%';
     unlockProgressBar.classList.remove('glowing');
     progressBar.style.width = '0%';
     notes.forEach(note => note.element.remove());
     notes = [];
 
-    // --- 模式判斷 ---
-    if (onlineGameActive && currentRoomId) {
-        // 線上模式的結算
-        if (isHost) { // 只有房主負責計算和寫入結果
-            database.ref('rooms/' + currentRoomId).once('value').then(snapshot => {
-                const room = snapshot.val();
-                if (!room) return;
+    const selectedSong = musicSelect.value;
+    const selectedDifficulty = difficultySelect.value;
+    updatePersonalHighScore(selectedSong, selectedDifficulty, score);
 
-                const myFinalScore = score;
-                const opponentFinalScore = room.player2.score;
-                let winner = 'draw';
-                if (myFinalScore > opponentFinalScore) winner = 'player1';
-                if (opponentFinalScore > myFinalScore) winner = 'player2';
+    // 【核心修改】呼叫統一的獎勵處理函數
+    // 函數內部會處理所有檢查、測驗觸發和獎勵發放
+    processPostGameRewards(selectedSong, selectedDifficulty, score, pureHitScore);
 
-                database.ref('rooms/' + currentRoomId).update({
-                    gameState: 'game_over',
-                    winner: winner,
-                    'player1/score': myFinalScore, // 確保分數是最終的
-                    'player2/score': opponentFinalScore
-                });
-            });
-        }
-        showOnlineGameOver();
-    } else {
-        // 單人模式的結算
-        const selectedSong = musicSelect.value;
-        const selectedDifficulty = difficultySelect.value;
-        updatePersonalHighScore(selectedSong, selectedDifficulty, score);
-        processPostGameRewards(selectedSong, selectedDifficulty, score, pureHitScore);
-        showGameOver(); // 呼叫單人結算畫面
-    }
+    showGameOver();
 }
-// ▲▲▲ 修訂結束 ▲▲▲
 
-           // ▼▼▼ 【修訂】showGameOver 函數以適用單人模式 ▼▼▼
-function showGameOver() {
-    finalScoreDisplay.textContent = score.toLocaleString();
-    finalComboDisplay.textContent = maxCombo;
-    
-    // 確保只顯示單人按鈕
-    singlePlayerGameOverButton.style.display = 'block';
-    onlineGameOverButtons.style.display = 'none';
-    opponentFinalScoreBox.style.display = 'none';
-    gameOverTitle.textContent = "遊戲結束"; // 單人模式的固定標題
-
-    gameOverModal.classList.add('active');
-}
-// ▲▲▲ 修訂結束 ▲▲▲
-
-// ▼▼▼ 【新增】線上模式的結算畫面顯示函數 ▼▼▼
-function showOnlineGameOver() {
-    finalScoreDisplay.textContent = score.toLocaleString();
-    finalComboDisplay.textContent = maxCombo;
-
-    // 顯示多人按鈕和對手分數
-    singlePlayerGameOverButton.style.display = 'none';
-    onlineGameOverButtons.style.display = 'flex'; // 使用 flex 讓按鈕並排
-    opponentFinalScoreBox.style.display = 'block';
-    rematchBtn.disabled = false;
-    rematchBtn.textContent = '重開遊戲';
-
-    gameOverModal.classList.add('active');
-    // 注意：勝負標題 (gameOverTitle) 由 listenToRoomUpdates 函數根據 Firebase 數據更新
-}
-// ▲▲▲ 新增結束 ▲▲▲
+            function showGameOver() {
+                finalScoreDisplay.textContent = score.toLocaleString();
+                finalComboDisplay.textContent = maxCombo;
+                gameOverModal.classList.add('active');
+            }
 
             function restartGame() {
                 gameOverModal.classList.remove('active');
@@ -8042,45 +7505,6 @@ disclaimerModal.addEventListener('click', (e) => {
         </div>
     </div>
 </div>
-
-
-<!-- ▼▼▼ 【新增】線上對戰模式選擇視窗 ▼▼▼ -->
-<div class="settings-modal" id="onlineBattleModal">
-    <div class="settings-content">
-        <button class="close-settings" id="closeOnlineBattleModal">&times;</button>
-        <h2 class="settings-title">線上對戰模式</h2>
-        
-        <div class="setting-group" style="text-align: center;">
-            <p style="color: #ccc; margin-bottom: 20px;">與朋友或線上的玩家一較高下！</p>
-        </div>
-
-        <div class="setting-group">
-            <input type="text" id="roomIdInput" class="setting-control" placeholder="輸入四位房間代碼 (僅加入房間時需要)" maxlength="4" style="text-align: center; font-size: 1.2rem; letter-spacing: 5px;">
-        </div>
-
-        <div class="setting-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 30px;">
-            <button class="restart-btn" id="createRoomBtn">創建房間</button>
-            <button class="restart-btn" id="joinRoomBtn">加入房間</button>
-        </div>
-        <div class="setting-group" style="margin-top: 15px;">
-             <button class="restart-btn" id="randomMatchBtn" style="width: 100%; background: linear-gradient(45deg, #ff8a00, #e52e71);">隨機配對</button>
-        </div>
-    </div>
-</div>
-<!-- ▲▲▲ 新增結束 ▲▲▲ -->
-
-<!-- ▼▼▼ 【新增】等待對手/提示資訊的通用視窗 ▼▼▼ -->
-<div class="settings-modal" id="waitingModal">
-    <div class="settings-content" style="text-align: center;">
-        <h2 class="settings-title" id="waitingTitle">正在處理...</h2>
-        <p id="waitingMessage" style="font-size: 1.2rem; color: #ffcc00; margin-top: 20px;"></p>
-        <div id="loadingSpinner" style="margin-top: 30px; border: 8px solid #f3f3f3; border-top: 8px solid #3498db; border-radius: 50%; width: 60px; height: 60px; animation: spin 2s linear infinite;"></div>
-        <button class="restart-btn" id="cancelMatchBtn" style="margin-top: 30px; display: none;">取消配對</button>
-    </div>
-</div>
-<style> @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } } </style>
-<!-- ▲▲▲ 新增結束 ▲▲▲ -->
-    
 
 </body>
 </html>
