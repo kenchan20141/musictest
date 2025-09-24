@@ -250,19 +250,19 @@
             font-weight: bold;
             color: #ffcc00;
         }
-       /* ====== 【全新修訂】標籤文字清晰化樣式 ====== */
-.stat-label {
-    font-size: 1.1rem; /* 稍微增大字體，提升可見度 */
-    font-weight: 500;  /* 使用適中的字重，不過於粗黑，顯得更精緻 */
-    
-    /* 核心：使用與「溫潤白玉」主題協調的暖棕灰色 */
-    color: var(--jade-text-primary, #5c554a); 
-    opacity: 0.9;
-    
-    /* 核心：將複雜的描邊改為單一、柔和的淺色投影，營造立體感而不模糊 */
-    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
-    
-    transition: color 0.3s ease; /* 為可能的互動效果添加平滑過渡 */
+       .stat-label {
+    font-size: 1rem;
+    /* 1. 使用一個非常深的、近乎黑色的顏色作為主體 */
+    color: #2c3e50; /* 深石板灰 */
+    opacity: 1;
+    font-weight: bold; /* 加粗以增加清晰度 */
+
+    /* 2. 【核心】使用多層 text-shadow 創建一個清晰的白色輪廓 */
+    text-shadow: 
+        -1px -1px 0 rgba(255, 255, 255, 0.8),  
+         1px -1px 0 rgba(255, 255, 255, 0.8),
+        -1px  1px 0 rgba(255, 255, 255, 0.8),
+         1px  1px 0 rgba(255, 255, 255, 0.8);
 }
         .controls {
             display: flex;
@@ -3572,116 +3572,75 @@ font-size: 12px;
     fill: #e0f7fa; /* 一個非常淺的藍色，接近白色 */
 }
 
-/* ======================================================================== */
-/* ====== 【全新修訂】"溫潤白玉" 對戰結算畫面 - 全寬垂直佈局 ====== */
-/* ======================================================================== */
+        /* ====== 【第一項修訂】對戰模式結算畫面雙欄樣式 ====== */
 
-/* 1. 主容器設定：改為垂直堆疊的 Flexbox 佈局 */
-.game-over-stats {
+/* 1. 讓主容器變為 Flexbox 佈局，以容納雙欄 */
+.game-over-stats.dual-view {
     display: flex;
-    flex-direction: column; /* 核心：改為垂直堆疊 */
-    align-items: center; /* 讓卡片在容器中水平居中 */
+    justify-content: space-around; /* 讓兩欄平均分佈 */
+    align-items: flex-start;
+    gap: 20px; /* 兩欄之間的間距 */
     width: 100%;
-    gap: 20px; /* 卡片之間的垂直間距 */
-    margin: 25px 0;
-    
-    /* 移除舊的 Grid 樣式和背景 */
-    background: none;
-    padding: 0;
 }
 
-/* 2. 「玩家卡片」的基礎樣式 */
+/* 2. 設計每一欄的統一樣式 */
 .player-stats-column {
-    width: 100%;
-    max-width: 400px; /* 設定最大寬度，避免在寬螢幕上過度拉伸 */
-    background: rgba(0, 0, 0, 0.03); /* 一個幾乎不可見的背景，用於區分 */
-    border: 1px solid var(--jade-border-color, rgba(180, 143, 90, 0.3));
-    border-radius: 16px; /* 更大的圓角 */
-    padding: 20px 25px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
-    box-sizing: border-box; /* 確保 padding 不會撐大寬度 */
+    flex-basis: 45%; /* 每欄佔據大約 45% 的寬度 */
+    text-align: center;
+    padding: 15px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1); /* 給一個淡淡的背景以示區分 */
 }
 
-/* 3. 卡片標題樣式 ("您的成績" / "對手成績") */
+/* 3. 設計欄目標題 (您的成績 / 對手成績) */
 .player-stats-title {
-    font-size: 1.3rem;
+    font-size: 1.4rem;
     font-weight: 600;
-    margin: 0 0 20px 0;
-    padding-bottom: 15px;
-    border-bottom: 1px solid var(--jade-border-color, rgba(180, 143, 90, 0.3));
-    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--jade-border-color);
 }
-/* 您的成績標題顏色 */
+
+/* 4. 為「您的成績」標題設定特殊顏色 (沿用主題金色) */
 .your-title {
     color: var(--jade-accent, #b48f5a);
 }
-/* 對手成績標題顏色 */
+
+/* 5. 為「對手成績」標題設定對比色 (赤色) */
 .opponent-title {
-    color: var(--jade-text-secondary, #a19685);
+    color: #c62828; /* 一個沉穩的深紅色 */
 }
 
-/* 4. 卡片內部數據容器 (用於並排顯示分數和連擊) */
+/* 6. 設計每一條數據的樣式 (例如 "最終分數: 12345") */
 .stat-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    padding: 8px 0;
-    font-size: 1.1rem;
+    margin-bottom: 15px;
 }
 
-/* 5. 數據標籤與數字的樣式 */
+/* 7. 覆蓋並調整舊的標籤和數字樣式以適應新佈局 */
 .dual-view .stat-label {
+    display: block; /* 讓標籤和數字分行顯示 */
+    font-size: 1rem;
+    margin-bottom: 5px;
     color: var(--jade-text-secondary, #a19685);
 }
+
 .dual-view .stat-number {
-    font-size: 1.8rem;
-    font-weight: bold;
-    color: var(--jade-text-primary, #5c554a);
-}
-/* 您的分數數字使用主題強調色 */
-#myFinalStats .stat-number {
-    color: var(--jade-accent, #b48f5a);
+    font-size: 2.2rem; /* 適當調整數字大小 */
 }
 
-
-/* 6. 【儀式感】為勝利方的卡片添加特殊樣式 */
-.player-stats-column.winner {
-    border-color: var(--jade-accent, #b48f5a);
-    box-shadow: 0 0 25px rgba(180, 143, 90, 0.4); /* 添加金色光暈 */
-    position: relative;
-    overflow: hidden; /* 為了放置偽元素標籤 */
-}
-
-/* 使用 ::before 偽元素為勝利方添加 "WINNER" 標籤 */
-.player-stats-column.winner::before {
-    content: 'WINNER';
-    position: absolute;
-    top: 15px;
-    right: -30px;
-    background: var(--jade-accent, #b48f5a);
-    color: white;
-    padding: 5px 30px;
-    font-size: 0.8rem;
-    font-weight: bold;
-    transform: rotate(45deg);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-/* 7. 響應式設計：小螢幕微調 */
+/* 8. 響應式設計：在手機等小螢幕上，將雙欄改為垂直堆疊 */
 @media (max-width: 480px) {
+    .game-over-stats.dual-view {
+        flex-direction: column; /* 垂直堆疊 */
+        align-items: center;
+        gap: 15px;
+    }
     .player-stats-column {
-        padding: 15px;
-    }
-    .dual-view .stat-number {
-        font-size: 1.6rem; /* 縮小數字，避免擁擠 */
-    }
-    .player-stats-title {
-        font-size: 1.1rem;
-        margin-bottom: 15px;
-        padding-bottom: 10px;
+        width: 100%;
+        flex-basis: auto;
     }
 }
+
 
         /* ====== 【第二項修訂】對戰排行榜「我的排名」樣式 ====== */
 /* ====== 【第一項修訂】修正個人排名區塊寬度 ====== */
