@@ -4875,6 +4875,10 @@ const quizQuestionText = document.getElementById('quizQuestionText');
 const quizAnswerInput = document.getElementById('quizAnswerInput');
 const quizSubmitBtn = document.getElementById('quizSubmitBtn');
 const quizCloseBtn = document.getElementById('quizCloseBtn');
+
+            // --- 請在此處新增以下兩行 ---
+let scoreUpdateTimeout = null;
+let isScoreDirty = false;
             
             // --- Game State Variables ---
 
@@ -5994,6 +5998,18 @@ else if (type === 'good') baseScore = 40;
                 updateUI();
             }
 
+// 請將這個新函數，加在 addScore 函數的上面
+function sendScoreUpdate() {
+    if (!isScoreDirty || gameMode !== 'online' || !currentRoomId) {
+        return;
+    }
+    const playerKey = isHost ? 'player1' : 'player2';
+    database.ref(`rooms/${currentRoomId}/${playerKey}/score`).set(score);
+    isScoreDirty = false; // 發送後，重設標記
+}
+
+            
+
           function addScore(baseScore) {
     combo++;
     if (combo > maxCombo) maxCombo = combo;
@@ -6001,12 +6017,18 @@ else if (type === 'good') baseScore = 40;
     pureHitScore += baseScore;
     score += baseScore + Math.floor(baseScore * (Math.floor(combo / 10) * 0.1)); 
 
-    // ▼▼▼ 【新增】如果是線上模式，則更新分數到Firebase ▼▼▼
-    if (gameMode === 'online' && currentRoomId) {
-        const playerKey = isHost ? 'player1' : 'player2';
-        database.ref(`rooms/${currentRoomId}/${playerKey}/score`).set(score);
+    // ▼▼▼ 【修訂】請用這段程式碼，取代舊的 if (gameMode === 'online'...) 判斷式 ▼▼▼
+    if (gameMode === 'online') {
+        isScoreDirty = true;
+        // 如果目前沒有排程中的更新，就安排一個
+        if (!scoreUpdateTimeout) {
+            scoreUpdateTimeout = setTimeout(() => {
+                sendScoreUpdate();
+                scoreUpdateTimeout = null; // 完成後清除 ID，允許下一次排程
+            }, 250); // 每 250 毫秒最多發送一次
+        }
     }
-    // ▲▲▲ 新增結束 ▲▲▲
+    // ▲▲▲ 修訂結束 ▲▲▲
 
     if (combo > 5) {
         currentComboIndex = (currentComboIndex + 1) % comboPool.length;
@@ -6869,13 +6891,15 @@ function grantAllRewards(rewards) {
 function endGame() {
     if (!gameActive) return;
 
-    // 根據遊戲模式決定結束流程
     if (gameMode === 'online' && currentRoomId) {
-        // 在線上模式中，只有主機方負責更新遊戲結束狀態
+        // --- 請在此處新增以下三行 ---
+        if (scoreUpdateTimeout) clearTimeout(scoreUpdateTimeout);
+        scoreUpdateTimeout = null;
+        sendScoreUpdate(); // 強制發送最後的準確分數
+        
         if (isHost) { 
             database.ref(`rooms/${currentRoomId}`).update({ gameState: 'game_over' });
         }
-        // 客戶端在此處不執行任何操作，等待 listenToRoomChanges 觸發 handleOnlineGameOver
     } else {
         // --- 原有的單機模式結束邏輯 ---
         gameActive = false;
