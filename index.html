@@ -6491,44 +6491,42 @@ function updateGameLyrics(currentTime) {
 /**
 /**
 // ====================================================================
-// ====== 【最終修正版】確保在點擊開始時，直接檢查儲存的最新名稱 ======
+// ====== 【第一步：修訂 startGame 函數】 ======
 // ====================================================================
 /**
-/**
- * 啟動遊戲 (最終修正版 - 增加UI清理和解鎖邏輯修正)
- * @param {boolean} isOnlineStart - 是否由Firebase線上事件觸發
+ * 啟動遊戲 (修訂後，增加了線上對戰的準備邏輯)
+ * @param {boolean} isOnlineStart - 是否由 Firebase 線上事件觸發
  */
 async function startGame(isOnlineStart = false) {
-    // 職責一：如果是選歌方點擊，則只發送信號
+    // 職責一：如果是線上模式的選歌方點擊，則只發送「準備」信號
     if (gameMode === 'online' && !isOnlineStart) {
         const selectedSong = musicSelect.value;
         const selectedDifficulty = difficultySelect.value;
 
-        // 【新增修正】選歌方在發起對戰前，必須先檢查自己是否已解鎖該歌曲/難度
-        if (!isSongUnlocked(selectedSong)) {
-            showNotification('info', '歌曲未解鎖', '你不能選擇一首尚未解鎖的歌曲進行對戰。');
-            return;
-        }
-        if (!isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
-            showNotification('info', '難度未解鎖', '你不能選擇一個尚未解鎖的難度進行對戰。');
+        // 檢查自己是否已解鎖該歌曲/難度
+        if (!isSongUnlocked(selectedSong) || !isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
+            showNotification('info', '項目未解鎖', '你不能選擇尚未解鎖的歌曲或難度進行對戰。');
             return;
         }
 
-        database.ref('rooms/' + currentRoomId).update({
-            selectedSong: selectedSong,
-            selectedDifficulty: selectedDifficulty,
-            gameState: 'playing'
-        });
-        return; // 選歌方的工作到此為止，等待Firebase回傳信號來同步開始遊戲
+        const playerKey = isHost ? 'player1' : 'player2';
+        const updates = {};
+        updates['selectedSong'] = selectedSong;
+        updates['selectedDifficulty'] = selectedDifficulty;
+        updates[playerKey + '/isReady'] = true;
+        updates['gameState'] = 'readying_up'; // 【核心修改】使用新的狀態'readying_up'
+
+        database.ref('rooms/' + currentRoomId).update(updates);
+        return; // 選歌方的工作到此為止，等待 Firebase 回傳信號
     }
 
-    // --- 職責二：執行遊戲啟動 (單人模式，或線上模式接收到信號後) ---
+    // --- 職責二：執行遊戲實際啟動 (單人模式，或線上模式接收到開始信號後) ---
 
-    // 在啟動遊戲之前，強制關閉所有通知，確保遊戲畫面可見！
     clearAllNotifications();
-
     if (gameActive) return;
     gameActive = true;
+    
+    // (此處往下的遊戲啟動核心邏輯保持不變，無需修改)
     
     console.log("--- startGame function initiated ---");
     
@@ -6542,8 +6540,6 @@ async function startGame(isOnlineStart = false) {
     const selectedSong = musicSelect.value;
     const selectedDifficulty = difficultySelect.value;
 
-    // 【核心修正】只在單人模式下檢查歌曲和難度是否解鎖。
-    // 在線上模式中，客戶端無條件接受伺服器指定的歌曲。
     if (gameMode === 'single') {
         if (!isSongUnlocked(selectedSong)) {
             gameActive = false;
@@ -6556,7 +6552,6 @@ async function startGame(isOnlineStart = false) {
             return;
         }
     }
-
 
     startBtn.disabled = true;
     musicSelect.disabled = true;
@@ -6613,6 +6608,42 @@ async function startGame(isOnlineStart = false) {
     });
 
     setTimeout(() => { if (gameActive) endGame(); }, currentSongDuration * 1000 + 2000);
+}
+
+            // ====================================================================
+// ====== 【第二步：新增 handleReadyUpState 函數】 ======
+// ====================================================================
+/**
+ * 處理線上對戰的「準備」階段
+ * @param {object} roomData - 從 Firebase 獲取的房間資料
+ */
+function handleReadyUpState(roomData) {
+    if (gameActive) return; // 遊戲已開始，則忽略
+
+    const playerKey = isHost ? 'player1' : 'player2';
+    
+    // 更新並鎖定歌曲和難度選擇器，讓雙方看到一致的資訊
+    musicSelect.value = roomData.selectedSong;
+    difficultySelect.value = roomData.selectedDifficulty;
+    musicSelect.disabled = true;
+    difficultySelect.disabled = true;
+
+    if (roomData[playerKey].isReady) {
+        // 如果「我」已經點擊過準備，則禁用按鈕並顯示等待提示
+        startBtn.disabled = true;
+        showNotification('info', '等待對手', '已送出準備，請等待對方確認...');
+    } else {
+        // 如果「我」還沒準備，表示我是需要確認的一方
+        showNotification('info', '確認對戰', '對手已選擇歌曲，請點擊「準備」開始對戰！');
+        
+        // 將開始按鈕變為「準備」按鈕
+        startBtn.disabled = false;
+        // 為了簡單起見，我們直接修改按鈕的點擊事件
+        startBtn.onclick = () => {
+            database.ref(`rooms/${currentRoomId}/${playerKey}/isReady`).set(true);
+            startBtn.disabled = true; // 點擊後禁用，防止重複發送
+        };
+    }
 }
 
             /**
@@ -6972,9 +7003,11 @@ function randomMatch() {
     });
 }
 
+// ====================================================================
+// ====== 【第三步：修訂 listenToRoomChanges 核心監聽器】 ======
+// ====================================================================
 /**
- * 核心監聽器，監聽房間內所有狀態變化
- * 參考範例：這是整個對戰系統的引擎，所有玩家的行為都由此函數同步。
+ * 核心監聽器，監聽房間內所有狀態變化 (修訂版)
  */
 function listenToRoomChanges() {
     if (roomListener) {
@@ -6983,17 +7016,15 @@ function listenToRoomChanges() {
     const roomRef = database.ref('rooms/' + currentRoomId);
     roomListener = roomRef.on('value', (snapshot) => {
         if (!snapshot.exists()) {
-            // 房間被銷毀
             showNotification('info', '對戰結束', '房間已解散。');
             resetToMainMenu();
             return;
         }
 
         const roomData = snapshot.val();
-        const playerKey = isHost ? 'player1' : 'player2';
         const opponentKey = isHost ? 'player2' : 'player1';
 
-        // 更新對手分數
+        // 更新對手分數 (此部分不變)
         if (roomData[opponentKey]) {
             opponentStats.style.display = 'block';
             opponentScoreDisplay.textContent = roomData[opponentKey].score;
@@ -7001,30 +7032,41 @@ function listenToRoomChanges() {
             opponentStats.style.display = 'none';
         }
         
-        // 根據遊戲狀態執行不同操作
+        // 【核心修改】根據遊戲狀態執行不同操作
         switch (roomData.gameState) {
             case 'selecting_song':
                 handleSongSelectionState(roomData);
                 break;
+            case 'readying_up': // 【新增】處理準備階段
+                handleReadyUpState(roomData);
+                break;
             case 'playing':
-                if (!gameActive) { // 如果本地遊戲還沒開始
+                if (!gameActive) {
+                    startBtn.onclick = () => startGame(); // 恢復開始按鈕的原始功能
                     startGameFromOnline(roomData.selectedSong, roomData.selectedDifficulty);
                 }
                 break;
             case 'game_over':
-                if(gameActive) { // 避免重複觸發
-                    gameActive = false; // 立即停止本地遊戲循環
+                if (gameActive) {
+                    gameActive = false;
                     handleOnlineGameOver(roomData);
                 }
                 break;
             case 'rematch_reset':
-                 // 收到重置信號，返回選歌界面
-                resetForRematch();
-                database.ref(`rooms/${currentRoomId}`).update({ gameState: 'selecting_song' });
+                 resetForRematch();
+                 if(isHost){ // 只有房主負責將狀態推往下一個階段
+                    database.ref(`rooms/${currentRoomId}`).update({ gameState: 'selecting_song' });
+                 }
                 break;
         }
         
-        // 處理重賽請求
+        // 【核心新增】由房主(Host)檢查是否所有人都已準備就緒
+        if (isHost && roomData.gameState === 'readying_up' && roomData.player1?.isReady && roomData.player2?.isReady) {
+            // 如果雙方都準備好了，房主就更新狀態為 'playing'
+            roomRef.update({ gameState: 'playing' });
+        }
+        
+        // 處理重賽請求 (此部分不變)
         if (roomData.gameState === 'game_over') {
             handleRematchStatus(roomData);
         }
@@ -7118,18 +7160,31 @@ function handleOnlineGameOver(roomData) {
     gameOverModal.classList.add('active');
 }
 
+// ====================================================================
+// ====== 【第四步：修訂 handleRematchStatus 重賽邏輯】 ======
+// ====================================================================
 /**
- * 處理重賽狀態顯示
- * 參考範例：監聽雙方的 `rematch` 旗標來更新UI。
+ * 處理重賽狀態顯示 (修訂版，增加重置邏輯)
  */
 function handleRematchStatus(roomData) {
     const myRematch = roomData[isHost ? 'player1' : 'player2'].rematch;
     const opponentRematch = roomData[isHost ? 'player2' : 'player1']?.rematch;
 
     if (myRematch && opponentRematch) {
-        // 雙方都同意，觸發重置
+        // 【核心修改】雙方都同意重賽時，由房主(Host)負責重置房間狀態
         if (isHost) {
-            database.ref(`rooms/${currentRoomId}`).update({ gameState: 'rematch_reset' });
+            database.ref(`rooms/${currentRoomId}`).update({
+                gameState: 'rematch_reset',
+                'player1/isReady': false,   // 重置準備狀態
+                'player2/isReady': false,   // 重置準備狀態
+                'player1/rematch': false,   // 重置重賽請求
+                'player2/rematch': false,   // 重置重賽請求
+                'player1/score': 0,         // 重置分數
+                'player2/score': 0,         // 重置分數
+                selectedSong: null,
+                selectedDifficulty: null,
+                songSelector: null          // 清除選歌者，下一局重新隨機
+            });
         }
     } else if (myRematch) {
         rematchStatus.textContent = "已發送重賽請求，等待對方回應...";
