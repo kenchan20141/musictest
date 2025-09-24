@@ -3532,25 +3532,33 @@ font-size: 12px;
     margin-right: auto;
 }
 
-        /* ====== 第二項修訂：區分創建與加入房間按鈕顏色 ====== */
-/* 1. 為「創建房間」按鈕設計一個柔和的藍色漸變 */
+/* ====== 【第四項修訂】線上對戰按鈕淡雅風格 ====== */
+
+/* 1. 「創建房間」: 改為柔和的天空藍 */
 #createRoomBtn {
-    background: linear-gradient(45deg, #3a6ea5, #224a7b);
-    box-shadow: 0 4px 15px rgba(58, 110, 165, 0.3);
+    background: linear-gradient(45deg, #81d4fa, #4fc3f7);
+    box-shadow: 0 4px 15px rgba(79, 195, 247, 0.3);
 }
-
 #createRoomBtn:hover {
-    box-shadow: 0 6px 20px rgba(58, 110, 165, 0.4);
+    box-shadow: 0 6px 20px rgba(79, 195, 247, 0.4);
 }
 
-/* 2. 為「加入房間」按鈕設計一個沉穩的灰綠色漸變 */
+/* 2. 「加入房間」: 改為沉穩的鼠尾草綠 */
 #joinRoomBtn {
-    background: linear-gradient(45deg, #607d8b, #455a64);
-    box-shadow: 0 4px 15px rgba(96, 125, 139, 0.3);
+    background: linear-gradient(45deg, #a5d6a7, #81c784);
+    box-shadow: 0 4px 15px rgba(129, 199, 132, 0.3);
+}
+#joinRoomBtn:hover {
+    box-shadow: 0 6px 20px rgba(129, 199, 132, 0.4);
 }
 
-#joinRoomBtn:hover {
-    box-shadow: 0 6px 20px rgba(96, 125, 139, 0.4);
+/* 3. 「對戰排行榜」: 改為高雅的淡紫色 */
+#showBattleRankingsBtn {
+    background: linear-gradient(45deg, #b39ddb, #9575cd);
+    box-shadow: 0 4px 15px rgba(149, 117, 205, 0.3);
+}
+#showBattleRankingsBtn:hover {
+    box-shadow: 0 6px 20px rgba(149, 117, 205, 0.4);
 }
 
 /* ====== 【全新修訂】對手分數部件 "赤色對手" 主題 ====== */
@@ -3745,6 +3753,7 @@ font-size: 12px;
 }
 
         /* ====== 【第二項修訂】對戰排行榜「我的排名」樣式 ====== */
+/* ====== 【第一項修訂】修正個人排名區塊寬度 ====== */
 .my-rank-display {
     width: 100%;
     padding: 15px 20px;
@@ -3755,6 +3764,9 @@ font-size: 12px;
     text-align: center;
     font-size: 1.1rem;
     color: var(--starlight-text-primary, #3a332a);
+    
+    /* ▼▼▼ 請在這裡加入下面這一行 ▼▼▼ */
+    box-sizing: border-box; /* 確保 padding 不會撐大元素的總寬度 */
 }
 
 .my-rank-display strong {
@@ -3766,6 +3778,23 @@ font-size: 12px;
         .battle-rank-item.is-me {
     border-left-color: #ffc107; /* 金色高亮邊框 */
     font-weight: bold;
+}
+
+        /* 1. 為第二名添加銀牌圖示 */
+.battle-rank-item:nth-child(2)::before {
+    content: '🥈'; /* 銀牌 Emoji */
+    font-size: 1.6rem;
+}
+
+/* 2. 為第三名添加銅牌圖示 */
+.battle-rank-item:nth-child(3)::before {
+    content: '🥉'; /* 銅牌 Emoji */
+    font-size: 1.6rem;
+}
+
+/* 3. (可選) 稍微調整皇冠大小以保持視覺一致 */
+.battle-rank-item:first-child::before {
+    font-size: 1.6rem; 
 }
         
     </style>
@@ -7799,20 +7828,18 @@ function startGameFromOnline(song, difficulty) {
 }
 
 /**
- * 處理線上模式的遊戲結束畫面顯示 (玩家卡片佈局修訂版)
+ * 處理線上模式的遊戲結束畫面顯示 (修正分數計算)
  * @param {object} roomData - 從 Firebase 獲取的房間資料
  */
 function handleOnlineGameOver(roomData) {
     if (!gameActive) return;
     gameActive = false;
 
-    // 停止所有遊戲相關的計時器和動畫
     audio.pause();
     cancelAnimationFrame(animationFrame);
     clearTimeout(generateNotesTimer);
     clearInterval(progressInterval);
     
-    // 獲取雙方玩家的資料
     const myPlayerKey = isHost ? 'player1' : 'player2';
     const opponentPlayerKey = isHost ? 'player2' : 'player1';
     
@@ -7823,19 +7850,21 @@ function handleOnlineGameOver(roomData) {
     let opponentScoreChange = 0;
     let iAmWinner = false;
 
-    // 判斷勝負並設定分數變化
+    // === 核心修改：修正分數計算邏輯 ===
     if (myData.score > opponentData.score) {
         gameOverTitle.textContent = "勝利！";
-        myScoreChange = 1000;
-        opponentScoreChange = -500;
+        myScoreChange = 1000;       // 勝方得 1000 分
+        opponentScoreChange = -500; // 敗方失 500 分
         iAmWinner = true;
     } else if (myData.score < opponentData.score) {
         gameOverTitle.textContent = "惜敗！";
-        myScoreChange = -500;
-        opponentScoreChange = 1000;
+        myScoreChange = -500;       // 敗方失 500 分
+        opponentScoreChange = 1000; // 勝方得 1000 分
     } else {
         gameOverTitle.textContent = "平局！";
+        // 平局分數不變 (0)
     }
+
 
     // 更新雙方的對戰總分
     updateBattleScore(myData.playerId, myData.playerName, myScoreChange);
