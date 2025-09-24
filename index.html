@@ -3573,109 +3573,113 @@ font-size: 12px;
 }
 
 /* ======================================================================== */
-/* ====== 【最終修訂】對戰結算 - 一體化全寬頁面佈局 ====== */
+/* ====== 【全新修訂】"溫潤白玉" 對戰結算畫面 - 全寬垂直佈局 ====== */
 /* ======================================================================== */
 
-/* 1. 主容器：現在它本身就是一個完整的、帶有邊框的記分板 */
+/* 1. 主容器設定：改為垂直堆疊的 Flexbox 佈局 */
 .game-over-stats {
-    width: 100%;
-    max-width: 450px; /* 限制最大寬度以保持美觀 */
-    margin: 25px auto; /* 上下邊距，並水平居中 */
-    padding: 25px;
-    background: rgba(0, 0, 0, 0.02); /* 非常淡的背景，增加質感 */
-    border: 1px solid var(--jade-border-color, rgba(180, 143, 90, 0.3));
-    border-radius: 16px;
-    box-sizing: border-box;
-}
-
-/* 2. 玩家分數對比容器：使用 Grid 佈局來完美對齊 */
-.player-comparison {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr; /* 您的分數 | VS | 對手分數 */
-    align-items: center;
-    gap: 20px; /* 各欄之間的間距 */
-    width: 100%;
-}
-
-/* 3. "VS" 分隔符的樣式 */
-.vs-separator {
-    font-size: 2rem;
-    font-weight: bold;
-    color: var(--jade-text-secondary, #a19685);
-    padding-bottom: 20px; /* 稍微下移，使其與分數數字對齊 */
-}
-
-/* 4. 單側玩家信息（您或對手）的容器 */
-.player-side {
-    text-align: center;
     display: flex;
-    flex-direction: column;
-    gap: 15px; /* 標題、分數、連擊之間的垂直間距 */
+    flex-direction: column; /* 核心：改為垂直堆疊 */
+    align-items: center; /* 讓卡片在容器中水平居中 */
+    width: 100%;
+    gap: 20px; /* 卡片之間的垂直間距 */
+    margin: 25px 0;
+    
+    /* 移除舊的 Grid 樣式和背景 */
+    background: none;
+    padding: 0;
 }
 
-/* 5. 玩家標題 ("您的成績" / "對手成績") */
-.player-title {
+/* 2. 「玩家卡片」的基礎樣式 */
+.player-stats-column {
+    width: 100%;
+    max-width: 400px; /* 設定最大寬度，避免在寬螢幕上過度拉伸 */
+    background: rgba(0, 0, 0, 0.03); /* 一個幾乎不可見的背景，用於區分 */
+    border: 1px solid var(--jade-border-color, rgba(180, 143, 90, 0.3));
+    border-radius: 16px; /* 更大的圓角 */
+    padding: 20px 25px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    box-sizing: border-box; /* 確保 padding 不會撐大寬度 */
+}
+
+/* 3. 卡片標題樣式 ("您的成績" / "對手成績") */
+.player-stats-title {
     font-size: 1.3rem;
     font-weight: 600;
-    margin: 0;
-    padding-bottom: 10px;
-    border-bottom: 1px solid var(--jade-border-color, rgba(180, 143, 90, 0.2));
-}
-.player-title.is-winner {
-    color: var(--jade-accent, #b48f5a); /* 勝利方的標題為金色 */
-}
-
-/* 6. 數據項的樣式 (分數和連擊) */
-.stat-line .stat-label {
-    display: block;
-    font-size: 0.9rem;
-    color: var(--jade-text-secondary, #a19685);
-    margin-bottom: 4px;
-}
-.stat-line .stat-number {
-    font-size: 2.2rem;
-    font-weight: 700;
-    color: var(--jade-text-primary, #5c554a);
-    line-height: 1;
-}
-
-/* 7. 【核心新增】重賽狀態提示的容器樣式 */
-#rematchStatus {
-    width: 100%;
-    max-width: 450px;
-    margin: 0 auto 20px auto; /* 位於記分板和按鈕之間，並水平居中 */
-    padding: 12px 15px;
-    border-radius: 10px;
-    background: rgba(180, 143, 90, 0.1); /* 使用主題色的半透明背景 */
-    color: var(--jade-text-primary, #5c554a);
-    font-weight: 500;
+    margin: 0 0 20px 0;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--jade-border-color, rgba(180, 143, 90, 0.3));
     text-align: center;
-    box-sizing: border-box;
-    /* 預設為隱藏，有內容時才顯示 */
-    display: none;
-    transition: all 0.3s ease;
 }
-/* 當 p 標籤內有文字時，使其顯示 */
-#rematchStatus:not(:empty) {
-    display: block;
+/* 您的成績標題顏色 */
+.your-title {
+    color: var(--jade-accent, #b48f5a);
+}
+/* 對手成績標題顏色 */
+.opponent-title {
+    color: var(--jade-text-secondary, #a19685);
 }
 
-/* 8. 響應式設計：在小螢幕上調整字體和間距 */
+/* 4. 卡片內部數據容器 (用於並排顯示分數和連擊) */
+.stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 8px 0;
+    font-size: 1.1rem;
+}
+
+/* 5. 數據標籤與數字的樣式 */
+.dual-view .stat-label {
+    color: var(--jade-text-secondary, #a19685);
+}
+.dual-view .stat-number {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: var(--jade-text-primary, #5c554a);
+}
+/* 您的分數數字使用主題強調色 */
+#myFinalStats .stat-number {
+    color: var(--jade-accent, #b48f5a);
+}
+
+
+/* 6. 【儀式感】為勝利方的卡片添加特殊樣式 */
+.player-stats-column.winner {
+    border-color: var(--jade-accent, #b48f5a);
+    box-shadow: 0 0 25px rgba(180, 143, 90, 0.4); /* 添加金色光暈 */
+    position: relative;
+    overflow: hidden; /* 為了放置偽元素標籤 */
+}
+
+/* 使用 ::before 偽元素為勝利方添加 "WINNER" 標籤 */
+.player-stats-column.winner::before {
+    content: 'WINNER';
+    position: absolute;
+    top: 15px;
+    right: -30px;
+    background: var(--jade-accent, #b48f5a);
+    color: white;
+    padding: 5px 30px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    transform: rotate(45deg);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+/* 7. 響應式設計：小螢幕微調 */
 @media (max-width: 480px) {
-    .game-over-stats {
+    .player-stats-column {
         padding: 15px;
     }
-    .player-comparison {
-        gap: 10px;
+    .dual-view .stat-number {
+        font-size: 1.6rem; /* 縮小數字，避免擁擠 */
     }
-    .vs-separator {
-        font-size: 1.5rem;
-    }
-    .player-title {
+    .player-stats-title {
         font-size: 1.1rem;
-    }
-    .stat-line .stat-number {
-        font-size: 1.8rem;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
     }
 }
 
@@ -7905,7 +7909,7 @@ function startGameFromOnline(song, difficulty) {
 }
 
 /**
- * 處理線上模式的遊戲結束畫面顯示 (最終一體化佈局版)
+ * 處理線上模式的遊戲結束畫面顯示 (修正分數計算)
  * @param {object} roomData - 從 Firebase 獲取的房間資料
  */
 function handleOnlineGameOver(roomData) {
@@ -7927,66 +7931,70 @@ function handleOnlineGameOver(roomData) {
     let opponentScoreChange = 0;
     let iAmWinner = false;
 
+    // === 核心修改：修正分數計算邏輯 ===
     if (myData.score > opponentData.score) {
         gameOverTitle.textContent = "勝利！";
-        myScoreChange = 1000;
-        opponentScoreChange = -500;
+        myScoreChange = 1000;       // 勝方得 1000 分
+        opponentScoreChange = -500; // 敗方失 500 分
         iAmWinner = true;
     } else if (myData.score < opponentData.score) {
         gameOverTitle.textContent = "惜敗！";
-        myScoreChange = -500;
-        opponentScoreChange = 1000;
+        myScoreChange = -500;       // 敗方失 500 分
+        opponentScoreChange = 1000; // 勝方得 1000 分
     } else {
         gameOverTitle.textContent = "平局！";
+        // 平局分數不變 (0)
     }
 
+
+    // 更新雙方的對戰總分
     updateBattleScore(myData.playerId, myData.playerName, myScoreChange);
     updateBattleScore(opponentData.playerId, opponentData.playerName, opponentScoreChange);
 
+    // === 核心修改：動態生成「玩家卡片」佈局的 HTML ===
     const statsContainer = gameOverModal.querySelector('.game-over-stats');
     
-    // 根據勝負結果，為對應標題添加 'is-winner' class
-    const myTitleClass = iAmWinner ? 'player-title is-winner' : 'player-title';
-    const opponentTitleClass = !iAmWinner && (myData.score < opponentData.score) ? 'player-title is-winner' : 'player-title';
+    // 根據勝負結果，為對應的卡片添加 'winner' class
+    const myCardClass = iAmWinner ? 'stats-player-card your-card winner' : 'stats-player-card your-card';
+    const opponentCardClass = !iAmWinner && (myData.score < opponentData.score) ? 'stats-player-card opponent-card winner' : 'stats-player-card opponent-card';
 
-    // 生成全新的、一體化的 HTML 結構
     statsContainer.innerHTML = `
-        <div class="player-comparison">
-            <!-- 您的成績 -->
-            <div class="player-side">
-                <h3 class="${myTitleClass}">您的成績</h3>
-                <div class="stat-line">
-                    <span class="stat-label">最終分數</span>
-                    <span class="stat-number">${myData.score.toLocaleString()}</span>
+        <!-- 您的成績卡片 -->
+        <div class="${myCardClass}">
+            <h3 class="stats-player-title">您的成績</h3>
+            <div class="stats-data-container">
+                <div class="stats-data-item">
+                    <span class="stats-data-label">最終分數</span>
+                    <span class="stats-data-value">${myData.score.toLocaleString()}</span>
                 </div>
-                <div class="stat-line">
-                    <span class="stat-label">最高連擊</span>
-                    <span class="stat-number">${myData.maxCombo || maxCombo}</span>
+                <div class="stats-data-item">
+                    <span class="stats-data-label">最高連擊</span>
+                    <span class="stats-data-value">${myData.maxCombo || maxCombo}</span>
                 </div>
             </div>
+        </div>
 
-            <!-- VS 分隔 -->
-            <div class="vs-separator">VS</div>
-
-            <!-- 對手成績 -->
-            <div class="player-side">
-                <h3 class="${opponentTitleClass}">對手成績</h3>
-                <div class="stat-line">
-                    <span class="stat-label">最終分數</span>
-                    <span class="stat-number">${opponentData.score.toLocaleString()}</span>
+        <!-- 對手的成績卡片 -->
+        <div class="${opponentCardClass}">
+            <h3 class="stats-player-title">對手成績</h3>
+            <div class="stats-data-container">
+                <div class="stats-data-item">
+                    <span class="stats-data-label">最終分數</span>
+                    <span class="stats-data-value">${opponentData.score.toLocaleString()}</span>
                 </div>
-                <div class="stat-line">
-                    <span class="stat-label">最高連擊</span>
-                    <span class="stat-number">${opponentData.maxCombo || 0}</span>
+                <div class="stats-data-item">
+                    <span class="stats-data-label">最高連擊</span>
+                    <span class="stats-data-value">${opponentData.maxCombo || 0}</span>
                 </div>
             </div>
         </div>
     `;
     
+    // 顯示線上對戰專用的按鈕
     restartBtnSingle.style.display = 'none';
     onlineRematchControls.style.display = 'flex';
     rematchBtn.disabled = false;
-    rematchStatus.textContent = ''; // 清空狀態文字
+    rematchStatus.textContent = '';
     gameOverModal.classList.add('active');
 }
 /**
