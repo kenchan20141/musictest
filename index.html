@@ -3836,6 +3836,34 @@ font-size: 12px;
         font-size: 1.2rem;
     }
 }
+
+        /* ================================================= */
+/* ====== 【新增】對戰測驗計時器樣式 ====== */
+/* ================================================= */
+
+.quiz-timer {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: rgba(23, 162, 184, 0.2);
+    border: 3px solid #17a2b8;
+    color: #17a2b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    font-weight: bold;
+    margin: 15px auto;
+    transition: all 0.3s ease;
+}
+
+/* 當時間剩下5秒或更少時，變為紅色警告 */
+.quiz-timer.warning {
+    background-color: rgba(220, 53, 69, 0.2);
+    border-color: #dc3545;
+    color: #dc3545;
+    transform: scale(1.1); /* 輕微放大以示警告 */
+}
         
     </style>
 
@@ -5299,6 +5327,7 @@ const playbackModeBtn = document.getElementById('playbackModeBtn');
 // ▼▼▼ 【修訂】測驗相關的狀態變數 ▼▼▼
 let isQuizActive = false;
 let quizQuestions = []; // 將儲存當前測驗的所有題目
+            let quizTimerInterval = null; // 用於管理測驗的倒數計時器
 let currentQuizQuestion = null; // 儲存當前的問題物件
 let questionsAnsweredCorrectly = 0; // 追蹤已答對的題數
 let totalQuestionsInQuiz = 0; // 測驗開始時的總題數
@@ -7425,49 +7454,182 @@ function grantAllRewards(rewards) {
 
 function endGame() {
     if (!gameActive) return;
+    
+    // 停止本地遊戲的核心邏輯 (對單機和線上模式都適用)
+    gameActive = false;
+    audio.pause();
+    audio.currentTime = 0;
+    clearTimeout(generateNotesTimer);
+    clearInterval(progressInterval);
+    cancelAnimationFrame(animationFrame);
+    notes.forEach(note => note.element.remove());
+    notes = [];
+    mainGameContainer.classList.remove('game-running');
 
-    // ▼▼▼ 【修訂】遊戲結束時，移除 online-mode class ▼▼▼
-    mainGameContainer.classList.remove('online-mode');
-    // ▲▲▲ 修訂結束 ▲▲▲
-
+    // 根據遊戲模式決定下一步
     if (gameMode === 'online' && currentRoomId) {
+        // --- 線上模式流程 ---
         if (scoreUpdateTimeout) clearTimeout(scoreUpdateTimeout);
         scoreUpdateTimeout = null;
-        sendScoreUpdate(); 
-
-        // ▼▼▼ 請在這裡添加下面這一行 ▼▼▼
-        database.ref(`rooms/${currentRoomId}/${isHost ? 'player1' : 'player2'}`).update({ maxCombo: maxCombo });
-        // ▲▲▲ 添加結束 ▲▲▲
+        sendScoreUpdate(); // 發送最後一次分數更新
         
-        if (isHost) { 
+        // 將最終的連擊數同步到 Firebase
+        database.ref(`rooms/${currentRoomId}/${isHost ? 'player1' : 'player2'}`).update({ maxCombo: maxCombo });
+        
+        // 【核心修改】只有主機方 (Host) 負責推動遊戲進入下一個狀態
+        if (isHost) {
+            // 將遊戲狀態更新為 'game_over'，這將觸發所有客戶端的測驗準備邏輯
             database.ref(`rooms/${currentRoomId}`).update({ gameState: 'game_over' });
         }
+
     } else {
-        gameActive = false;
-        audio.pause();
-        audio.currentTime = 0;
-        clearTimeout(generateNotesTimer);
-        clearInterval(progressInterval);
-        cancelAnimationFrame(animationFrame);
+        // --- 單機模式流程 (保持不變) ---
         startBtn.disabled = false;
         musicSelect.disabled = false;
         difficultySelect.disabled = false;
-
-        mainGameContainer.classList.remove('game-running'); 
-        unlockProgressBar.style.width = '0%';
-        unlockProgressBar.classList.remove('glowing');
-        progressBar.style.width = '0%';
-        notes.forEach(note => note.element.remove());
-        notes = [];
-
+        
         const selectedSong = musicSelect.value;
         const selectedDifficulty = difficultySelect.value;
         updatePersonalHighScore(selectedSong, selectedDifficulty, score);
-
         processPostGameRewards(selectedSong, selectedDifficulty, score, pureHitScore);
-
-        showGameOver();
+        showGameOver(); // 單機模式直接顯示結算
     }
+}
+
+            /**
+ * 【全新】由主機方 (Host) 啟動線上測驗
+ * @param {object} roomData - 當前的房間數據
+ */
+function startOnlineQuiz(roomData) {
+    const songUrl = roomData.selectedSong;
+    const predefinedQuestions = songData[songUrl]?.quiz || [];
+
+    if (predefinedQuestions.length < 5) {
+        console.warn(`歌曲 ${songUrl} 測驗題目不足5題，跳過測驗環節。`);
+        // 如果題目不夠，直接進入結算
+        database.ref(`rooms/${currentRoomId}`).update({ gameState: 'final_settlement' });
+        return;
+    }
+
+    // 從題庫中隨機抽取5題
+    const shuffledPool = shuffleArray([...predefinedQuestions]);
+    const quizQuestionsForRoom = shuffledPool.slice(0, 5);
+
+    // 準備要寫入 Firebase 的數據
+    const quizData = {
+        questions: quizQuestionsForRoom, // 讓雙方玩家能讀取到相同的題目
+        answers: { // 清空之前的答案
+            player1: {},
+            player2: {}
+        }
+    };
+
+    // 主機將題目寫入 Firebase，並將遊戲狀態推進到測驗的第一題
+    database.ref(`rooms/${currentRoomId}/quiz`).set(quizData).then(() => {
+        database.ref(`rooms/${currentRoomId}`).update({ 
+            'player1/quizScore': 0, // 初始化雙方測驗得分
+            'player2/quizScore': 0,
+            gameState: 'quiz_question_1' // 進入第一題
+        });
+    });
+}
+
+/**
+ * 【全新】處理當前測驗問題的顯示和計時
+ * @param {object} roomData - 當前的房間數據
+ */
+function handleQuizQuestion(roomData) {
+    // 從 gameState (e.g., "quiz_question_3") 中解析出題號
+    const questionIndex = parseInt(roomData.gameState.split('_')[2]) - 1;
+    
+    if (questionIndex < 0 || questionIndex >= 5) return; // 安全檢查
+
+    const questionData = roomData.quiz.questions[questionIndex];
+    const myPlayerKey = isHost ? 'player1' : 'player2';
+    
+    // 檢查我是否已經回答過此題，防止重複提交
+    const hasAnswered = roomData.quiz.answers[myPlayerKey] && roomData.quiz.answers[myPlayerKey][questionIndex] !== undefined;
+
+    // 更新 UI
+    lyricsQuizModal.classList.add('active');
+    quizInstruction.textContent = `第 ${questionIndex + 1} / 5 題，請在時間內作答！`;
+    const questionLine = questionData.line.replace(/__/g, '<span class="quiz-blank"></span>');
+    quizQuestionText.innerHTML = questionLine;
+    quizAnswerInput.value = '';
+    quizAnswerInput.classList.remove('correct', 'incorrect');
+
+    // 處理 UI 互動狀態
+    quizAnswerInput.disabled = hasAnswered;
+    quizSubmitBtn.disabled = hasAnswered;
+    if(!hasAnswered) {
+        quizAnswerInput.focus();
+    }
+    
+    // 啟動20秒計時器
+    if (quizTimerInterval) clearInterval(quizTimerInterval);
+    let timeLeft = 20;
+    const timerEl = document.getElementById('quizTimer');
+    timerEl.textContent = timeLeft;
+    timerEl.classList.remove('warning');
+
+    quizTimerInterval = setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = timeLeft;
+        if (timeLeft <= 5) {
+            timerEl.classList.add('warning');
+        }
+        if (timeLeft <= 0) {
+            clearInterval(quizTimerInterval);
+            // 時間到，自動提交 "TIMEOUT" 作為答案
+            if (!hasAnswered) {
+                const answerRef = database.ref(`rooms/${currentRoomId}/quiz/answers/${myPlayerKey}/${questionIndex}`);
+                answerRef.set("TIMEOUT");
+            }
+        }
+    }, 1000);
+
+    // 【只有主機方 (Host) 執行】在 22 秒後批改此題並進入下一題
+    if (isHost) {
+        setTimeout(() => {
+            gradeQuestionAndProceed(questionIndex, roomData.quiz.questions);
+        }, 22000); // 留出2秒的網絡延遲緩衝
+    }
+}
+
+/**
+ * 【全新】由主機方批改題目、更新分數並推進遊戲狀態
+ * @param {number} questionIndex - 當前題目索引
+ * @param {Array} questions - 題庫
+ */
+async function gradeQuestionAndProceed(questionIndex, questions) {
+    // 獲取最新的房間快照以批改答案
+    const roomSnapshot = await database.ref(`rooms/${currentRoomId}`).get();
+    if (!roomSnapshot.exists()) return;
+    const roomData = roomSnapshot.val();
+
+    const correctAnswer = questions[questionIndex].answer;
+    const updates = {};
+
+    // 批改玩家1
+    const p1_answer = roomData.quiz.answers.player1 ? roomData.quiz.answers.player1[questionIndex] : "TIMEOUT";
+    const p1_scoreChange = (p1_answer === correctAnswer) ? 1000 : -1000;
+    updates['/player1/quizScore'] = (roomData.player1.quizScore || 0) + p1_scoreChange;
+
+    // 批改玩家2
+    const p2_answer = roomData.quiz.answers.player2 ? roomData.quiz.answers.player2[questionIndex] : "TIMEOUT";
+    const p2_scoreChange = (p2_answer === correctAnswer) ? 1000 : -1000;
+    updates['/player2/quizScore'] = (roomData.player2.quizScore || 0) + p2_scoreChange;
+
+    // 決定下一個狀態
+    if (questionIndex < 4) {
+        updates['/gameState'] = `quiz_question_${questionIndex + 2}`;
+    } else {
+        // 5題全部結束，進入最終結算狀態
+        updates['/gameState'] = 'final_settlement';
+    }
+
+    // 一次性更新所有數據
+    database.ref(`rooms/${currentRoomId}`).update(updates);
 }
             // ================================================================
 // ====== 【全新】線上對戰核心功能 (參考範例代碼) ======
@@ -7722,7 +7884,7 @@ function handleReadyUpState(roomData) {
             
 
 /**
- * 核心監聽器，監聽房間內所有狀態變化 (集成斷線處理的最終完整版)
+ * 核心監聽器，監聽房間內所有狀態變化 (包含測驗流程的最終完整版)
  */
 function listenToRoomChanges() {
     // 步驟 1: 清理舊的監聽器，防止重複觸發
@@ -7731,29 +7893,30 @@ function listenToRoomChanges() {
     }
     const roomRef = database.ref('rooms/' + currentRoomId);
     
-    // 步驟 2: 設定 onDisconnect 句柄。這是告訴 Firebase 伺服器：
-    // "如果我這個客戶端的連線突然中斷，請幫我自動執行以下操作。"
+    // 步驟 2: 設定 onDisconnect 句柄，處理意外斷線
     const myPlayerKey = isHost ? 'player1' : 'player2';
     const myPlayerRef = roomRef.child(myPlayerKey);
-    // 當我斷線時，在我的玩家資料中寫入 { disconnected: true }
     myPlayerRef.onDisconnect().update({ disconnected: true });
-    // 同時，立刻寫入 { disconnected: false } 來表明我當前是連線狀態。
-    // onDisconnect 的操作只會在連線真正中斷時觸發。
-    myPlayerRef.update({ disconnected: false });
-
+    myPlayerRef.update({ disconnected: false }); // 首次連接時，標記為未斷線
 
     // 步驟 3: 建立對整個房間數據的持續監聽
     roomListener = roomRef.on('value', (snapshot) => {
-        // --- 情況 A: 房間不存在 ---
-        // 這通常意味著對手點擊了「結束遊戲」或因斷線獲勝後清理了房間。
+        
+        // --- 情況 A: 房間不存在 (已被對手解散) ---
         if (!snapshot.exists()) {
-            // 如果遊戲還在進行中，說明是對手中途離開了。
+            // 如果測驗視窗還開著，要先關閉它和它的計時器
+            if (lyricsQuizModal.classList.contains('active')) {
+                clearInterval(quizTimerInterval);
+                lyricsQuizModal.classList.remove('active');
+            }
+            
+            // 根據情況給予不同提示
             if(gameActive){ 
                 showNotification('info', '對戰已結束', '對手已離開房間，您已返回主選單。');
             } else {
                 showNotification('info', '對戰已結束', '房間已被解散。');
             }
-            resetToMainMenu(); // 無論如何都重置回主選單
+            resetToMainMenu(); // 重置回主選單
             return; // 終止後續所有操作
         }
 
@@ -7762,35 +7925,22 @@ function listenToRoomChanges() {
         const opponentKey = isHost ? 'player2' : 'player1';
         
         // --- 核心斷線處理邏輯 ---
-        // 檢查對手的資料是否存在，並且 disconnected 標記是否為 true
         if (roomData[opponentKey] && roomData[opponentKey].disconnected === true && gameActive) {
-            gameActive = false; // 立刻停止本地遊戲
-            
-            // 獲取雙方資料用於更新總分
-            const myData = roomData[myPlayerKey];
-            const opponentData = roomData[opponentKey];
-
-            // 為自己加分，為斷線的對手扣分
+            gameActive = false;
             updateBattleScore(myData.playerId, myData.playerName, 1000);
             updateBattleScore(opponentData.playerId, opponentData.playerName, -500);
-            
-            // 清晰地通知玩家
             showNotification('success', '對手已斷線', '對手中途離開遊戲，系統判定您獲勝！');
-            
-            // 作為獲勝方，負責清理戰場（刪除房間）
-            roomRef.remove(); 
-            // 返回主選單
+            roomRef.remove();
             resetToMainMenu();
-            return; // 中斷後續的所有 switch 判斷
+            return;
         }
 
-        // --- 正常遊戲中的 UI 更新 ---
+        // --- 持續更新對手UI ---
         if (roomData[opponentKey]) {
             opponentStats.style.display = 'block';
             const opponentScore = roomData[opponentKey].score;
             opponentScoreDisplay.textContent = opponentScore;
             opponentNameLabel.textContent = roomData[opponentKey].playerName || '對手';
-
             if (gameActive && maxScoreForCurrentLevel > 0) {
                 const opponentProgress = Math.min(100, (opponentScore / maxScoreForCurrentLevel) * 100);
                 opponentProgressBar.style.width = `${opponentProgress}%`;
@@ -7804,49 +7954,57 @@ function listenToRoomChanges() {
         }
         
         // --- 遊戲狀態機 (State Machine) ---
-        // 根據雲端同步的 gameState，執行對應的客戶端操作
         
-        // 狀態轉換：由房主檢查是否雙方都已準備就緒
+        // 由房主檢查是否雙方都已準備就緒，若是則推進到倒數計時
         if (isHost && roomData.gameState === 'readying_up' && roomData.player1?.isReady && roomData.player2?.isReady) {
             roomRef.update({ gameState: 'countdown' });
         }
         
-        switch (roomData.gameState) {
-            case 'selecting_song':
+        const currentGameState = roomData.gameState;
+
+        // 使用 switch(true) 來處理包含 .startsWith 的複雜條件
+        switch (true) {
+            case currentGameState === 'selecting_song':
                 handleSongSelectionState(roomData);
                 break;
             
-            case 'readying_up':
+            case currentGameState === 'readying_up':
                 handleReadyUpState(roomData);
                 break;
 
-            case 'countdown':
-                // 觸發倒數計時，倒數結束後會自動調用 startGame()
+            case currentGameState === 'countdown':
                 handleCountdown();
                 break;
 
-            case 'playing':
-                // 遊戲進行中，主要邏輯由本地的 gameLoop 處理
-                break;
-
-            case 'game_over':
-                // 只有在遊戲還在本地運行時才觸發結束邏輯，防止重複執行
-                if (gameActive) {
-                    handleOnlineGameOver(roomData);
+            case currentGameState === 'game_over':
+                // 當節奏遊戲結束時，由主機方啟動測驗
+                if (isHost) {
+                    startOnlineQuiz(roomData);
                 }
                 break;
+
+            case currentGameState.startsWith('quiz_question_'):
+                // 當進入任何一個問題狀態時，調用問題處理器
+                isQuizActive = true; // 標記測驗正在進行
+                handleQuizQuestion(roomData);
+                break;
+
+            case currentGameState === 'final_settlement':
+                // 當測驗結束，進入最終結算
+                isQuizActive = false; // 標記測驗結束
+                handleOnlineGameOver(roomData);
+                break;
                 
-            case 'rematch_reset':
+            case currentGameState === 'rematch_reset':
                  resetForRematch();
-                 // 由房主負責將狀態推回選歌階段
                  if(isHost){
                     database.ref(`rooms/${currentRoomId}`).update({ gameState: 'selecting_song' });
                  }
                 break;
         }
         
-        // 處理重賽請求的 UI 提示
-        if (roomData.gameState === 'game_over') {
+        // 在結算畫面時，持續監聽重賽狀態
+        if (currentGameState === 'final_settlement') {
             handleRematchStatus(roomData);
         }
     });
@@ -7868,88 +8026,78 @@ function startGameFromOnline(song, difficulty) {
 }
 
 /**
- * 處理線上模式的遊戲結束畫面顯示 (修正分數計算)
+ * 處理線上模式的遊戲結束畫面顯示 (包含測驗分數的最終版)
  * @param {object} roomData - 從 Firebase 獲取的房間資料
  */
 function handleOnlineGameOver(roomData) {
-    if (!gameActive) return;
-    gameActive = false;
-
-    audio.pause();
-    cancelAnimationFrame(animationFrame);
-    clearTimeout(generateNotesTimer);
-    clearInterval(progressInterval);
+    if (lyricsQuizModal.classList.contains('active')) {
+        clearInterval(quizTimerInterval);
+        lyricsQuizModal.classList.remove('active');
+    }
     
     const myPlayerKey = isHost ? 'player1' : 'player2';
     const opponentPlayerKey = isHost ? 'player2' : 'player1';
     
     const myData = roomData[myPlayerKey];
     const opponentData = roomData[opponentPlayerKey];
+
+    // 【核心修改】將節奏遊戲分數與測驗分數相加，得到最終總分
+    const myFinalScore = (myData.score || 0) + (myData.quizScore || 0);
+    const opponentFinalScore = (opponentData.score || 0) + (opponentData.quizScore || 0);
     
     let myScoreChange = 0;
     let opponentScoreChange = 0;
     let iAmWinner = false;
 
-    // === 核心修改：修正分數計算邏輯 ===
-    if (myData.score > opponentData.score) {
+    // 使用最終總分來判斷勝負
+    if (myFinalScore > opponentFinalScore) {
         gameOverTitle.textContent = "勝利！";
-        myScoreChange = 1000;       // 勝方得 1000 分
-        opponentScoreChange = -500; // 敗方失 500 分
+        myScoreChange = 1000;
+        opponentScoreChange = -500;
         iAmWinner = true;
-    } else if (myData.score < opponentData.score) {
+    } else if (myFinalScore < opponentFinalScore) {
         gameOverTitle.textContent = "惜敗！";
-        myScoreChange = -500;       // 敗方失 500 分
-        opponentScoreChange = 1000; // 勝方得 1000 分
+        myScoreChange = -500;
+        opponentScoreChange = 1000;
     } else {
         gameOverTitle.textContent = "平局！";
-        // 平局分數不變 (0)
     }
 
-
-    // 更新雙方的對戰總分
     updateBattleScore(myData.playerId, myData.playerName, myScoreChange);
     updateBattleScore(opponentData.playerId, opponentData.playerName, opponentScoreChange);
 
-    // === 核心修改：動態生成「玩家卡片」佈局的 HTML ===
     const statsContainer = gameOverModal.querySelector('.game-over-stats');
-    
-    // 根據勝負結果，為對應的卡片添加 'winner' class
-    const myCardClass = iAmWinner ? 'stats-player-card your-card winner' : 'stats-player-card your-card';
-    const opponentCardClass = !iAmWinner && (myData.score < opponentData.score) ? 'stats-player-card opponent-card winner' : 'stats-player-card opponent-card';
+    const myTitleClass = iAmWinner ? 'player-title is-winner' : 'player-title';
+    const opponentTitleClass = !iAmWinner && (myFinalScore < opponentFinalScore) ? 'player-title is-winner' : 'player-title';
 
     statsContainer.innerHTML = `
-        <!-- 您的成績卡片 -->
-        <div class="${myCardClass}">
-            <h3 class="stats-player-title">您的成績</h3>
-            <div class="stats-data-container">
-                <div class="stats-data-item">
-                    <span class="stats-data-label">最終分數</span>
-                    <span class="stats-data-value">${myData.score.toLocaleString()}</span>
+        <div class="player-comparison">
+            <div class="player-side">
+                <h3 class="${myTitleClass}">您的成績</h3>
+                <div class="stat-line">
+                    <span class="stat-label">最終總分</span>
+                    <span class="stat-number">${myFinalScore.toLocaleString()}</span>
                 </div>
-                <div class="stats-data-item">
-                    <span class="stats-data-label">最高連擊</span>
-                    <span class="stats-data-value">${myData.maxCombo || maxCombo}</span>
+                <div class="stat-line">
+                    <span class="stat-label">最高連擊</span>
+                    <span class="stat-number">${myData.maxCombo || 0}</span>
                 </div>
             </div>
-        </div>
-
-        <!-- 對手的成績卡片 -->
-        <div class="${opponentCardClass}">
-            <h3 class="stats-player-title">對手成績</h3>
-            <div class="stats-data-container">
-                <div class="stats-data-item">
-                    <span class="stats-data-label">最終分數</span>
-                    <span class="stats-data-value">${opponentData.score.toLocaleString()}</span>
+            <div class="vs-separator">VS</div>
+            <div class="player-side">
+                <h3 class="${opponentTitleClass}">對手成績</h3>
+                <div class="stat-line">
+                    <span class="stat-label">最終總分</span>
+                    <span class="stat-number">${opponentFinalScore.toLocaleString()}</span>
                 </div>
-                <div class="stats-data-item">
-                    <span class="stats-data-label">最高連擊</span>
-                    <span class="stats-data-value">${opponentData.maxCombo || 0}</span>
+                <div class="stat-line">
+                    <span class="stat-label">最高連擊</span>
+                    <span class="stat-number">${opponentData.maxCombo || 0}</span>
                 </div>
             </div>
         </div>
     `;
     
-    // 顯示線上對戰專用的按鈕
     restartBtnSingle.style.display = 'none';
     onlineRematchControls.style.display = 'flex';
     rematchBtn.disabled = false;
@@ -8831,12 +8979,38 @@ closeBattleRankingsModal.addEventListener('click', () => {
 
             
 
-            // 【新增】綁定測驗視窗的按鈕事件
-quizSubmitBtn.addEventListener('click', checkQuizAnswer);
+          // 【修改後】的測驗提交事件監聽器
+quizSubmitBtn.addEventListener('click', () => {
+    if (gameMode !== 'online' || !isQuizActive) {
+        // 如果是單機模式，保持原有邏輯
+        checkQuizAnswer();
+        return;
+    }
+
+    // 線上模式：將答案寫入 Firebase
+    const userAnswer = quizAnswerInput.value.trim();
+    if (userAnswer === "") return;
+
+    const gameState = database.ref(`rooms/${currentRoomId}/gameState`);
+    gameState.get().then(snapshot => {
+        const currentGameState = snapshot.val();
+        if (currentGameState.startsWith('quiz_question_')) {
+            const questionIndex = parseInt(currentGameState.split('_')[2]) - 1;
+            const myPlayerKey = isHost ? 'player1' : 'player2';
+            const answerRef = database.ref(`rooms/${currentRoomId}/quiz/answers/${myPlayerKey}/${questionIndex}`);
+            answerRef.set(userAnswer);
+
+            // 提交後禁用輸入，防止重複提交
+            quizAnswerInput.disabled = true;
+            quizSubmitBtn.disabled = true;
+        }
+    });
+});
+
 quizAnswerInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
-        e.preventDefault(); // 防止表單提交的預設行為
-        checkQuizAnswer();
+        e.preventDefault();
+        quizSubmitBtn.click(); // 觸發按鈕的點擊事件
     }
 });
 quizCloseBtn.addEventListener('click', () => {
@@ -8952,6 +9126,12 @@ roomIdInput.addEventListener('input', (e) => {
 <div class="lyrics-quiz-modal" id="lyricsQuizModal">
     <div class="quiz-content">
         <h2 class="quiz-title">歌詞填充測驗</h2>
+
+<!-- ▼▼▼ 請在這裡加入新的計時器 ▼▼▼ -->
+        <div id="quizTimer" class="quiz-timer">20</div>
+        <!-- ▲▲▲ 新增結束 ▲▲▲ -->
+
+        
         <p class="quiz-instructions">連續答對五題即可解鎖新內容或登入排行榜！</p>
         <div class="quiz-progress" id="quizProgress">連續答對: 0 / 5</div>
         <div class="quiz-question-container">
