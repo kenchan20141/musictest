@@ -6486,73 +6486,33 @@ function updateGameLyrics(currentTime) {
     verticalLyricElement.textContent = currentLyricText;
 }
 // ====================================================================
-// ====== 【最終修正版】確保在點擊開始時，直接檢查儲存的最新名稱 ======
+// ====== 【第一步：簡化 startGame 函數，專注於啟動遊戲】 ======
 // ====================================================================
 /**
-/**
-// ====================================================================
-// ====== 【第一步：修訂 startGame 函數】 ======
-// ====================================================================
-/**
- * 啟動遊戲 (修訂後，增加了線上對戰的準備邏輯)
- * @param {boolean} isOnlineStart - 是否由 Firebase 線上事件觸發
+ * 實際啟動遊戲畫面與邏輯 (不再處理線上模式的信號發送)
  */
-async function startGame(isOnlineStart = false) {
-    // 職責一：如果是線上模式的選歌方點擊，則只發送「準備」信號
-    if (gameMode === 'online' && !isOnlineStart) {
-        const selectedSong = musicSelect.value;
-        const selectedDifficulty = difficultySelect.value;
-
-        // 檢查自己是否已解鎖該歌曲/難度
-        if (!isSongUnlocked(selectedSong) || !isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
-            showNotification('info', '項目未解鎖', '你不能選擇尚未解鎖的歌曲或難度進行對戰。');
-            return;
-        }
-
-        const playerKey = isHost ? 'player1' : 'player2';
-        const updates = {};
-        updates['selectedSong'] = selectedSong;
-        updates['selectedDifficulty'] = selectedDifficulty;
-        updates[playerKey + '/isReady'] = true;
-        updates['gameState'] = 'readying_up'; // 【核心修改】使用新的狀態'readying_up'
-
-        database.ref('rooms/' + currentRoomId).update(updates);
-        return; // 選歌方的工作到此為止，等待 Firebase 回傳信號
-    }
-
-    // --- 職責二：執行遊戲實際啟動 (單人模式，或線上模式接收到開始信號後) ---
+async function startGame() {
+    // 遊戲啟動前的最終檢查
+    if (gameActive) return;
 
     clearAllNotifications();
-    if (gameActive) return;
-    gameActive = true;
-    
-    // (此處往下的遊戲啟動核心邏輯保持不變，無需修改)
-    
-    console.log("--- startGame function initiated ---");
-    
-    const currentName = localStorage.getItem('musicGamePlayerName');
-    if (gameMode === 'single' && (!currentName || currentName.trim() === '')) {
-        gameActive = false;
-        showNotification('info', '請先設定玩家名稱', '為了開始遊戲並記錄您的成績，請先在排行榜中設定您的顯示名稱。', 7000);
-        return; 
-    }
-    
+
     const selectedSong = musicSelect.value;
     const selectedDifficulty = difficultySelect.value;
-
+    
+    // 單機模式下的解鎖檢查
     if (gameMode === 'single') {
-        if (!isSongUnlocked(selectedSong)) {
-            gameActive = false;
-            showNotification('info', '歌曲未解鎖', '此歌曲尚未解鎖。');
-            return;
-        }
-        if (!isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
-            gameActive = false;
-            showNotification('info', '難度未解鎖', '此難度尚未解鎖。');
+        if (!isSongUnlocked(selectedSong) || !isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
+            showNotification('info', '項目未解鎖', '此歌曲或難度尚未解鎖。');
             return;
         }
     }
+    
+    gameActive = true;
+    console.log("--- Game is now starting ---");
 
+    // (此處往下的所有遊戲啟動核心邏輯保持不變，無需修改)
+    
     startBtn.disabled = true;
     musicSelect.disabled = true;
     difficultySelect.disabled = true;
@@ -6611,6 +6571,54 @@ async function startGame(isOnlineStart = false) {
 }
 
             // ====================================================================
+// ====== 【第二步：創建全新的統一按鈕處理函數】 ======
+// ====================================================================
+/**
+ * 處理「開始/準備」按鈕的點擊事件
+ */
+function handleStartButtonClick() {
+    // 情況一：單機模式，直接開始遊戲
+    if (gameMode === 'single') {
+        startGame();
+        return;
+    }
+
+    // 情況二：線上對戰模式
+    if (gameMode === 'online' && currentRoomId) {
+        const roomRef = database.ref('rooms/' + currentRoomId);
+        roomRef.get().then(snapshot => {
+            if (!snapshot.exists()) return;
+            const roomData = snapshot.val();
+            const playerKey = isHost ? 'player1' : 'player2';
+
+            // 根據遊戲狀態決定按鈕功能
+            if (roomData.gameState === 'selecting_song') {
+                // 此時是選歌方點擊，發送「選歌並準備」信號
+                const selectedSong = musicSelect.value;
+                const selectedDifficulty = difficultySelect.value;
+                
+                if (!isSongUnlocked(selectedSong) || !isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
+                    showNotification('info', '項目未解鎖', '你不能選擇尚未解鎖的歌曲或難度進行對戰。');
+                    return;
+                }
+                
+                roomRef.update({
+                    selectedSong: selectedSong,
+                    selectedDifficulty: selectedDifficulty,
+                    gameState: 'readying_up',
+                    [playerKey + '/isReady']: true
+                });
+
+            } else if (roomData.gameState === 'readying_up') {
+                // 此時是非選歌方點擊，發送「我已準備」信號
+                roomRef.child(playerKey).update({ isReady: true });
+            }
+        });
+    }
+}
+
+            
+            // ====================================================================
 // ====== 【第二步：新增 handleReadyUpState 函數】 ======
 // ====================================================================
 /**
@@ -6646,14 +6654,16 @@ function handleReadyUpState(roomData) {
     }
 }
 
-            /**
- * 重置所有狀態回到主菜單 (修正版)
+ // ====================================================================
+// ====== 【第四步：確保 resetToMainMenu 函數的完整性】 ======
+// ====================================================================
+/**
+ * 重置所有狀態回到主菜單 (修訂版)
  */
 function resetToMainMenu() {
-    // 【新增】退出時也清理通知，確保主介面乾淨
     clearAllNotifications();
 
-    if (roomListener) {
+    if (roomListener && currentRoomId) {
         database.ref('rooms/' + currentRoomId).off('value', roomListener);
     }
     
@@ -6663,6 +6673,7 @@ function resetToMainMenu() {
     isHost = false;
     roomListener = null;
     
+    // 恢復UI
     opponentStats.style.display = 'none';
     restartBtnSingle.style.display = 'block';
     onlineRematchControls.style.display = 'none';
@@ -6670,8 +6681,12 @@ function resetToMainMenu() {
     musicSelect.disabled = false;
     difficultySelect.disabled = false;
     gameOverModal.classList.remove('active');
+    
+    // 【核心新增】恢復開始按鈕的原始外觀和功能
+    startBtn.innerHTML = originalStartButtonSVG;
 }
 
+            
 // ====================================================================
 // ====== 【最終版】統一的遊戲後獎勵處理函數 (支援前置通知) ======
 // ====================================================================
@@ -7004,10 +7019,10 @@ function randomMatch() {
 }
 
 // ====================================================================
-// ====== 【第三步：修訂 listenToRoomChanges 核心監聽器】 ======
+// ====== 【第三步 A：修訂 listenToRoomChanges 核心監聽器】 ======
 // ====================================================================
 /**
- * 核心監聽器，監聽房間內所有狀態變化 (修訂版)
+ * 核心監聽器，監聽房間內所有狀態變化 (最終修訂版)
  */
 function listenToRoomChanges() {
     if (roomListener) {
@@ -7024,49 +7039,79 @@ function listenToRoomChanges() {
         const roomData = snapshot.val();
         const opponentKey = isHost ? 'player2' : 'player1';
 
-        // 更新對手分數 (此部分不變)
+        // 更新對手分數
         if (roomData[opponentKey]) {
             opponentStats.style.display = 'block';
             opponentScoreDisplay.textContent = roomData[opponentKey].score;
         } else {
             opponentStats.style.display = 'none';
         }
+
+        const playerKey = isHost ? 'player1' : 'player2';
         
-        // 【核心修改】根據遊戲狀態執行不同操作
+        // 【核心UI更新邏輯】
         switch (roomData.gameState) {
             case 'selecting_song':
-                handleSongSelectionState(roomData);
-                break;
-            case 'readying_up': // 【新增】處理準備階段
-                handleReadyUpState(roomData);
-                break;
-            case 'playing':
-                if (!gameActive) {
-                    startBtn.onclick = () => startGame(); // 恢復開始按鈕的原始功能
-                    startGameFromOnline(roomData.selectedSong, roomData.selectedDifficulty);
+                // 重置UI到選歌狀態
+                musicSelect.disabled = false;
+                difficultySelect.disabled = false;
+                startBtn.innerHTML = originalStartButtonSVG; // 恢復按鈕圖示
+
+                const isMyTurnToSelect = (isHost && roomData.songSelector === 'player1') || (!isHost && roomData.songSelector === 'player2');
+                if (isMyTurnToSelect) {
+                    showNotification('info', '輪到你了！', '請選擇歌曲和難度，然後點擊開始。');
+                    startBtn.disabled = false;
+                } else {
+                    showNotification('info', '等待對方', '請等待對手選擇歌曲...');
+                    startBtn.disabled = true;
                 }
                 break;
+            
+            case 'readying_up':
+                // 進入準備階段，鎖定選項，更新按鈕狀態
+                musicSelect.value = roomData.selectedSong;
+                difficultySelect.value = roomData.selectedDifficulty;
+                musicSelect.disabled = true;
+                difficultySelect.disabled = true;
+
+                if (roomData[playerKey].isReady) {
+                    startBtn.disabled = true;
+                    showNotification('info', '等待對手', '已送出準備，等待對方確認...');
+                } else {
+                    startBtn.disabled = false;
+                    // 【新增】修改按鈕文字為「準備」
+                    startBtn.querySelector('path').setAttribute('d', 'M26 12 L26 28 L54 28 L54 12 Z M30 16 L50 16 L50 24 L30 24 Z'); // 替換為準備圖示或文字
+                    showNotification('info', '確認對戰', '對手已選好歌曲，請點擊「準備」！');
+                }
+                break;
+
+            case 'playing':
+                if (!gameActive) {
+                    startGame(); // 直接調用簡化後的startGame
+                }
+                break;
+
             case 'game_over':
-                if (gameActive) {
-                    gameActive = false;
+                if (gameActive) { // 確保只觸發一次
+                    gameActive = false; 
                     handleOnlineGameOver(roomData);
                 }
                 break;
+                
             case 'rematch_reset':
                  resetForRematch();
-                 if(isHost){ // 只有房主負責將狀態推往下一個階段
+                 if(isHost){
                     database.ref(`rooms/${currentRoomId}`).update({ gameState: 'selecting_song' });
                  }
                 break;
         }
         
-        // 【核心新增】由房主(Host)檢查是否所有人都已準備就緒
+        // 房主檢查是否所有人都已準備就緒
         if (isHost && roomData.gameState === 'readying_up' && roomData.player1?.isReady && roomData.player2?.isReady) {
-            // 如果雙方都準備好了，房主就更新狀態為 'playing'
             roomRef.update({ gameState: 'playing' });
         }
         
-        // 處理重賽請求 (此部分不變)
+        // 處理重賽請求
         if (roomData.gameState === 'game_over') {
             handleRematchStatus(roomData);
         }
@@ -7810,7 +7855,7 @@ function updatePlayingVisuals(isPlaying) {
                 e.target.style.background = `linear-gradient(to right, #3b82f6 ${percent}%, #4a5568 ${percent}%)`;
             });
             
-            startBtn.addEventListener('click', startGame);
+            startBtn.addEventListener('click', handleStartButtonClick);
             document.addEventListener('keydown', handleKeyDown);
             document.addEventListener('keyup', handleKeyUp);
             restartBtn.addEventListener('click', restartGame);
