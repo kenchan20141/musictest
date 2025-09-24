@@ -3568,6 +3568,75 @@ font-size: 12px;
 #onlineMatchBtn .personal-high-score-icon {
     fill: #e0f7fa; /* 一個非常淺的藍色，接近白色 */
 }
+
+        /* ====== 【第一項修訂】對戰模式結算畫面雙欄樣式 ====== */
+
+/* 1. 讓主容器變為 Flexbox 佈局，以容納雙欄 */
+.game-over-stats.dual-view {
+    display: flex;
+    justify-content: space-around; /* 讓兩欄平均分佈 */
+    align-items: flex-start;
+    gap: 20px; /* 兩欄之間的間距 */
+    width: 100%;
+}
+
+/* 2. 設計每一欄的統一樣式 */
+.player-stats-column {
+    flex-basis: 45%; /* 每欄佔據大約 45% 的寬度 */
+    text-align: center;
+    padding: 15px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1); /* 給一個淡淡的背景以示區分 */
+}
+
+/* 3. 設計欄目標題 (您的成績 / 對手成績) */
+.player-stats-title {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--jade-border-color);
+}
+
+/* 4. 為「您的成績」標題設定特殊顏色 (沿用主題金色) */
+.your-title {
+    color: var(--jade-accent, #b48f5a);
+}
+
+/* 5. 為「對手成績」標題設定對比色 (赤色) */
+.opponent-title {
+    color: #c62828; /* 一個沉穩的深紅色 */
+}
+
+/* 6. 設計每一條數據的樣式 (例如 "最終分數: 12345") */
+.stat-item {
+    margin-bottom: 15px;
+}
+
+/* 7. 覆蓋並調整舊的標籤和數字樣式以適應新佈局 */
+.dual-view .stat-label {
+    display: block; /* 讓標籤和數字分行顯示 */
+    font-size: 1rem;
+    margin-bottom: 5px;
+    color: var(--jade-text-secondary, #a19685);
+}
+
+.dual-view .stat-number {
+    font-size: 2.2rem; /* 適當調整數字大小 */
+}
+
+/* 8. 響應式設計：在手機等小螢幕上，將雙欄改為垂直堆疊 */
+@media (max-width: 480px) {
+    .game-over-stats.dual-view {
+        flex-direction: column; /* 垂直堆疊 */
+        align-items: center;
+        gap: 15px;
+    }
+    .player-stats-column {
+        width: 100%;
+        flex-basis: auto;
+    }
+}
         
     </style>
 
@@ -3760,15 +3829,34 @@ font-size: 12px;
 <div class="game-over-modal" id="gameOverModal">
     <div class="game-over-content">
         <h2 class="game-over-title" id="gameOverTitle">遊戲結束</h2>
-        <div class="game-over-stats">
-            <div class="game-over-stat">
-                <div class="stat-label">最終分數</div>
-                <div class="stat-number" id="finalScore">0</div>
-            </div>
-            <div class="game-over-stat">
-                <div class="stat-label">最高連擊</div>
-                <div class="stat-number" id="finalCombo">0</div>
-            </div>
+        <!-- ▼▼▼ 請用這段新的程式碼，取代舊的 game-over-stats 區塊 ▼▼▼ -->
+<div class="game-over-stats dual-view">
+    <!-- 己方分數欄 -->
+    <div class="player-stats-column" id="myFinalStats">
+        <h3 class="player-stats-title your-title">您的成績</h3>
+        <div class="stat-item">
+            <span class="stat-label">最終分數</span>
+            <span class="stat-number" id="myFinalScore">0</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">最高連擊</span>
+            <span class="stat-number" id="myFinalCombo">0</span>
+        </div>
+    </div>
+    <!-- 對方分數欄 -->
+    <div class="player-stats-column" id="opponentFinalStats">
+        <h3 class="player-stats-title opponent-title">對手成績</h3>
+        <div class="stat-item">
+            <span class="stat-label">最終分數</span>
+            <span class="stat-number" id="opponentFinalScore">0</span>
+        </div>
+        <div class="stat-item">
+            <span class="stat-label">最高連擊</span>
+            <span class="stat-number" id="opponentFinalCombo">0</span>
+        </div>
+    </div>
+</div>
+<!-- ▲▲▲ 替換結束 ▲▲▲ -->
         </div>
         <!-- 單機模式按鈕 -->
         <button class="restart-btn" id="restartBtn">再玩一次</button>
@@ -7049,6 +7137,10 @@ function endGame() {
         if (scoreUpdateTimeout) clearTimeout(scoreUpdateTimeout);
         scoreUpdateTimeout = null;
         sendScoreUpdate(); 
+
+        // ▼▼▼ 請在這裡添加下面這一行 ▼▼▼
+        database.ref(`rooms/${currentRoomId}/${isHost ? 'player1' : 'player2'}`).update({ maxCombo: maxCombo });
+        // ▲▲▲ 添加結束 ▲▲▲
         
         if (isHost) { 
             database.ref(`rooms/${currentRoomId}`).update({ gameState: 'game_over' });
@@ -7431,7 +7523,7 @@ function startGameFromOnline(song, difficulty) {
 }
 
 /**
- * 處理線上模式的遊戲結束畫面顯示
+ * 處理線上模式的遊戲結束畫面顯示 (全新修訂版)
  * @param {object} roomData - 從 Firebase 獲取的房間資料
  */
 function handleOnlineGameOver(roomData) {
@@ -7444,31 +7536,37 @@ function handleOnlineGameOver(roomData) {
     clearTimeout(generateNotesTimer);
     clearInterval(progressInterval);
     
+    // 獲取雙方玩家的資料
+    const myPlayerKey = isHost ? 'player1' : 'player2';
+    const opponentPlayerKey = isHost ? 'player2' : 'player1';
+    
+    const myData = roomData[myPlayerKey];
+    const opponentData = roomData[opponentPlayerKey];
+    
     // 判斷勝負
-    const myScore = roomData[isHost ? 'player1' : 'player2'].score;
-    const opponentScore = roomData[isHost ? 'player2' : 'player1'].score;
-
-    if (myScore > opponentScore) {
+    if (myData.score > opponentData.score) {
         gameOverTitle.textContent = "勝利！";
-    } else if (myScore < opponentScore) {
+    } else if (myData.score < opponentData.score) {
         gameOverTitle.textContent = "惜敗！";
     } else {
         gameOverTitle.textContent = "平局！";
     }
 
-    // 顯示最終分數和UI
-    finalScoreDisplay.textContent = myScore.toLocaleString();
-    finalComboDisplay.textContent = maxCombo;
-    
+    // 填充己方數據
+    document.getElementById('myFinalScore').textContent = myData.score.toLocaleString();
+    document.getElementById('myFinalCombo').textContent = myData.maxCombo || maxCombo; // 使用雲端或本地的數據
+
+    // 填充對方數據
+    document.getElementById('opponentFinalScore').textContent = opponentData.score.toLocaleString();
+    document.getElementById('opponentFinalCombo').textContent = opponentData.maxCombo || 0;
+
     // 顯示線上對戰專用的按鈕
     restartBtnSingle.style.display = 'none';
     onlineRematchControls.style.display = 'flex';
     rematchBtn.disabled = false; // 確保重賽按鈕可用
     rematchStatus.textContent = ''; // 清空狀態文字
     gameOverModal.classList.add('active');
-
 }
-
 /**
  * 處理重賽狀態的顯示與邏輯
  * @param {object} roomData - 從 Firebase 獲取的房間資料
@@ -8380,7 +8478,10 @@ rematchBtn.addEventListener('click', () => {
 
 // 結束遊戲按鈕
 endGameBtn.addEventListener('click', () => {
+    // 步驟 1: 從 Firebase 數據庫中移除整個房間，這會通知對手遊戲已結束。
     database.ref('rooms/' + currentRoomId).remove();
+    
+    // 步驟 2: 呼叫重置函數，將您自己的遊戲介面和狀態完全恢復到單人模式的主選單。
     resetToMainMenu();
 });
 
