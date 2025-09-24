@@ -3463,12 +3463,13 @@ font-size: 12px;
                             <div class="stat-label">分數</div>
                         </div>
 
-                        <!-- ▼▼▼ 【新增】對手分數進度條 ▼▼▼ -->
+                      <!-- ▼▼▼ 【修訂】為對手標籤新增 ID ▼▼▼ -->
 <div class="stat-box" id="opponentStats" style="display: none;">
     <div class="stat-value" id="opponentScore">0</div>
-    <div class="stat-label">對手分數</div>
+    <!-- 修改這一行，為其加上 id="opponentNameLabel" -->
+    <div class="stat-label" id="opponentNameLabel">對手分數</div>
 </div>
-<!-- ▲▲▲ 新增結束 ▲▲▲ -->
+<!-- ▲▲▲ 修訂結束 ▲▲▲ -->
 
 
 <!-- ▼▼▼ 【修訂】將原有的單一標記線改為兩個獨立的標記線 ▼▼▼ -->
@@ -3783,6 +3784,8 @@ const randomMatchBtn = document.getElementById('randomMatchBtn');
 
 const opponentStats = document.getElementById('opponentStats');
 const opponentScoreDisplay = document.getElementById('opponentScore');
+            // --- ▼▼▼ 請在此處新增下面這一行 ▼▼▼ ---
+const opponentNameLabel = document.getElementById('opponentNameLabel');
 
 const gameOverTitle = document.getElementById('gameOverTitle');
 const restartBtnSingle = document.getElementById('restartBtn'); // 單機模式按鈕
@@ -7201,6 +7204,19 @@ function listenToRoomChanges() {
 
         const roomData = snapshot.val();
         const opponentKey = isHost ? 'player2' : 'player1';
+          // ▼▼▼ 【修訂】請用這段完整的 if/else 程式碼，取代您舊的「即時更新對手分數」區塊 ▼▼▼
+        // 即時更新對手資訊 (分數與名稱)
+        if (roomData[opponentKey]) {
+            opponentStats.style.display = 'block';
+            opponentScoreDisplay.textContent = roomData[opponentKey].score;
+            // 【新增】從房間資料中讀取對手名稱，並更新到標籤上
+            opponentNameLabel.textContent = roomData[opponentKey].playerName || '對手';
+        } else {
+            opponentStats.style.display = 'none';
+            // 【新增】當對手離開時，將標籤文字重設回預設值
+            opponentNameLabel.textContent = '對手分數';
+        }
+        // ▲▲▲ 修訂結束 ▲▲▲
 
         // 即時更新對手分數
         if (roomData[opponentKey]) {
