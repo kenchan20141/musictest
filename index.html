@@ -5377,6 +5377,9 @@ function clearAllNotifications() {
 // ================================================================
 // ====== 【新增結束】 ==============================================
 // ================================================================
+// ================================================================
+// ====== 【新增結束】 ==============================================
+// ================================================================
 
             
 // 【修改後的版本】請用這段程式碼完整替換舊的 showNotification 函數
@@ -6514,6 +6517,9 @@ function updateGameLyrics(currentTime) {
 }
 
 
+// ====================================================================
+// ====== 【新增函數】遊戲開始倒數計時 ======
+// ====================================================================
 /**
  * 處理遊戲開始前的倒數計時
  */
@@ -6551,9 +6557,70 @@ function handleCountdown() {
     }, 1000); // 每秒執行一次
 }
 
+            // ====================================================================
+// ====== 【新增輔助函數】處理選歌與準備階段 ======
+// ====================================================================
+/**
+ * 專門處理線上對戰的「選歌」階段
+ * @param {object} roomData - 從 Firebase 獲取的房間資料
+ */
+function handleSongSelectionState(roomData) {
+    if (gameActive) return;
+    
+    // 確保在進入此狀態時，清理掉所有可能殘留的舊通知
+    clearAllNotifications();
+
+    if (!roomData.songSelector) {
+        if (isHost) {
+            const selector = Math.random() < 0.5 ? 'player1' : 'player2';
+            database.ref('rooms/' + currentRoomId).update({ songSelector: selector });
+        }
+        return;
+    }
+    
+    startBtn.innerHTML = originalStartButtonSVG;
+    const isMyTurnToSelect = (isHost && roomData.songSelector === 'player1') || (!isHost && roomData.songSelector === 'player2');
+
+    if (isMyTurnToSelect) {
+        musicSelect.disabled = false;
+        difficultySelect.disabled = false;
+        startBtn.disabled = false;
+        showNotification('info', '輪到你了！', '請選擇歌曲和難度，然後點擊開始。');
+    } else {
+        musicSelect.disabled = true;
+        difficultySelect.disabled = true;
+        startBtn.disabled = true;
+        showNotification('info', '等待對方', '請等待對手選擇歌曲...');
+    }
+}
+
+/**
+ * 處理線上對戰的「準備」階段
+ * @param {object} roomData - 從 Firebase 獲取的房間資料
+ */
+function handleReadyUpState(roomData) {
+    if (gameActive) return;
+
+    clearAllNotifications();
+    const playerKey = isHost ? 'player1' : 'player2';
+    
+    musicSelect.value = roomData.selectedSong;
+    difficultySelect.value = roomData.selectedDifficulty;
+    musicSelect.disabled = true;
+    difficultySelect.disabled = true;
+
+    if (roomData[playerKey].isReady) {
+        startBtn.disabled = true;
+        showNotification('info', '等待對手', '已送出準備，請等待對方確認...');
+    } else {
+        showNotification('info', '確認對戰', '對手已選擇歌曲，請點擊「準備」開始對戰！');
+        startBtn.disabled = false;
+    }
+}
+
             
 // ====================================================================
-// ====== 【第一步：簡化 startGame 函數，專注於啟動遊戲】 ======
+// ====== 【修訂後 startGame 函數】 ======
 // ====================================================================
 /**
  * 實際啟動遊戲畫面與邏輯 (不再處理線上模式的信號發送)
@@ -6577,8 +6644,6 @@ async function startGame() {
     
     gameActive = true;
     console.log("--- Game is now starting ---");
-
-    // (此處往下的所有遊戲啟動核心邏輯保持不變，無需修改)
     
     startBtn.disabled = true;
     musicSelect.disabled = true;
@@ -6637,8 +6702,8 @@ async function startGame() {
     setTimeout(() => { if (gameActive) endGame(); }, currentSongDuration * 1000 + 2000);
 }
 
-            // ====================================================================
-// ====== 【第二步：創建全新的統一按鈕處理函數】 ======
+// ====================================================================
+// ====== 【新增函數】統一的按鈕處理函數 ======
 // ====================================================================
 /**
  * 處理「開始/準備」按鈕的點擊事件
@@ -6862,6 +6927,9 @@ function grantAllRewards(rewards) {
 }
             
 
+// ====================================================================
+// ====== 【修訂後 endGame 函數】 ======
+// ====================================================================
 function endGame() {
     if (!gameActive) return;
 
@@ -7136,10 +7204,10 @@ function handleSongSelectionState(roomData) {
             
 
 // ====================================================================
-// ====== 【第二步：修訂 listenToRoomChanges 核心監聽器】 ======
+// ====== 【核心修訂】listenToRoomChanges 主狀態機 ======
 // ====================================================================
 /**
- * 核心監聽器，監聽房間內所有狀態變化 (最終修訂版)
+ * 核心監聽器，監聽房間內所有狀態變化
  */
 function listenToRoomChanges() {
     if (roomListener) {
@@ -7156,7 +7224,7 @@ function listenToRoomChanges() {
         const roomData = snapshot.val();
         const opponentKey = isHost ? 'player2' : 'player1';
 
-        // 更新對手分數 (此部分不變)
+        // 更新對手分數
         if (roomData[opponentKey]) {
             opponentStats.style.display = 'block';
             opponentScoreDisplay.textContent = roomData[opponentKey].score;
@@ -7164,53 +7232,45 @@ function listenToRoomChanges() {
             opponentStats.style.display = 'none';
         }
         
-        // 【核心修改】根據 gameState 分發任務
+        // 根據 gameState 分發任務
         switch (roomData.gameState) {
             case 'selecting_song':
-                handleSongSelectionState(roomData); // 【關鍵】交給新函數處理
+                handleSongSelectionState(roomData);
                 break;
             
             case 'readying_up':
-                handleReadyUpState(roomData); // 交給準備函數處理
+                handleReadyUpState(roomData);
                 break;
 
-           // 【新增】處理倒數計時狀態
-case 'countdown':
-    if (!gameActive) { // 防止重複觸發
-        handleCountdown();
-    }
-    break;
+            case 'countdown':
+                if (!gameActive) {
+                    clearAllNotifications();
+                    handleCountdown();
+                }
+                break;
 
-case 'playing':
-    // 【修訂】我們不再從這裡開始遊戲，倒數計時結束後會自動開始
-    // if (!gameActive) {
-    //     startGame();
-    // }
-    break;
+            case 'playing':
+                // `startGame` 會在倒數結束後由 handleCountdown 調用
+                break;
 
             case 'game_over':
-                if (gameActive) {
-                    gameActive = false; 
-                    handleOnlineGameOver(roomData);
-                }
+                handleOnlineGameOver(roomData);
                 break;
                 
             case 'rematch_reset':
                  resetForRematch();
                  if(isHost){
-                    // 只有房主負責將狀態推往下一個階段
                     database.ref(`rooms/${currentRoomId}`).update({ gameState: 'selecting_song' });
                  }
                 break;
         }
         
-       // 房主檢查是否所有人都已準備就緒
-if (isHost && roomData.gameState === 'readying_up' && roomData.player1?.isReady && roomData.player2?.isReady) {
-    // 【修訂】不再直接進入 'playing'，而是先進入 'countdown' 狀態
-    roomRef.update({ gameState: 'countdown' });
-}
+       // 由房主檢查是否所有人都已準備就緒，並觸發倒數
+        if (isHost && roomData.gameState === 'readying_up' && roomData.player1?.isReady && roomData.player2?.isReady) {
+            roomRef.update({ gameState: 'countdown' });
+        }
         
-        // 處理重賽請求 (此邏輯不變)
+        // 處理重賽請求的 UI 更新
         if (roomData.gameState === 'game_over') {
             handleRematchStatus(roomData);
         }
@@ -7233,13 +7293,20 @@ function startGameFromOnline(song, difficulty) {
     startGame(true); // 傳入一個標誌表示是線上模式
 }
 
+// ====================================================================
+// ====== 【新增函數】對戰結束與重賽邏輯 ======
+// ====================================================================
+
 /**
- * 處理線上模式的遊戲結束
+ * 處理線上模式的遊戲結束畫面
+ * @param {object} roomData - 從 Firebase 獲取的房間資料
  */
 function handleOnlineGameOver(roomData) {
-    // 【核心修正】檢查遊戲是否處於活躍狀態，如果不是，則直接返回避免重複執行
-    if (!gameActive) return;
-    // 【核心修正】立刻將遊戲狀態旗標重置為 false，這是修復重賽問題的關鍵
+    if (!gameActive && !gameOverModal.classList.contains('active')) {
+         // 確保即使遊戲非活躍，結束畫面也能被觸發一次
+    } else if (!gameActive) {
+        return; // 如果遊戲已非活躍且畫面已顯示，則不重複執行
+    }
     gameActive = false;
 
     cancelAnimationFrame(animationFrame);
@@ -7262,17 +7329,15 @@ function handleOnlineGameOver(roomData) {
     
     restartBtnSingle.style.display = 'none';
     onlineRematchControls.style.display = 'flex';
-    // 【新增】確保重賽按鈕在每局結束時都是可用的
     rematchBtn.disabled = false;
     rematchStatus.textContent = '';
     gameOverModal.classList.add('active');
 }
 
-// ====================================================================
-// ====== 【第三步：修訂 handleRematchStatus 重賽邏輯】 ======
-// ====================================================================
+
 /**
- * 處理重賽狀態顯示 (修訂版，增加完整的狀態重置)
+ * 處理重賽狀態的 UI 顯示
+ * @param {object} roomData - 從 Firebase 獲取的房間資料
  */
 function handleRematchStatus(roomData) {
     const myRematch = roomData[isHost ? 'player1' : 'player2'].rematch;
@@ -7280,10 +7345,10 @@ function handleRematchStatus(roomData) {
 
     if (myRematch && opponentRematch) {
         if (isHost) {
-            // 【核心修改】由房主(Host)負責重置所有相關狀態
+            // 由房主負責重置所有相關狀態，並觸發 'rematch_reset'
             database.ref(`rooms/${currentRoomId}`).update({
                 gameState: 'rematch_reset',
-                songSelector: null,          // 【關鍵】清除選歌者，下一局重新隨機
+                songSelector: null,
                 selectedSong: null,
                 selectedDifficulty: null,
                 'player1/isReady': false,
@@ -7302,15 +7367,12 @@ function handleRematchStatus(roomData) {
 }
 
 /**
- * 為重賽重置遊戲狀態
+ * 為重賽重置遊戲狀態和 UI
  */
 function resetForRematch() {
     gameOverModal.classList.remove('active');
-    
-    // 【核心修正】在重置UI時，再次確保 gameActive 狀態為 false
     gameActive = false;
     
-    // 重置分數和UI
     score = 0;
     pureHitScore = 0;
     combo = 0;
@@ -7318,11 +7380,9 @@ function resetForRematch() {
     updateUI();
     opponentScoreDisplay.textContent = '0';
     
-    // 清理遊戲區域
     tracksContainer.innerHTML = '';
     initGame();
     
-    // 解鎖按鈕
     startBtn.disabled = false;
     musicSelect.disabled = false;
     difficultySelect.disabled = false;
@@ -7918,7 +7978,26 @@ function updatePlayingVisuals(isPlaying) {
                 e.target.style.background = `linear-gradient(to right, #3b82f6 ${percent}%, #4a5568 ${percent}%)`;
             });
             
-            startBtn.addEventListener('click', handleStartButtonClick);
+           // ==========================================================
+// ====== 【新增】對戰結束後按鈕的事件監聽器 ======
+// ==========================================================
+// 重賽按鈕
+rematchBtn.addEventListener('click', () => {
+    const playerKey = isHost ? 'player1' : 'player2';
+    database.ref(`rooms/${currentRoomId}/${playerKey}/rematch`).set(true);
+    rematchBtn.disabled = true;
+});
+
+// 結束遊戲按鈕
+endGameBtn.addEventListener('click', () => {
+    if (currentRoomId) {
+        database.ref('rooms/' + currentRoomId).remove();
+    }
+    resetToMainMenu();
+});
+// ==========================================================
+// ====== 【新增結束】 ========================================
+// ==========================================================
             document.addEventListener('keydown', handleKeyDown);
             document.addEventListener('keyup', handleKeyUp);
             restartBtn.addEventListener('click', restartGame);
