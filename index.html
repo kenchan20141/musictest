@@ -3458,6 +3458,22 @@ font-size: 14px;
 .copyright-footer p {
 font-size: 12px;
 }
+     #onlineRematchControls {
+        /* 核心：將按鈕的排列方向從水平 (row) 改為垂直 (column) */
+        flex-direction: column;
+        
+        /* 讓容器寬度延展至 100%，以容納全寬按鈕 */
+        width: 100%;
+        
+        /* 確保按鈕之間有適當的垂直間距 */
+        gap: 15px;
+    }
+
+    /* 讓容器內的每個按鈕都佔滿寬度 */
+    #onlineRematchControls .restart-btn {
+        width: 100%;
+        margin: 0; /* 移除可能存在的左右 margin */
+    }
 }  
 
         /* ====== 響應式微調：針對螢幕較高的裝置，給予播放列表更多空間 ====== */
@@ -3726,6 +3742,30 @@ font-size: 12px;
     font-size: 1.4rem;
     font-weight: bold;
     color: var(--starlight-accent, #b48f5a);
+}
+
+        /* ====== 【第二項修訂】對戰排行榜「我的排名」樣式 ====== */
+.my-rank-display {
+    width: 100%;
+    padding: 15px 20px;
+    margin-bottom: 25px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(180, 143, 90, 0.1), rgba(180, 143, 90, 0.05));
+    border: 1px solid var(--starlight-accent, #b48f5a);
+    text-align: center;
+    font-size: 1.1rem;
+    color: var(--starlight-text-primary, #3a332a);
+}
+
+.my-rank-display strong {
+    color: var(--starlight-accent, #b48f5a);
+    font-size: 1.5rem;
+    margin: 0 8px;
+}
+
+        .battle-rank-item.is-me {
+    border-left-color: #ffc107; /* 金色高亮邊框 */
+    font-weight: bold;
 }
         
     </style>
@@ -4112,6 +4152,7 @@ const battleRankingsModal = document.getElementById('battleRankingsModal');
 const closeBattleRankingsModal = document.getElementById('closeBattleRankingsModal');
 const battleRankingsList = document.getElementById('battleRankingsList');
 const battleRankingsLoading = document.getElementById('battleRankingsLoading');
+            const myBattleRankDisplay = document.getElementById('myBattleRankDisplay');
             
 // ==========================================================
 // ====== 【新增結束】 ========================================
@@ -6012,34 +6053,48 @@ async function handlePlayerName() {
 }
 
 /**
- * 顯示對戰模式總排行榜
+ * 顯示對戰模式總排行榜 (增強版：同時顯示個人排名)
  */
 async function displayBattleRankings() {
     battleRankingsLoading.style.display = 'block';
     battleRankingsList.innerHTML = '';
+    myBattleRankDisplay.style.display = 'none'; // 先隱藏個人排名區
 
+    // --- 任務 1: 獲取並顯示個人排名 ---
+    if (playerId) {
+        const myRankRef = database.ref('battleRankings/' + playerId);
+        myRankRef.once('value').then(snapshot => {
+            if (snapshot.exists()) {
+                const myData = snapshot.val();
+                myBattleRankDisplay.innerHTML = `
+                    <span>你的積分: </span><strong>${myData.battleScore.toLocaleString()}</strong>
+                `;
+                myBattleRankDisplay.style.display = 'block'; // 找到數據後顯示
+            }
+        });
+    }
+
+    // --- 任務 2: 獲取並顯示 Top 10 排行榜 (與任務 1 並行) ---
     const rankingsRef = database.ref('battleRankings');
-    
     try {
-        // 查詢 battleScore 最高的 10 位玩家
         const snapshot = await rankingsRef.orderByChild('battleScore').limitToLast(10).once('value');
         
         if (snapshot.exists()) {
             const rankingsData = [];
             snapshot.forEach(childSnapshot => {
-                rankingsData.push({
-                    id: childSnapshot.key,
-                    ...childSnapshot.val()
-                });
+                rankingsData.push({ id: childSnapshot.key, ...childSnapshot.val() });
             });
 
-            // Firebase 的 limitToLast 是升序的，我們需要反轉成降序
             rankingsData.reverse();
 
-            battleRankingsList.innerHTML = ''; // 清空列表
+            battleRankingsList.innerHTML = '';
             rankingsData.forEach(player => {
                 const li = document.createElement('li');
                 li.className = 'battle-rank-item';
+                // 如果上榜玩家是自己，給予一個特殊高亮 class
+                if (player.id === playerId) {
+                    li.classList.add('is-me');
+                }
                 li.innerHTML = `
                     <span class="battle-rank-name">${player.playerName}</span>
                     <span class="battle-rank-score">${player.battleScore.toLocaleString()} 分</span>
@@ -6058,26 +6113,27 @@ async function displayBattleRankings() {
     }
 }
 
-            /**
- * 安全地更新玩家的對戰總分
+/**
+ * 安全地更新玩家的對戰總分 (增強版：分數不為負)
  * @param {string} pId - 玩家的唯一 ID
  * @param {string} pName - 玩家的名稱
  * @param {number} scoreChange - 分數變化 (+1000, -500, or 0)
  */
 function updateBattleScore(pId, pName, scoreChange) {
-    if (!pId || scoreChange === 0) return; // 如果沒有 ID 或分數不變，則不執行
+    if (!pId || scoreChange === 0) return;
 
     const playerRef = database.ref(`battleRankings/${pId}`);
 
     playerRef.transaction(currentData => {
         if (currentData === null) {
-            // 如果玩家是第一次上榜
-            return { playerName: pName, battleScore: scoreChange };
+            // 如果玩家是第一次上榜，初始分數絕不為負
+            return { playerName: pName, battleScore: Math.max(0, scoreChange) };
         } else {
             // 更新現有分數
-            currentData.battleScore += scoreChange;
-            // 同時更新玩家名稱，以防玩家改名
-            currentData.playerName = pName; 
+            const newScore = currentData.battleScore + scoreChange;
+            // 核心修改：確保新分數不會低於 0
+            currentData.battleScore = Math.max(0, newScore);
+            currentData.playerName = pName;
             return currentData;
         }
     }).catch(error => {
@@ -8902,6 +8958,13 @@ roomIdInput.addEventListener('input', (e) => {
         
         <div class="leaderboard-display">
             <p style="text-align: center; color: #aaa; margin-bottom: 20px;">根據勝負積分，顯示總分最高的前十名玩家。</p>
+
+ <!-- ▼▼▼ 請將這段新的 HTML 程式碼加在這裡 ▼▼▼ -->
+    <div id="myBattleRankDisplay" class="my-rank-display" style="display: none;">
+        <!-- 內容將由 JavaScript 動態填入 -->
+    </div>
+    <!-- ▲▲▲ 新增結束 ▲▲▲ -->
+            
             <ol class="personal-high-score-list" id="battleRankingsList">
                 <!-- 排行榜資料會由 JS 動態填入 -->
             </ol>
