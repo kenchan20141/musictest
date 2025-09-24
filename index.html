@@ -7067,12 +7067,47 @@ function handleSongSelectionState(roomData) {
 }
 
             
-
 // ====================================================================
-// ====== 【第二步：修訂 listenToRoomChanges 核心監聽器】 ======
+// ====== 【第二步：新增 startCountdown 倒數計時函數】 ======
 // ====================================================================
 /**
- * 核心監聽器，監聽房間內所有狀態變化 (最終修訂版)
+ * 啟動一個 3 秒的倒數計時，結束後才真正開始遊戲
+ */
+function startCountdown() {
+    // 確保遊戲還沒開始，防止重複觸發
+    if (gameActive) return;
+
+    const overlay = document.getElementById('countdownOverlay');
+    const text = document.getElementById('countdownText');
+    
+    let count = 3;
+    text.textContent = count;
+    overlay.style.display = 'flex'; // 顯示倒數畫面
+
+    const countdownInterval = setInterval(() => {
+        count--;
+        if (count > 0) {
+            text.textContent = count;
+        } else {
+            clearInterval(countdownInterval);
+            text.textContent = '開始!'; // 顯示 "開始!"
+            
+            setTimeout(() => {
+                overlay.style.display = 'none'; // 隱藏倒數畫面
+                startGame(); // 【關鍵】倒數結束後，才呼叫真正的 startGame 函數
+            }, 500); // 顯示 "開始!" 0.5 秒後再消失
+        }
+    }, 1000); // 每秒執行一次
+}
+
+
+
+            
+// ====================================================================
+// ====== 【第三步：修訂 listenToRoomChanges 核心監聽器】 ======
+// ====================================================================
+/**
+ * 核心監聽器，引入 countdown 狀態來同步遊戲開始
  */
 function listenToRoomChanges() {
     if (roomListener) {
@@ -7089,7 +7124,7 @@ function listenToRoomChanges() {
         const roomData = snapshot.val();
         const opponentKey = isHost ? 'player2' : 'player1';
 
-        // 更新對手分數 (此部分不變)
+        // 更新對手分數
         if (roomData[opponentKey]) {
             opponentStats.style.display = 'block';
             opponentScoreDisplay.textContent = roomData[opponentKey].score;
@@ -7097,18 +7132,28 @@ function listenToRoomChanges() {
             opponentStats.style.display = 'none';
         }
         
-        // 【核心修改】根據 gameState 分發任務
+        // 根據 gameState 分發任務
         switch (roomData.gameState) {
             case 'selecting_song':
-                handleSongSelectionState(roomData); // 【關鍵】交給新函數處理
+                handleSongSelectionState(roomData);
                 break;
             
             case 'readying_up':
-                handleReadyUpState(roomData); // 交給準備函數處理
+                handleReadyUpState(roomData);
+                break;
+
+            // 【核心新增】處理新的倒數計時狀態
+            case 'countdown':
+                if (!gameActive) {
+                    startCountdown();
+                }
                 break;
 
             case 'playing':
+                // 這個狀態現在只是一個標記，實際的遊戲啟動由 countdown 結束後觸發
+                // 我們可以保留它，以防萬一有客戶端錯過了 countdown 直接跳到 playing
                 if (!gameActive) {
+                    // 作為備用方案，如果直接進入 playing 狀態，就立即開始
                     startGame();
                 }
                 break;
@@ -7123,18 +7168,18 @@ function listenToRoomChanges() {
             case 'rematch_reset':
                  resetForRematch();
                  if(isHost){
-                    // 只有房主負責將狀態推往下一個階段
                     database.ref(`rooms/${currentRoomId}`).update({ gameState: 'selecting_song' });
                  }
                 break;
         }
         
-        // 房主檢查是否所有人都已準備就緒 (此邏輯不變)
+        // 【核心修改】房主檢查是否所有人都已準備就緒
         if (isHost && roomData.gameState === 'readying_up' && roomData.player1?.isReady && roomData.player2?.isReady) {
-            roomRef.update({ gameState: 'playing' });
+            // 將狀態變更為 'countdown' 而不是 'playing'
+            roomRef.update({ gameState: 'countdown' });
         }
         
-        // 處理重賽請求 (此邏輯不變)
+        // 處理重賽請求
         if (roomData.gameState === 'game_over') {
             handleRematchStatus(roomData);
         }
@@ -8247,6 +8292,14 @@ roomIdInput.addEventListener('input', (e) => {
     </div>
 </div>
 <!-- ▲▲▲ 新增結束 ▲▲▲ -->
+
+    <!-- ==================================================================== -->
+<!-- ====== 【第一步：新增倒數計時的 HTML 元素】 ====== -->
+<!-- ==================================================================== -->
+<!-- 請將這段 HTML 放在 </body> 標籤之前 -->
+<div id="countdownOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 9999; font-size: 15vw; color: white; font-weight: bold; text-shadow: 0 0 20px #ff8a00;">
+    <span id="countdownText">3</span>
+</div>
 
 </body>
 </html>
