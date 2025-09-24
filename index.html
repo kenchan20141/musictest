@@ -3463,9 +3463,61 @@ font-size: 12px;
     user-select: none;
 }     
 
-        /* 【修訂三】修正線上對戰房間輸入框寬度 */
-#onlineMatchModal .setting-control {
-    box-sizing: border-box;
+/* ====== 【修訂】縮小房間號碼輸入框的字距 ====== */
+#roomIdInput {
+    letter-spacing: 0.2em; /* 將字距從 0.5em 大幅縮小到 0.2em */
+}
+
+        /* ====== 【新增】區分「創建」與「加入」房間按鈕顏色 ====== */
+
+/* 創建房間按鈕 (主色調 - 活力綠) */
+#createRoomBtn {
+    background: linear-gradient(45deg, #1D976C, #93F9B9);
+}
+#createRoomBtn:hover {
+    box-shadow: 0 8px 20px rgba(29, 151, 108, 0.3);
+}
+
+/* 加入房間按鈕 (次色調 - 穩重紫) */
+#joinRoomBtn {
+    background: linear-gradient(45deg, #8A2BE2, #4B0082);
+}
+#joinRoomBtn:hover {
+    box-shadow: 0 8px 20px rgba(138, 43, 226, 0.3);
+}
+
+        /* ====== 【新增】對戰對手分數部件的獨特樣式 ====== */
+
+/* 對手分數框的整體容器 */
+.stat-box#opponentStats {
+    background: rgba(199, 0, 57, 0.3); /* 使用帶有敵對感的深紅色透明背景 */
+    border: 2px solid rgba(255, 82, 82, 0.5); /* 明亮的紅色邊框 */
+    box-shadow: 0 0 15px rgba(255, 82, 82, 0.3) inset; /* 紅色內發光效果 */
+    transform: skewX(-5deg); /* 稍微傾斜，增加動感和區別 */
+    transition: all 0.3s ease;
+}
+
+/* 修正傾斜對內部元素的影響 */
+.stat-box#opponentStats .stat-value,
+.stat-box#opponentStats .stat-label {
+    transform: skewX(5deg); /* 將內部元素反向傾斜回來，使其保持直立 */
+}
+
+/* 對手分數數字的顏色 */
+.stat-box#opponentStats .stat-value {
+    color: #ff5252; /* 明亮的紅色 */
+    text-shadow: 0 0 8px rgba(255, 82, 82, 0.7); /* 紅色光暈 */
+}
+
+/* 對手標籤文字的顏色 */
+.stat-box#opponentStats .stat-label {
+    /* 沿用原有的描邊效果，但基礎顏色改為更適合紅色背景的淺色 */
+    color: #fce4ec; /* 非常淺的粉紅色 */
+    text-shadow:
+        -1px -1px 0 rgba(0, 0, 0, 0.7),
+         1px -1px 0 rgba(0, 0, 0, 0.7),
+        -1px  1px 0 rgba(0, 0, 0, 0.7),
+         1px  1px 0 rgba(0, 0, 0, 0.7);
 }
         
     </style>
