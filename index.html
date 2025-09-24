@@ -3411,7 +3411,28 @@ font-size: 12px;
     }
 }
 
-        
+   /* ================================================= */
+/* ====== 【全新】遊戲開始倒數計時畫面樣式 ====== */
+/* ================================================= */
+
+#countdown-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: none; /* 預設隱藏 */
+    justify-content: center;
+    align-items: center;
+    font-size: 15vw; /* 字體大小會根據螢幕寬度變化 */
+    font-weight: bold;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.5); /* 半透明黑色背景 */
+    z-index: 100; /* 確保在最上層 */
+    text-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+    -webkit-user-select: none;
+    user-select: none;
+}     
         
     </style>
 
@@ -3557,6 +3578,12 @@ font-size: 12px;
                 </div>
                <div class="game-area">
     <div class="tracks" id="tracksContainer"></div>
+
+<!-- ▼▼▼ 請將這段新的 HTML 加在這裡 ▼▼▼ -->
+<div id="countdown-overlay"></div>
+<!-- ▲▲▲ 新增結束 ▲▲▲ -->
+
+                   
                     <!-- ▼▼▼ 請將這段新的 HTML 加在這裡 ▼▼▼ -->
     <div class="vertical-lyrics-container">
         <p id="game-lyric-text"></p>
@@ -4854,11 +4881,6 @@ let currentComboIndex = 0;
 // ▲▲▲ 新增結束 ▲▲▲
             
             let gameActive = false;
-            // ▼▼▼ 【新增】用於儲存預載資料的全域變數 ▼▼▼
-let preloadedNoteQueue = [];
-let preloadedDuration = 0;
-let isPreloading = false; // 防止重複預載的旗標
-// ▲▲▲ 新增結束 ▲▲▲
 let maxScoreForCurrentLevel = 0; // ▼▼▼ 新增狀態變數
             let unlockThresholdPercentage = 0; // ▼▼▼ 新增狀態變數
             let score = 0; // 總分，包含連擊獎勵
@@ -6258,41 +6280,6 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     return data.sort((a, b) => a.time - b.time);
 }
 
-
-// ▼▼▼ 【新增】準備線上遊戲資料的非同步函數 ▼▼▼
-async function prepareOnlineGameData(song, difficulty) {
-    if (isPreloading) return; // 如果正在預載，則退出
-    isPreloading = true;
-
-    // 顯示一個提示，告知玩家正在準備中
-    showNotification('info', '正在準備...', '正在為對戰準備歌曲資料，請稍候...');
-
-    const difficultySettings = difficultySettings[difficulty] || difficultySettings.normal;
-    const beatTimestamps = await analyzeAudioForBeats(song);
-    preloadedDuration = await getAudioDuration(song);
-    
-    const noteSpeed = Math.floor(4000 / difficultySettings.speedMultiplier);
-    
-    // 產生一個基於歌曲和難度的確定性種子，確保所有玩家生成相同的譜面
-    const songAndDifficultyString = song + difficulty;
-    let seed = 0;
-    for (let i = 0; i < songAndDifficultyString.length; i++) {
-        const char = songAndDifficultyString.charCodeAt(i);
-        seed = ((seed << 5) - seed) + char;
-        seed |= 0;
-    }
-    seed = Math.abs(seed) || 1;
-    
-    // 將生成的結果儲存到我們的全域變數中
-    preloadedNoteQueue = generateSongData(preloadedDuration, difficultySettings, beatTimestamps, seed, noteSpeed);
-    
-    console.log("遊戲資料預載完成!");
-    isPreloading = false;
-}
-// ▲▲▲ 新增結束 ▲▲▲
-
-            
-
             function generateNotesContinuously() {
                 if (!gameActive) return;
                 const currentTime = (Date.now() - gameStartTime) / 1000;
@@ -6525,24 +6512,62 @@ function updateGameLyrics(currentTime) {
     // 將找到的歌詞文字，更新到我們的垂直歌詞元素中
     verticalLyricElement.textContent = currentLyricText;
 }
+
+
+/**
+ * 處理遊戲開始前的倒數計時
+ */
+function handleCountdown() {
+    // 獲取倒數計時的顯示元素
+    const countdownOverlay = document.getElementById('countdown-overlay');
+    if (!countdownOverlay) return;
+
+    // 鎖定開始按鈕，防止在倒數時誤觸
+    startBtn.disabled = true;
+
+    // 開始倒數
+    countdownOverlay.style.display = 'flex'; // 讓倒數畫面顯示出來
+    let count = 3;
+    countdownOverlay.textContent = count;
+
+    const countdownInterval = setInterval(() => {
+        count--;
+        if (count > 0) {
+            countdownOverlay.textContent = count;
+        } else {
+            clearInterval(countdownInterval); // 清除計時器
+            countdownOverlay.textContent = '開始!';
+
+            // 顯示 "開始!" 一小段時間後，隱藏畫面並啟動遊戲
+            setTimeout(() => {
+                countdownOverlay.style.display = 'none';
+                if(isHost) {
+                    // 由主機方更新狀態為'playing'，確保狀態同步
+                    database.ref(`rooms/${currentRoomId}`).update({ gameState: 'playing' });
+                }
+                startGame(); // 雙方客戶端在此刻同時啟動遊戲
+            }, 500); // 顯示 0.5 秒
+        }
+    }, 1000); // 每秒執行一次
+}
+
+            
 // ====================================================================
 // ====== 【第一步：簡化 startGame 函數，專注於啟動遊戲】 ======
 // ====================================================================
 /**
  * 實際啟動遊戲畫面與邏輯 (不再處理線上模式的信號發送)
  */
-// 完整修訂版的 startGame 函數
 async function startGame() {
     // 遊戲啟動前的最終檢查
     if (gameActive) return;
 
-    // 清理所有可能殘留的通知
     clearAllNotifications();
 
     const selectedSong = musicSelect.value;
     const selectedDifficulty = difficultySelect.value;
     
-    // 只有在單機模式下才檢查解鎖狀態，線上模式由選歌方在點擊時檢查
+    // 單機模式下的解鎖檢查
     if (gameMode === 'single') {
         if (!isSongUnlocked(selectedSong) || !isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
             showNotification('info', '項目未解鎖', '此歌曲或難度尚未解鎖。');
@@ -6550,157 +6575,112 @@ async function startGame() {
         }
     }
     
-    // 設置遊戲狀態為活躍
     gameActive = true;
     console.log("--- Game is now starting ---");
 
-    // 更新遊戲UI，進入遊戲中狀態
+    // (此處往下的所有遊戲啟動核心邏輯保持不變，無需修改)
+    
     startBtn.disabled = true;
     musicSelect.disabled = true;
     difficultySelect.disabled = true;
     mainGameContainer.classList.add('game-running'); 
-    
-    // 初始化解鎖進度條
     unlockProgressBar.style.height = '100%';
     unlockProgressBar.style.width = '0%';
     unlockProgressBar.classList.remove('glowing');
     songUnlockMarker.style.left = `${SONG_UNLOCK_PERCENTAGE * 100}%`;
     difficultyUnlockMarker.style.left = `${DIFFICULTY_UNLOCK_PERCENTAGE * 100}%`;
-    
-    // 顯示載入中的動畫
     startBtn.innerHTML = `<svg class="start-button-svg" viewBox="0 0 40 40" style="width:40px;height:40px;"><circle cx="20" cy="20" r="18" stroke="#ff8a00" stroke-width="3" fill="none" stroke-dasharray="89" stroke-dashoffset="20"><animateTransform attributeName="transform" type="rotate" from="0 20 20" to="360 20 20" dur="1s" repeatCount="indefinite" /></circle></svg>`;
     
-    const difficulty = difficultySettings[selectedDifficulty] || difficultySettings.normal;
-    noteSpeed = Math.floor(4000 / difficulty.speedMultiplier);
-
-    let durationForGame;
-
-    // 根據遊戲模式決定如何獲取音符資料
-    if (gameMode === 'online') {
-        // 線上模式：直接使用預先載入好的資料
-        noteQueue = [...preloadedNoteQueue];
-        durationForGame = preloadedDuration;
-        console.log("使用預載資料啟動線上遊戲...");
-    } else {
-        // 單機模式：像以前一樣即時分析和生成資料
-        console.log("即時生成資料以啟動單機遊戲...");
-        const beatTimestamps = await analyzeAudioForBeats(selectedSong);
-        durationForGame = await getAudioDuration(selectedSong);
-        
-        // 產生一個基於歌曲和難度的確定性種子
-        const songAndDifficultyString = selectedSong + selectedDifficulty;
-        let seed = 0;
-        for (let i = 0; i < songAndDifficultyString.length; i++) {
-            const char = songAndDifficultyString.charCodeAt(i);
-            seed = ((seed << 5) - seed) + char;
-            seed |= 0; // Convert to 32bit integer
-        }
-        seed = Math.abs(seed) || 1;
-        
-        noteQueue = generateSongData(durationForGame, difficulty, beatTimestamps, seed, noteSpeed);
-    }
-    
-    // 載入完成後，恢復開始按鈕的原始圖示
+    const difficulty = getCurrentDifficulty();
+    const beatTimestamps = await analyzeAudioForBeats(selectedSong);
     startBtn.innerHTML = originalStartButtonSVG;
-    
-    currentSongDuration = durationForGame; // 確保這個全域變數被正確賦值
 
-    // 計算當前關卡的理論最高分 (用於解鎖進度條)
-    maxScoreForCurrentLevel = noteQueue.length * 100; // 假設 perfect 是 100 分
-    if (maxScoreForCurrentLevel === 0) {
-        maxScoreForCurrentLevel = 300000; // 設置一個預設值以防出錯
-    }
-    
-    // 準備播放音訊
     progressContainerDiv.style.display = 'block';
     trackCooldownUntil.fill(0); 
     audio.src = selectedSong;
     audio.volume = volumeControlModal.value;
+    currentSongDuration = await getAudioDuration(selectedSong);
+    noteSpeed = Math.floor(4000 / difficulty.speedMultiplier);
+
+    const songAndDifficultyString = selectedSong + selectedDifficulty;
+    let seed = 0;
+    for (let i = 0; i < songAndDifficultyString.length; i++) {
+        const char = songAndDifficultyString.charCodeAt(i);
+        seed = ((seed << 5) - seed) + char;
+        seed |= 0;
+    }
+    seed = Math.abs(seed) || 1;
     
-    // 設置一個一次性的 'play' 事件監聽器來同步遊戲邏輯的開始時間
+    noteQueue = generateSongData(currentSongDuration, difficulty, beatTimestamps, seed, noteSpeed);
+    const maxBaseScorePerNote = 100;
+    maxScoreForCurrentLevel = noteQueue.length * maxBaseScorePerNote;
+    if (maxScoreForCurrentLevel === 0) {
+        maxScoreForCurrentLevel = 300000;
+    }
+    
     const onAudioPlay = () => {
         gameStartTime = Date.now();
         generateNotesContinuously();
         gameLoop();
         progressInterval = setInterval(updateProgress, 100);
-        audio.removeEventListener('play', onAudioPlay); // 執行後立即移除，避免重複觸發
+        audio.removeEventListener('play', onAudioPlay);
     };
 
     audio.addEventListener('play', onAudioPlay);
     
-    // 嘗試播放音訊
     audio.play().catch(e => {
         console.log("音訊播放失敗:", e);
-        audio.removeEventListener('play', onAudioPlay); // 播放失敗也要移除監聽器
-        gameActive = false; // 重置遊戲狀態
+        audio.removeEventListener('play', onAudioPlay);
+        gameActive = false;
     });
 
-    // 【核心同步修改】
-    // 只有在「單機模式」或「線上模式的主機方」，才設定結束遊戲的計時器
-    // 客戶端將會等待主機發送的 'game_over' 信號來結束遊戲
-    if (gameMode === 'single' || (gameMode === 'online' && isHost)) {
-        setTimeout(() => {
-            if (gameActive) {
-                endGame();
-            }
-        }, currentSongDuration * 1000 + 2000); // 歌曲結束後再加 2 秒緩衝
-    }
+    setTimeout(() => { if (gameActive) endGame(); }, currentSongDuration * 1000 + 2000);
 }
 
-// ▼▼▼ 【修訂】處理「開始/準備」按鈕的點擊事件 ▼▼▼
-async function handleStartButtonClick() { // 將函數標記為 async
-    // 單機模式的邏輯保持不變
+            // ====================================================================
+// ====== 【第二步：創建全新的統一按鈕處理函數】 ======
+// ====================================================================
+/**
+ * 處理「開始/準備」按鈕的點擊事件
+ */
+function handleStartButtonClick() {
+    // 情況一：單機模式，直接開始遊戲
     if (gameMode === 'single') {
         startGame();
         return;
     }
 
-    // 線上對戰模式的邏輯
+    // 情況二：線上對戰模式
     if (gameMode === 'online' && currentRoomId) {
-        startBtn.disabled = true; // 點擊後立即禁用按鈕，防止重複操作
         const roomRef = database.ref('rooms/' + currentRoomId);
-        
-        try {
-            const snapshot = await roomRef.get();
+        roomRef.get().then(snapshot => {
             if (!snapshot.exists()) return;
             const roomData = snapshot.val();
             const playerKey = isHost ? 'player1' : 'player2';
 
+            // 根據遊戲狀態決定按鈕功能
             if (roomData.gameState === 'selecting_song') {
-                // 這是選歌方點擊，表示「我已選好並準備就緒」
+                // 此時是選歌方點擊，發送「選歌並準備」信號
                 const selectedSong = musicSelect.value;
                 const selectedDifficulty = difficultySelect.value;
                 
                 if (!isSongUnlocked(selectedSong) || !isDifficultyUnlocked(selectedSong, selectedDifficulty)) {
                     showNotification('info', '項目未解鎖', '你不能選擇尚未解鎖的歌曲或難度進行對戰。');
-                    startBtn.disabled = false; // 恢復按鈕
                     return;
                 }
                 
-                // 【核心修改】在更新Firebase前，先準備遊戲資料
-                await prepareOnlineGameData(selectedSong, selectedDifficulty);
-                
-                // 資料準備好後，再更新伺服器狀態
                 roomRef.update({
                     selectedSong: selectedSong,
                     selectedDifficulty: selectedDifficulty,
                     gameState: 'readying_up',
-                    [playerKey]: { ...roomData[playerKey], isReady: true }
+                    [playerKey + '/isReady']: true
                 });
 
             } else if (roomData.gameState === 'readying_up') {
-                // 這時是非選歌方點擊，表示「我也準備好了」
-                
-                // 【核心修改】同樣，在更新Firebase前，先準備遊戲資料
-                await prepareOnlineGameData(roomData.selectedSong, roomData.selectedDifficulty);
-                
-                // 資料準備好後，再更新伺服器狀態
+                // 此時是非選歌方點擊，發送「我已準備」信號
                 roomRef.child(playerKey).update({ isReady: true });
             }
-        } catch (error) {
-            console.error("處理開始點擊時出錯:", error);
-            startBtn.disabled = false; // 出錯時恢復按鈕
-        }
+        });
     }
 }
 
@@ -7191,30 +7171,22 @@ function listenToRoomChanges() {
                 break;
             
             case 'readying_up':
-                // ▼▼▼ 【修訂】此處邏輯現在變得更簡單 ▼▼▼
-                musicSelect.value = roomData.selectedSong;
-                difficultySelect.value = roomData.selectedDifficulty;
-                musicSelect.disabled = true;
-                difficultySelect.disabled = true;
-
-                const playerKey = isHost ? 'player1' : 'player2';
-                if (roomData[playerKey].isReady) {
-                    // 如果我已經準備好了，就禁用按鈕並等待
-                    startBtn.disabled = true;
-                    showNotification('info', '等待對手', '已送出準備，等待對方確認...');
-                } else {
-                    // 如果我還沒準備，顯示提示並啟用按鈕
-                    showNotification('info', '確認對戰', '對手已選擇歌曲，請點擊「開始」按鈕進行準備！');
-                    startBtn.disabled = false;
-                }
+                handleReadyUpState(roomData); // 交給準備函數處理
                 break;
-            // ▲▲▲ 修訂結束 ▲▲▲
 
-            case 'playing':
-                if (!gameActive) {
-                    startGame();
-                }
-                break;
+           // 【新增】處理倒數計時狀態
+case 'countdown':
+    if (!gameActive) { // 防止重複觸發
+        handleCountdown();
+    }
+    break;
+
+case 'playing':
+    // 【修訂】我們不再從這裡開始遊戲，倒數計時結束後會自動開始
+    // if (!gameActive) {
+    //     startGame();
+    // }
+    break;
 
             case 'game_over':
                 if (gameActive) {
@@ -7232,10 +7204,11 @@ function listenToRoomChanges() {
                 break;
         }
         
-        // 房主檢查是否所有人都已準備就緒 (此邏輯不變)
-        if (isHost && roomData.gameState === 'readying_up' && roomData.player1?.isReady && roomData.player2?.isReady) {
-            roomRef.update({ gameState: 'playing' });
-        }
+       // 房主檢查是否所有人都已準備就緒
+if (isHost && roomData.gameState === 'readying_up' && roomData.player1?.isReady && roomData.player2?.isReady) {
+    // 【修訂】不再直接進入 'playing'，而是先進入 'countdown' 狀態
+    roomRef.update({ gameState: 'countdown' });
+}
         
         // 處理重賽請求 (此邏輯不變)
         if (roomData.gameState === 'game_over') {
