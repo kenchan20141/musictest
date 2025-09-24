@@ -2434,24 +2434,31 @@
 }
 
 
-/* ====== 2. 遊戲結束畫面 (Game Over Modal) - "榮耀殿堂" 主題 ====== */
+/* --- 2. 視窗主容器樣式 --- */
 .game-over-modal .game-over-content {
-    /* 【核心】設定寬度 */
-    width: 90%;
-    max-width: 450px;
-    box-sizing: border-box;
-
-    /* 【設計】維持深邃、有成就感的深藍漸層，但細節更精緻 */
-    background: linear-gradient(160deg, #1d2b4a, #11182c);
-    border: 1px solid rgba(255, 204, 0, 0.3); /* 細緻的金色邊框 */
-    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5), 0 0 25px rgba(255, 204, 0, 0.2) inset; /* 外部深度陰影 + 內部光暈 */
+    /* 【設計】套用全新的顏色和背景 */
+    background: var(--jade-bg);
+    color: var(--jade-text-primary);
+    
+    /* 【設計】更大的圓角與精緻的邊框 */
     border-radius: 20px;
-    padding: 30px 40px;
+    border: 1px solid var(--jade-border-color);
+    
+    /* 【設計】柔和的雙層陰影，營造輕盈的懸浮感 */
+    box-shadow: 0 4px 15px var(--jade-shadow-color), 0 0 1px var(--jade-border-color);
+    
+    /* 【佈局】增加內邊距，讓內容更舒展 */
+    padding: 35px 45px;
 
-    /* 【動畫】彈出動畫 */
+    /* 【動畫】保留原有的流暢彈出動畫 */
     transform: scale(0.8);
     opacity: 0;
     transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.4s ease;
+
+    /* ▼▼▼ 【核心修訂】請在這裡加入以下三行 ▼▼▼ */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .game-over-modal.active .game-over-content {
