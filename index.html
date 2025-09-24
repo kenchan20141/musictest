@@ -3433,6 +3433,11 @@ font-size: 12px;
     -webkit-user-select: none;
     user-select: none;
 }     
+
+        /* 【修訂三】修正線上對戰房間輸入框寬度 */
+#onlineMatchModal .setting-control {
+    box-sizing: border-box;
+}
         
     </style>
 
@@ -7117,7 +7122,7 @@ function handleSongSelectionState(roomData) {
         musicSelect.disabled = true;
         difficultySelect.disabled = true;
         startBtn.disabled = true;
-        showNotification('info', '等待對方', '請等待對手選擇歌曲...');
+  
     }
 }
 
@@ -7274,6 +7279,7 @@ function handleOnlineGameOver(roomData) {
     rematchBtn.disabled = false; // 確保重賽按鈕可用
     rematchStatus.textContent = ''; // 清空狀態文字
     gameOverModal.classList.add('active');
+    setTimeout(resetToMainMenu, 4000); // 4秒後自動回到主選單
 }
 
 /**
