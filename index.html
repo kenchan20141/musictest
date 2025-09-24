@@ -7523,14 +7523,14 @@ function startGameFromOnline(song, difficulty) {
 }
 
 /**
- * 處理線上模式的遊戲結束畫面顯示 (全新修訂版)
+ * 處理線上模式的遊戲結束畫面顯示 (上下佈局修訂版)
  * @param {object} roomData - 從 Firebase 獲取的房間資料
  */
 function handleOnlineGameOver(roomData) {
     if (!gameActive) return;
-    gameActive = false; // 立刻停止本地遊戲循環
+    gameActive = false;
 
-    // 停止所有計時器和動畫
+    // 停止所有遊戲相關的計時器和動畫
     audio.pause();
     cancelAnimationFrame(animationFrame);
     clearTimeout(generateNotesTimer);
@@ -7552,19 +7552,30 @@ function handleOnlineGameOver(roomData) {
         gameOverTitle.textContent = "平局！";
     }
 
-    // 填充己方數據
-    document.getElementById('myFinalScore').textContent = myData.score.toLocaleString();
-    document.getElementById('myFinalCombo').textContent = myData.maxCombo || maxCombo; // 使用雲端或本地的數據
+    // === 核心修改：動態生成 Grid 佈局的 HTML ===
+    const statsContainer = gameOverModal.querySelector('.game-over-stats');
+    statsContainer.innerHTML = `
+        <!-- 標題行 -->
+        <div class="stats-header" style="text-align: left;">項目</div>
+        <div class="stats-header your-title">您的成績</div>
+        <div class="stats-header opponent-title">對手成績</div>
 
-    // 填充對方數據
-    document.getElementById('opponentFinalScore').textContent = opponentData.score.toLocaleString();
-    document.getElementById('opponentFinalCombo').textContent = opponentData.maxCombo || 0;
+        <!-- 分數行 -->
+        <div class="stats-item-name">最終分數</div>
+        <div class="stats-cell your-score-cell">${myData.score.toLocaleString()}</div>
+        <div class="stats-cell opponent-score-cell">${opponentData.score.toLocaleString()}</div>
 
+        <!-- 連擊行 -->
+        <div class="stats-item-name">最高連擊</div>
+        <div class="stats-cell your-score-cell">${myData.maxCombo || maxCombo}</div>
+        <div class="stats-cell opponent-score-cell">${opponentData.maxCombo || 0}</div>
+    `;
+    
     // 顯示線上對戰專用的按鈕
     restartBtnSingle.style.display = 'none';
     onlineRematchControls.style.display = 'flex';
-    rematchBtn.disabled = false; // 確保重賽按鈕可用
-    rematchStatus.textContent = ''; // 清空狀態文字
+    rematchBtn.disabled = false;
+    rematchStatus.textContent = '';
     gameOverModal.classList.add('active');
 }
 /**
@@ -7618,7 +7629,7 @@ function resetForRematch() {
 }
 
 /**
- * 重置所有狀態並安全返回主菜單
+ * 重置所有狀態並安全返回主菜單 (UI 恢復增強版)
  */
 function resetToMainMenu() {
     clearAllNotifications();
@@ -7627,25 +7638,44 @@ function resetToMainMenu() {
         database.ref('rooms/' + currentRoomId).off('value', roomListener);
     }
     
+    // --- 狀態重置 ---
     gameActive = false;
     gameMode = 'single';
     currentRoomId = null;
     isHost = false;
     roomListener = null;
     
-    // ▼▼▼ 【修訂】重置時，移除 online-mode class ▼▼▼
-    mainGameContainer.classList.remove('online-mode');
-    // ▲▲▲ 修訂結束 ▲▲▲
+    // --- 核心修改：強制恢復所有主選單 UI 元素的可見性 ---
     
-    opponentStats.style.display = 'none';
-    restartBtnSingle.style.display = 'block';
-    onlineRematchControls.style.display = 'none';
+    // 1. 恢復按鈕和選擇器的可用狀態
     startBtn.disabled = false;
     musicSelect.disabled = false;
     difficultySelect.disabled = false;
+    
+    // 2. 確保選擇器容器是可見的
+    // (假設 .music-selector 是包含所有選單和按鈕的容器)
+    const musicSelectorContainer = document.querySelector('.music-selector');
+    if (musicSelectorContainer) {
+        musicSelectorContainer.style.display = 'flex'; 
+    }
+    
+    // 3. 恢復其他相關 UI
+    opponentStats.style.display = 'none';
+    restartBtnSingle.style.display = 'block';
+    onlineRematchControls.style.display = 'none';
     gameOverModal.classList.remove('active');
     
+    // 移除遊戲進行中添加的 class
+    mainGameContainer.classList.remove('game-running');
+    mainGameContainer.classList.remove('online-mode');
+
+    // 恢復開始按鈕的原始 SVG 圖示和功能
     startBtn.innerHTML = originalStartButtonSVG;
+    // 重新綁定單人模式的點擊事件
+    startBtn.onclick = handleStartButtonClick; 
+
+    // 最後，初始化一次遊戲板，清理可能殘留的音符
+    initGame();
 }
 // ================================================================
 // ====== 【功能函數新增結束】 ========================================
