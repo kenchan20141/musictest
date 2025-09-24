@@ -568,9 +568,10 @@
     border-radius: 50%;
     pointer-events: none;
     z-index: 30;
-    opacity: 0; /* 預設完全透明，隱藏在池中 */
-    /* 【優化】告知瀏覽器這些屬性將會變動，可以啟用硬體加速 */
+    opacity: 0; 
     will-change: transform, opacity; 
+    /* ▼▼▼ 【新增】強制將粒子提升到獨立的渲染層，啟用硬體加速 ▼▼▼ */
+    transform: translateZ(0); 
 }
 
 /* 當粒子被激活時，添加 .animate class 來觸發動畫 */
@@ -598,8 +599,10 @@
     border-radius: 30%;
     pointer-events: none;
     z-index: 30;
-    opacity: 0; /* 預設完全透明 */
+    opacity: 0; 
     will-change: transform, opacity;
+    /* ▼▼▼ 【新增】強制將粒子提升到獨立的渲染層，啟用硬體加速 ▼▼▼ */
+    transform: translateZ(0);
 }
 
 /* 當粒子被激活時，添加 .animate class 來觸發動畫 */
@@ -5823,7 +5826,8 @@ function createHitParticles(trackIndex, judgment) {
     const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
     if (!track) return;
 
-    const particleCount = (judgment === 'perfect') ? 15 : (judgment === 'great' ? 10 : 7); // 稍微減少粒子數量以提升效能
+    // ▼▼▼ 【修訂】稍微減少各等級的粒子數量，以降低渲染負擔 ▼▼▼
+const particleCount = (judgment === 'perfect') ? 12 : (judgment === 'great' ? 8 : 5);
     const maxOffset = (judgment === 'perfect') ? 100 : (judgment === 'great' ? 80 : 60);
 
     const colors = {
