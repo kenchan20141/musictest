@@ -30,40 +30,72 @@
 
  /* ▼▼▼ 新增的樣式 ▼▼▼ */
 
+/* ======================================================= */
+/* ====== 【全新整合】遊戲進度條統一樣式區塊 ====== */
+/* ======================================================= */
 
-       /* 遊戲進行中，顯示解鎖進度條 */
-.game-running .unlock-progress-container {
-    opacity: 1;
-    transform: translateY(0); /* [修訂] 改為 Y 軸方向的滑入動畫 */
+/* --- 1. 所有進度條的通用預設樣式 (預設為隱藏) --- */
+.progress-container,
+.opponent-progress-container,
+.unlock-progress-container {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    width: auto;
+    height: 12px;
+    border-radius: 6px;
+    overflow: hidden;
+    z-index: 10;
+    
+    /* 預設狀態：透明且在畫面下方，準備滑入動畫 */
+    opacity: 0;
+    transform: translateY(100%);
+    transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
-        /* [新增] 當遊戲開始時，讓歌曲進度條滑入顯示 */
-.game-running .progress-container {
+/* --- 2. 各進度條的精確位置與外觀 --- */
+
+/* 歌曲播放進度條 (最底層) */
+.progress-container {
+    bottom: 10px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* 對手分數進度條 (中間層) */
+.opponent-progress-container {
+    bottom: 27px; /* 10px(歌曲條) + 12px(高度) + 5px(間距) */
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* 己方分數進度條 (最上層) */
+.unlock-progress-container {
+    bottom: 44px; /* 27px(對手條) + 12px(高度) + 5px(間距) */
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+}
+
+/* --- 3. 遊戲開始時的顯示邏輯 --- */
+
+/* 當遊戲開始時，顯示己方分數條和歌曲進度條 */
+.game-running .progress-container,
+.game-running .unlock-progress-container {
     opacity: 1;
     transform: translateY(0);
 }
 
-/* 4. 玩家分數進度條 (最上層) */
-.unlock-progress-container {
-    position: absolute;
-    /* [定位] 計算位置：對手條(27px) + 對手條高度(12px) + 間隙(5px) = 44px */
-    bottom: 44px;
-    left: 10px;
-    right: 10px;
-    width: auto;
-    height: 12px;         
-    transform: translateY(100%); 
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 6px;   
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    overflow: hidden;
-    z-index: 10;
-    opacity: 0;
-    transition: opacity 0.5s ease, transform 0.5s ease;
-    display: flex;
-    align-items: center;
-    flex-direction: row;
+/* 僅在「線上對戰模式」下，才額外顯示對手進度條 */
+.game-running.online-mode .opponent-progress-container {
+    opacity: 1;
+    transform: translateY(0);
 }
+
+
+
+
+
 .unlock-progress-bar {
     height: 100%; /* [修訂] 高度填滿容器 */
     min-height: 12px; /* 確保即使 height=100% 時也有最小高度，避免容器塌陷 */
@@ -363,23 +395,7 @@
             cursor: not-allowed;
         }
      /* 2. 音樂進度條 (最底層) */
-/* 2. 音樂進度條 (最底層) */
-.progress-container {
-    position: absolute;   
-    bottom: 10px;         
-    left: 10px;           
-    right: 10px;          
-    width: auto;          
-    height: 12px;         
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 6px;   
-    overflow: hidden;
-    z-index: 10;
-    /* [新增] 以下三行，使其預設隱藏並準備好動畫效果 */
-    opacity: 0;
-    transform: translateY(100%);
-    transition: opacity 0.5s ease, transform 0.5s ease;
-}
+
         .progress-bar {
             height: 100%;
             background: linear-gradient(90deg, #ff8a00, #e52e71);
@@ -2048,29 +2064,7 @@
 
 
 
-/* 3. 對手分數進度條 (中間層) */
-.opponent-progress-container {
-    position: absolute;
-    /* [定位] 計算位置：音樂條(10px) + 音樂條高度(12px) + 間隙(5px) = 27px */
-    bottom: 27px; 
-    left: 10px;
-    right: 10px;
-    height: 12px;
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    overflow: hidden;
-    z-index: 10;
-    
-    opacity: 0;
-    transform: translateY(100%);
-    transition: opacity 0.5s ease, transform 0.5s ease;
-}
-/* [新增] 只有在對戰模式進行中，才顯示對手進度條 */
-.game-running.online-mode .opponent-progress-container {
-    opacity: 1;
-    transform: translateY(0);
-}
+
 
 /* [新增] 對手進度條本身的樣式 */
 .opponent-progress-bar {
