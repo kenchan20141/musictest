@@ -3455,17 +3455,20 @@ font-size: 12px;
     box-sizing: border-box;
 }
 
-        /* ====== 第一項修訂：調整房間號碼輸入框 ====== */
+/* ====== 第一項修訂：調整房間號碼輸入框 ====== */
 #roomIdInput {
     /* 1. 將 letter-spacing 恢復正常，解決字距太寬問題 */
     letter-spacing: normal;
     
-    /* 2. 設定一個最大寬度，避免表框過寬 */
-    max-width: 280px;
+    /* 2. 【核心修訂】增加最大寬度至 300px，使其更寬一些 */
+    max-width: 300px;
 
     /* 3. 讓寬度縮小後的輸入框在容器內水平置中 */
     margin-left: auto;
     margin-right: auto;
+
+    /* 4. 【核心修訂】確保元素為塊級，使 margin: auto 生效 */
+    display: block;
 }
 
 /* ====== 【第四項修訂】線上對戰按鈕淡雅風格 ====== */
