@@ -7169,6 +7169,10 @@ async function startGame() {
     audio.volume = volumeControlModal.value;
     currentSongDuration = await getAudioDuration(selectedSong);
     noteSpeed = Math.floor(4000 / difficulty.speedMultiplier);
+    // --- 新增：計算 pixelsPerMillisecond 和 hitLineY ---
+    const totalFallDistance = tracksContainer.clientHeight + 50;
+    pixelsPerMillisecond = totalFallDistance / noteSpeed;
+    hitLineY = tracksContainer.clientHeight - 100;  // 假設 hit-line 在底部 100px 處
 
     const songAndDifficultyString = selectedSong + selectedDifficulty;
     let seed = 0;
