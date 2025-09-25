@@ -2352,15 +2352,15 @@
 }
 
 
-/* ====== 【修訂】Game Over Modal - 全屏優雅主題 ====== */
+/* ====== 【修訂】Game Over Modal - 淡雅低調主題 ====== */
 .game-over-modal {
-    position: fixed; /* 恢復全屏定位 */
+    position: fixed; /* 全屏定位 */
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8); /* 深黑半透明，覆蓋全屏 */
-    backdrop-filter: blur(8px); /* 毛玻璃效果，增加質感 */
+    background: rgba(0, 0, 0, 0.6); /* 柔和黑半透明，覆蓋全屏 */
+    backdrop-filter: blur(6px); /* 輕毛玻璃，提升優雅 */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -2375,20 +2375,20 @@
     pointer-events: all;
 }
 
-/* 內容區：全寬、漸變藍背景、柔和陰影 */
+/* 內容區：全寬、淡灰漸變背景、輕陰影 */
 .game-over-content {
-    background: linear-gradient(135deg, #1e3a8a, #3b82f6); /* 藍色漸變，美觀不單調 */
+    background: linear-gradient(135deg, #f0f4f8, #e0e0e0); /* 淡灰漸變，低調優雅 */
     width: 90%; /* 手機適應 */
-    max-width: 600px; /* 電腦限制寬度，避免太寬 */
-    padding: 40px 30px; /* 增加 padding，讓內容呼吸 */
-    border-radius: 20px; /* 圓角，優雅 */
+    max-width: 600px; /* 電腦限制寬度 */
+    padding: 40px 30px; /* 適中 padding */
+    border-radius: 15px; /* 柔圓角 */
     text-align: center;
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6); /* 深陰影，立體感 */
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); /* 輕柔陰影，低調立體 */
     transform: scale(0.95);
     opacity: 0;
     transition: transform 0.4s ease, opacity 0.4s ease;
-    font-family: 'Noto Serif TC', serif; /* 使用中文字體，提升質感 */
-    color: #fff; /* 白文字，對比藍背景 */
+    font-family: 'Noto Serif TC', serif; /* 中文字體，優雅 */
+    color: #666; /* 柔灰文字 */
 }
 
 .game-over-modal.active .game-over-content {
@@ -2398,11 +2398,15 @@
 
 .game-over-title {
     font-size: 2.5rem; /* 大標題 */
-    margin-bottom: 30px;
-    color: #ffcc00; /* 金色，醒目 */
+    margin-bottom: 25px;
+    color: #ffcc00; /* 金黃，預設「勝利」 */
     font-weight: 700;
-    text-shadow: 0 2px 8px rgba(255, 204, 0, 0.5); /* 金色陰影，輝煌感 */
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2); /* 輕陰影，提升質感 */
 }
+
+.game-over-title.defeat {
+    color: #ff3366; /* 紅色，「惜敗」專用 */
+} /* 新增 class，由 JS 動態加 */
 
 .game-over-stats {
     display: flex;
@@ -2410,11 +2414,11 @@
     width: 100%;
     background: none; /* 無背景 */
     padding: 0;
-    gap: 20px; /* 成績間隙 */
+    gap: 15px; /* 輕間隙 */
 }
 
-/* 成績文字：藍色、大字、無卡片 */
-.player-stats-column { /* 原為卡片，現在簡化成 div */
+/* 成績文字：無卡片、顏色區分 */
+.player-stats-column { /* 簡化成 div */
     width: 100%;
     padding: 0; /* 無 padding */
     background: none; /* 無背景 */
@@ -2423,18 +2427,25 @@
 }
 
 .player-stats-title {
-    font-size: 1.6rem;
+    font-size: 1.5rem; /* 中大標題 */
     font-weight: 600;
-    margin-bottom: 15px;
-    color: #fff; /* 白標題 */
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); /* 輕陰影，提升層次 */
+    margin-bottom: 10px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1); /* 輕陰影 */
+}
+
+.your-title {
+    color: #00c9ff; /* 己方藍 */
+}
+
+.opponent-title {
+    color: #f96666; /* 對手紅 */
 }
 
 .stats-data-container {
     display: flex;
-    flex-direction: column; /* 垂直顯示分數/連擊 */
+    flex-direction: column; /* 垂直顯示 */
     align-items: center;
-    gap: 10px; /* 項目間隙 */
+    gap: 8px; /* 小間隙 */
 }
 
 .stats-data-item {
@@ -2442,36 +2453,43 @@
 }
 
 .stats-data-label {
-    font-size: 1.1rem;
-    color: #ddd; /* 淺灰標籤 */
-    margin-bottom: 5px;
+    font-size: 1rem;
+    color: #888; /* 淡灰標籤 */
+    margin-bottom: 4px;
 }
 
 .stats-data-value {
-    font-size: 2rem; /* 大數字 */
+    font-size: 2.2rem; /* 大數字 */
     font-weight: 700;
-    color: #93c5fd; /* 淺藍，醒目 */
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); /* 陰影，提升立體 */
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); /* 輕陰影 */
 }
 
-/* 按鈕：綠藍漸變、陰影、圓角 */
+.your-card .stats-data-value {
+    color: #1d976c; /* 己方深綠藍 */
+}
+
+.opponent-card .stats-data-value {
+    color: #e52e71; /* 對手深紅 */
+}
+
+/* 按鈕：淡綠藍漸變、低調陰影 */
 .restart-btn {
-    background: linear-gradient(45deg, #22c55e, #3b82f6); /* 綠藍漸變，美觀 */
+    background: linear-gradient(45deg, #a3e635, #68d391); /* 淡綠藍，低飽和 */
     color: #fff;
     border: none;
-    padding: 15px 40px;
+    padding: 14px 35px;
     border-radius: 50px; /* 圓潤 */
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     font-weight: bold;
     cursor: pointer;
-    margin-top: 30px; /* 與上方間距 */
+    margin-top: 25px; /* 間距 */
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); /* 輕陰影 */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* 輕陰影 */
 }
 
 .restart-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4); /* 懸浮陰影 */
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15); /* 懸浮輕陰影 */
 }
 
 /* 響應式：小螢幕調整 */
@@ -7994,15 +8012,18 @@ function handleOnlineGameOver(roomData) {
 
     if (myFinalScore > opponentFinalScore) {
         gameOverTitle.textContent = "勝利！";
+        gameOverTitle.classList.remove('defeat'); // 確保無紅 class
         myScoreChange = 1000;       // 勝方得 1000 分
         opponentScoreChange = -500; // 敗方失 500 分
         iAmWinner = true;
     } else if (myFinalScore < opponentFinalScore) {
         gameOverTitle.textContent = "惜敗！";
+        gameOverTitle.classList.add('defeat'); // 加紅 class
         myScoreChange = -500;       // 敗方失 500 分
         opponentScoreChange = 1000; // 勝方得 1000 分
     } else {
         gameOverTitle.textContent = "平局！";
+        gameOverTitle.classList.remove('defeat');
         // 平局分數不變 (0)
     }
 
