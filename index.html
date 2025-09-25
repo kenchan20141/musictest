@@ -3,7 +3,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, height=device-height">
     <title>詞海拾心 </title>
 
   <!-- ▼▼▼ 請用這段完整的程式碼，取代你舊的 CSP meta 標籤 ▼▼▼ -->
@@ -2074,10 +2074,11 @@
 /* ====== 【修訂後】歌詞填充測驗視窗樣式 ====== */
 /* ====== 【再次修訂】歌詞填充測驗視窗樣式 ====== */
 .lyrics-quiz-modal {
-    position: fixed;
+    position: fixed !important; /* 強化固定定位 */
     top: 0;
     left: 0;
-    width: 100%;
+    width: 100vw; /* 使用 viewport 單位 */
+    overflow: hidden; /* 防止任何滾動或變動 */
     height: 100%;
     background: rgba(25, 40, 60, 0.85); /* 使用帶有色彩的深色背景 */
     display: flex;
@@ -2104,6 +2105,9 @@
     text-align: center;
     max-width: 500px;
     width: 90%; /* <--- 這行確保容器寬度為頁面的 90% */
+    max-height: 80vh;
+    overflow-y: auto; /* 如果內容過多，允許內部滾動 */
+    padding-bottom: 200px; /* 關鍵：預留鍵盤高度（約200px，可根據測試調整） */
     position: relative;
     border: 1px solid rgba(0, 0, 0, 0.1);
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
@@ -2111,6 +2115,13 @@
     opacity: 0;
     transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.4s ease;
     box-sizing: border-box; /* 確保 padding 不會導致寬度溢出 */
+}
+
+        /* 輸入框：固定在底部上方，避免被鍵盤遮擋 */
+.quiz-answer-input {
+    position: sticky; /* 讓輸入框黏在視窗底部上方 */
+    bottom: 10px; /* 距離底部10px */
+    z-index: 10; /* 確保在頂層 */
 }
 
 .lyrics-quiz-modal.active .quiz-content {
@@ -2260,6 +2271,7 @@
 @media (max-width: 480px) {
     .quiz-content {
         padding: 20px;
+        padding-bottom: 250px; /* 小手機鍵盤可能更高，增加預留空間 */
     }
     .quiz-title {
         font-size: 1.8rem;
@@ -3756,34 +3768,6 @@ font-size: 12px;
         flex-basis: 80px;
         font-size: 1.2rem;
     }
-}
-
-        /* ====== 【全新】隨機配對載入指示器樣式 ====== */
-#matchStatusText {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: #ffcc00; /* 改為金黃色，更吸引眼球 */
-    background: rgba(0, 0, 0, 0.2); /* 半透明黑色背景，讓文字更突出 */
-    padding: 10px 15px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px; /* 圖示與文字間距 */
-    min-height: 40px; /* 確保有足夠高度，避免閃爍 */
-    transition: all 0.3s ease; /* 平滑過渡效果 */
-}
-
-/* 載入圖示的脈動動畫 */
-#matchLoadingIcon {
-    font-size: 1.5rem;
-    animation: pulseGlow 1.5s infinite ease-in-out;
-}
-
-@keyframes pulseGlow {
-    0% { transform: scale(1); opacity: 0.6; }
-    50% { transform: scale(1.2); opacity: 1; }
-    100% { transform: scale(1); opacity: 0.6; }
 }
         
     </style>
@@ -7756,7 +7740,6 @@ function joinRoom() {
  */
 function randomMatch() {
     matchStatusText.textContent = '正在尋找對手...';
-    document.getElementById('matchLoadingIcon').style.display = 'inline'; // 顯示圖示
     const queueRef = database.ref('waitingQueue');
     
     // 【新增】一個臨時變數，用於在 transaction 內部儲存對手的資訊
@@ -7774,7 +7757,6 @@ function randomMatch() {
     }).then(result => {
         if (!result.committed) {
              matchStatusText.textContent = '配對出錯，請重試。';
-            document.getElementById('matchLoadingIcon').style.display = 'none'; // 隱藏圖示
              return;
         }
         
@@ -9249,9 +9231,7 @@ roomIdInput.addEventListener('input', (e) => {
         <h2 class="settings-title">線上對戰模式</h2>
 
         <div class="setting-group" style="text-align: center;">
-            <p id="matchStatusText" style="color: #00c9ff; min-height: 24px;">
-    <span id="matchLoadingIcon" style="display: none;">&#128269;</span> <!-- 這是放大鏡圖示，可換成其他 -->
-</p>
+            <p id="matchStatusText" style="color: #00c9ff; min-height: 24px;"></p>
         </div>
         
         <div class="setting-group">
