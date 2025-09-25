@@ -9057,7 +9057,7 @@ disclaimerModal.addEventListener('click', (e) => {
 onlineMatchBtn.addEventListener('click', () => {
     if (!playerName) {
         // 未设置名称：弹出通知并强制打开排行榜Modal设置
-        showNotification('info', '請先設置名稱', '请先在排行榜中设置您的显示名称，才能进入在线对战！');
+      
         leaderboardModal.classList.add('active');
         handlePlayerName(); // 强制处理名称设置
         return; // 阻止继续打开对战Modal
