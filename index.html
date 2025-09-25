@@ -5338,7 +5338,7 @@ let isNotificationActive = false; // 一個旗標，用來判斷是否已有通�
             let trackCooldownUntil = new Array(tracks).fill(0);
             let sfxVolume = 0.5;
             // ▼▼▼ 【新增】粒子池相關變數 ▼▼▼
-const PARTICLE_POOL_SIZE = 100; // 池的大小，可以根據需要調整
+const PARTICLE_POOL_SIZE = 200; // 池的大小，可以根據需要調整
 let hitParticlePool = [];
 let noteParticlePool = [];
 let currentHitParticleIndex = 0;
@@ -5441,15 +5441,13 @@ function setupParticlePools() {
 // ▲▲▲ 新增結束 ▲▲▲
 
 
-// ▼▼▼ 【新增】設定文字回饋物件池的函數 ▼▼▼
 function setupFeedbackPools() {
     // 建立判定文字池 (e.g., PERFECT, GREAT)
     judgmentPool.forEach(p => p.remove()); // 清理舊的
     judgmentPool = [];
-    for (let i = 0; i < 10; i++) { // 預先創建10個，通常足夠用了
+    for (let i = 0; i < 20; i++) { // 增加到20個
         const el = document.createElement('div');
         el.className = 'judgment';
-        // 預先附加到軌道容器中，設為隱藏
         el.style.opacity = '0'; 
         el.style.pointerEvents = 'none';
         tracksContainer.appendChild(el);
@@ -5460,7 +5458,7 @@ function setupFeedbackPools() {
     // 建立 COMBO 文字池
     comboPool.forEach(p => p.remove()); // 清理舊的
     comboPool = [];
-    for (let i = 0; i < 5; i++) { // COMBO 文字同時出現的機率不高，5個足夠
+    for (let i = 0; i < 10; i++) { // 增加到10個
         const el = document.createElement('div');
         el.className = 'combo-display';
         el.style.opacity = '0';
@@ -5470,7 +5468,6 @@ function setupFeedbackPools() {
     }
     currentComboIndex = 0;
 }
-// ▲▲▲ 新增結束 ▲▲▲
             
 
             
@@ -6354,14 +6351,13 @@ async function submitScoreToLeaderboard(songUrl, difficulty, finalScore) {
     notes.push(noteObj);
 }
 
-          // ▼▼▼ 【修訂後】使用物件池的 createHitParticles 函數 ▼▼▼
 function createHitParticles(trackIndex, judgment) {
     const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
     if (!track) return;
 
-    // ▼▼▼ 【修訂】稍微減少各等級的粒子數量，以降低渲染負擔 ▼▼▼
-const particleCount = (judgment === 'perfect') ? 12 : (judgment === 'great' ? 8 : 5);
-    const maxOffset = (judgment === 'perfect') ? 100 : (judgment === 'great' ? 80 : 60);
+    // ▼▼▼ 【修訂】減少粒子數量，以降低渲染負擔 ▼▼▼
+    const particleCount = (judgment === 'perfect') ? 5 : (judgment === 'great' ? 4 : 3);
+    const maxOffset = (judgment === 'perfect') ? 80 : (judgment === 'great' ? 60 : 40);
 
     const colors = {
         perfect: '#ffcc00', great: '#00ccff', good: '#00ff99'
@@ -6372,26 +6368,25 @@ const particleCount = (judgment === 'perfect') ? 12 : (judgment === 'great' ? 8 
         currentHitParticleIndex = (currentHitParticleIndex + 1) % PARTICLE_POOL_SIZE;
         const particle = hitParticlePool[currentHitParticleIndex];
 
-        // 重設樣式並啟動動畫
+        // 重設樣式並啟動動畫（簡化設定，只改必要屬性）
         particle.style.background = colors[judgment] || '#fff';
-        const size = Math.floor(8 + Math.random() * 8);
+        const size = Math.floor(6 + Math.random() * 6); // 減少大小範圍
         particle.style.setProperty('--size', `${size}px`);
-        const x = (Math.random() - 0.5) * maxOffset * 2;
-        const y = (Math.random() * -maxOffset) - 20;
+        const x = (Math.random() - 0.5) * maxOffset * 1.5; // 減少偏移幅度
+        const y = (Math.random() * -maxOffset) - 15;
         particle.style.setProperty('--x', `${x}px`);
         particle.style.setProperty('--y', `${y}px`);
         const rot = Math.random() * 360;
-        const rotEnd = rot + (Math.random() * 720 - 360);
+        const rotEnd = rot + (Math.random() * 360 - 180); // 減少旋轉幅度
         particle.style.setProperty('--rot', `${rot}deg`);
         particle.style.setProperty('--rot-end', `${rotEnd}deg`);
         particle.style.left = `calc(${track.offsetLeft}px + 50% - ${size / 2}px)`;
-        
-        // 移除舊的動畫類別，強制重啟動畫
+
+        // 移除舊的動畫類別，強制重啟動畫（移除 void offsetWidth，因為現代瀏覽器已優化）
         particle.classList.remove('animate');
-        void particle.offsetWidth; // 強制瀏覽器重繪
         particle.classList.add('animate');
-        
-        // 使用 animationend 事件來回收粒子，比 setTimeout 更精準
+
+        // 使用 animationend 事件來回收粒子
         particle.onanimationend = () => {
             particle.classList.remove('animate');
             particle.onanimationend = null; // 清除事件監聽器
@@ -6399,14 +6394,14 @@ const particleCount = (judgment === 'perfect') ? 12 : (judgment === 'great' ? 8 
     }
 }
 
-// ▼▼▼ 【修訂後】使用物件池的 explodeNote 函數 ▼▼▼
 function explodeNote(noteElement, judgment) {
     if (!noteElement) return;
 
     const rect = noteElement.getBoundingClientRect();
     const trackRect = tracksContainer.getBoundingClientRect();
-    const particleCount = (judgment === 'perfect') ? 15 : (judgment === 'great' ? 10 : 7); // 減少粒子數量
-    const maxOffset = 80;
+    // ▼▼▼ 【修訂】減少粒子數量 ▼▼▼
+    const particleCount = (judgment === 'perfect') ? 5 : (judgment === 'great' ? 4 : 3);
+    const maxOffset = 60; // 統一減少偏移
 
     const colors = {
         perfect: '#ffcc00', great: '#00ccff', good: '#00ff99'
@@ -6418,21 +6413,20 @@ function explodeNote(noteElement, judgment) {
         const particle = noteParticlePool[currentNoteParticleIndex];
 
         particle.style.background = colors[judgment] || '#fff';
-        const size = Math.floor(4 + Math.random() * 9);
+        const size = Math.floor(4 + Math.random() * 6); // 減少大小範圍
         particle.style.setProperty('--size', `${size}px`);
-        const x = (Math.random() - 0.5) * maxOffset * 2;
-        const y = (Math.random() - 0.5) * maxOffset * 2;
+        const x = (Math.random() - 0.5) * maxOffset * 1.5;
+        const y = (Math.random() - 0.5) * maxOffset * 1.5;
         particle.style.setProperty('--x', `${x}px`);
         particle.style.setProperty('--y', `${y}px`);
         const rot = Math.random() * 360;
-        const rotEnd = rot + (Math.random() * 720 - 360);
+        const rotEnd = rot + (Math.random() * 360 - 180);
         particle.style.setProperty('--rot', `${rot}deg`);
         particle.style.setProperty('--rot-end', `${rotEnd}deg`);
         particle.style.left = `${rect.left - trackRect.left + rect.width / 2 - size / 2}px`;
         particle.style.top = `${rect.top - trackRect.top + rect.height / 2 - size / 2}px`;
 
         particle.classList.remove('animate');
-        void particle.offsetWidth;
         particle.classList.add('animate');
 
         particle.onanimationend = () => {
@@ -6441,7 +6435,6 @@ function explodeNote(noteElement, judgment) {
         };
     }
 }
-
 
 
             
