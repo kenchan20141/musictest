@@ -802,9 +802,10 @@
 
 .game-over-stats {
     display: flex;
-    justify-content: space-around;
+    flex-direction: column;
+    gap: 20px;
     margin: 25px 0;
-    gap: 15px;
+    width: 100%;
 }
 
 .game-over-stat {
@@ -5787,9 +5788,6 @@ function checkAndUnlockDifficulties(songUrl, difficulty, pureHitScore) {
 
 
 
-// ====================================================================
-// ====== 【修訂後】處理通知隊列的函數 ======
-// ====================================================================
 function processNotificationQueue() {
     if (isNotificationActive || notificationQueue.length === 0) {
         return;
@@ -5797,7 +5795,6 @@ function processNotificationQueue() {
 
     isNotificationActive = true;
     const notification = notificationQueue.shift();
-    currentNotificationObject = notification;
 
     const content = notificationModal.querySelector('.notification-content');
     notificationTitle.textContent = notification.title;
@@ -5814,15 +5811,15 @@ function processNotificationQueue() {
     
     notificationModal.classList.add('active');
 
-    // 【核心修訂】如果 duration 為 0 或 undefined，不設定自動關閉
-    if (notification.duration > 0) {
+    // 修訂：如果 duration 是 Infinity 或極大值，就不設置自動關閉計時器
+    if (notification.duration !== Infinity && notification.duration > 0) {
         notificationTimer = setTimeout(() => {
             notificationModal.classList.remove('active');
             isNotificationActive = false;
             processNotificationQueue();
         }, notification.duration);
     } else {
-        // 如果 duration <=0，則不自動關閉，等待手動關閉（如 clearAllNotifications）
+        // 如果不自動關閉，則不設置計時器，讓它持續顯示
         notificationTimer = null;
     }
 }
@@ -5852,19 +5849,13 @@ function clearAllNotifications() {
 
 let notificationTimer = null;
 
-// ====================================================================
-// ====== 【修訂後】顯示通知的函數（支援持久顯示） ======
-// ====================================================================
-function showNotification(type, title, message, duration = 5000) { // 移除 onCloseCallback，因為需求中無需
-    // 步驟 1: 將通知任務打包，添加到隊列的末尾
+function showNotification(type, title, message, duration = 5000) {
     notificationQueue.push({
         type: type,
         title: title,
         message: message,
-        duration: duration // 如果 duration=0，則不自動關閉
+        duration: duration
     });
-
-    // 步驟 2: 呼叫我們的「經理」來處理隊列
     processNotificationQueue();
 }
 
@@ -7642,24 +7633,21 @@ function handleBattleQuizAnswer(isTimeout = false) {
             
 
 
-// ====================================================================
-// ====== 【修訂後】結束本地測驗函數 ======
-// ====================================================================
+/**
+ * 4. 結束本地測驗，並將最終分數同步到 Firebase (修訂版)
+ */
 function finishBattleQuiz() {
-    quizCloseBtn.style.display = 'block';
-
     lyricsQuizModal.classList.remove('active');
     document.getElementById('battleQuizTimerContainer').style.display = 'none';
 
-    // 將最終測驗分數上傳到 Firebase
+    // 將最終測驗分數上傳到 Firebase (移除多餘的 quizInProgress)
     const playerKey = isHost ? 'player1' : 'player2';
     database.ref(`rooms/${currentRoomId}/${playerKey}`).update({
         quizScore: battleQuizScore,
         quizFinished: true
     });
 
-    // 【修訂】顯示持久通知（duration: 0，不自動關閉）
-    showNotification('info', '測驗完成', '已提交你的測驗分數，請等待對手完成...', 0);
+    // 修訂：移除任何額外通知，讓房主在監聽器中直接推進到結算畫面
 }
 
 /**
@@ -8030,12 +8018,12 @@ function listenToRoomChanges() {
                 handleCountdown();
                 break;
 
-          case 'pre_quiz':
-            // 只有當本地測驗未啟動時才執行
-            if (!isBattleQuizActive) {
-                startBattleQuiz(roomData);
-            }
-            break;
+         case 'game_over':
+    if (gameActive || isBattleQuizActive) {
+        isBattleQuizActive = false;
+        handleOnlineGameOver(roomData);
+    }
+    break;
 
             case 'playing':
                 // 遊戲進行中，由本地 gameLoop 處理
@@ -8049,13 +8037,12 @@ function listenToRoomChanges() {
                 }
                 break;
                 
-            case 'rematch_reset':
-                 resetForRematch();
-                 if(isHost){
-                    database.ref(`rooms/${currentRoomId}`).update({ gameState: 'selecting_song' });
-                 }
-                break;
-        }
+           case 'rematch_reset':
+    resetForRematch();
+    if (isHost) {
+        database.ref(`rooms/${currentRoomId}`).update({ gameState: 'selecting_song' });
+    }
+    break;
         
         if (roomData.gameState === 'game_over') {
             handleRematchStatus(roomData);
@@ -8083,16 +8070,10 @@ function startGameFromOnline(song, difficulty) {
  * 處理線上模式的遊戲結束畫面顯示 (修正版：包含測驗分數)
  * @param {object} roomData - 從 Firebase 獲取的房間資料
  */
-// ====================================================================
-// ====== 【修訂後】處理線上遊戲結束的函數 ======
-// ====================================================================
 function handleOnlineGameOver(roomData) {
     if (!gameActive && !isBattleQuizActive) return; // 防止重複執行
     gameActive = false;
     isBattleQuizActive = false;
-
-    // 【新增】在進入結算前，手動關閉等待通知
-    clearAllNotifications();
 
     audio.pause();
     cancelAnimationFrame(animationFrame);
@@ -8105,7 +8086,8 @@ function handleOnlineGameOver(roomData) {
     const myData = roomData[myPlayerKey];
     const opponentData = roomData[opponentPlayerKey];
     
-    // 使用包含測驗分數的最終成績來判斷勝負
+    // ▼▼▼ 【核心修訂】使用包含測驗分數的最終成績來判斷勝負 ▼▼▼
+    // 注意：roomData 內的 score 已經是加總後的分數了
     const myFinalScore = myData.score; 
     const opponentFinalScore = opponentData.score;
 
@@ -8115,28 +8097,32 @@ function handleOnlineGameOver(roomData) {
 
     if (myFinalScore > opponentFinalScore) {
         gameOverTitle.textContent = "勝利！";
-        myScoreChange = 1000;       
-        opponentScoreChange = -500; 
+        myScoreChange = 1000;       // 勝方得 1000 分
+        opponentScoreChange = -500; // 敗方失 500 分
         iAmWinner = true;
     } else if (myFinalScore < opponentFinalScore) {
         gameOverTitle.textContent = "惜敗！";
-        myScoreChange = -500;       
-        opponentScoreChange = 1000; 
+        myScoreChange = -500;       // 敗方失 500 分
+        opponentScoreChange = 1000; // 勝方得 1000 分
     } else {
         gameOverTitle.textContent = "平局！";
+        // 平局分數不變 (0)
     }
+    // ▲▲▲ 修訂結束 ▲▲▲
 
-    // 更新雙方對戰總分
+    // 使用修正後的積分變化來更新雙方的對戰總分
     updateBattleScore(myData.playerId, myData.playerName, myScoreChange);
     updateBattleScore(opponentData.playerId, opponentData.playerName, opponentScoreChange);
 
-    // 顯示結算畫面的 UI 邏輯
+    // --- 顯示結算畫面的 UI 邏輯 (保持不變) ---
     const statsContainer = gameOverModal.querySelector('.game-over-stats');
     
     const myCardClass = iAmWinner ? 'stats-player-card your-card winner' : 'stats-player-card your-card';
     const opponentCardClass = !iAmWinner && (myFinalScore < opponentFinalScore) ? 'stats-player-card opponent-card winner' : 'stats-player-card opponent-card';
 
-    statsContainer.innerHTML = `
+   statsContainer.innerHTML = `
+    <div class="game-over-stats">
+        <!-- 己方分數 -->
         <div class="${myCardClass}">
             <h3 class="stats-player-title">您的成績</h3>
             <div class="stats-data-container">
@@ -8150,6 +8136,7 @@ function handleOnlineGameOver(roomData) {
                 </div>
             </div>
         </div>
+        <!-- 對方分數 -->
         <div class="${opponentCardClass}">
             <h3 class="stats-player-title">對手成績</h3>
             <div class="stats-data-container">
@@ -8163,7 +8150,8 @@ function handleOnlineGameOver(roomData) {
                 </div>
             </div>
         </div>
-    `;
+    </div>
+`;
     
     restartBtnSingle.style.display = 'none';
     onlineRematchControls.style.display = 'flex';
@@ -8204,7 +8192,7 @@ function handleRematchStatus(roomData) {
 function resetForRematch() {
     gameOverModal.classList.remove('active');
     gameActive = false;
-    isBattleQuizActive = false; // <-- 在這裡加入
+    isBattleQuizActive = false;
     
     // 重置分數和UI
     score = 0;
@@ -8218,10 +8206,17 @@ function resetForRematch() {
     tracksContainer.innerHTML = '';
     initGame();
     
-    // 解鎖按鈕
+    // 修訂：明確恢復歌曲和難度選擇器的可見性和可用性
+    musicSelect.disabled = false;
+    difficultySelect.disabled = false;
+    const musicSelectorContainer = document.querySelector('.music-selector');
+    if (musicSelectorContainer) {
+        musicSelectorContainer.style.display = 'flex'; // 確保容器可見
+    }
+    
+    // 恢復開始按鈕
     startBtn.disabled = false;
 }
-
 /**
  * 重置所有狀態並安全返回主菜單 (UI 恢復增強版)
  */
