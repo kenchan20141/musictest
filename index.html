@@ -802,10 +802,9 @@
 
 .game-over-stats {
     display: flex;
-    flex-direction: column;
-    gap: 20px;
+    justify-content: space-around;
     margin: 25px 0;
-    width: 100%;
+    gap: 15px;
 }
 
 .game-over-stat {
@@ -5795,6 +5794,7 @@ function processNotificationQueue() {
 
     isNotificationActive = true;
     const notification = notificationQueue.shift();
+    currentNotificationObject = notification; // 【新增】記錄當前通知物件
 
     const content = notificationModal.querySelector('.notification-content');
     notificationTitle.textContent = notification.title;
@@ -5811,17 +5811,17 @@ function processNotificationQueue() {
     
     notificationModal.classList.add('active');
 
-    // 修訂：如果 duration 是 Infinity 或極大值，就不設置自動關閉計時器
-    if (notification.duration !== Infinity && notification.duration > 0) {
-        notificationTimer = setTimeout(() => {
-            notificationModal.classList.remove('active');
-            isNotificationActive = false;
-            processNotificationQueue();
-        }, notification.duration);
-    } else {
-        // 如果不自動關閉，則不設置計時器，讓它持續顯示
-        notificationTimer = null;
-    }
+    notificationTimer = setTimeout(() => {
+        notificationModal.classList.remove('active');
+        isNotificationActive = false;
+        
+        // 【新增】在通知結束後，檢查並執行回呼函式
+        if (notification.callback) {
+            notification.callback();
+        }
+
+        processNotificationQueue();
+    }, notification.duration || 5000);
 }
 
 
@@ -5849,13 +5849,17 @@ function clearAllNotifications() {
 
 let notificationTimer = null;
 
-function showNotification(type, title, message, duration = 5000) {
+function showNotification(type, title, message, duration = 5000, onCloseCallback = null) {
+    // 步驟 1: 將通知任務（包含回呼函式）打包，添加到隊列的末尾
     notificationQueue.push({
         type: type,
         title: title,
         message: message,
-        duration: duration
+        duration: duration,
+        callback: onCloseCallback // 【新增】將回呼函式儲存起來
     });
+
+    // 步驟 2: 呼叫我們的「經理」來處理隊列
     processNotificationQueue();
 }
 
@@ -7650,7 +7654,7 @@ function finishBattleQuiz() {
     });
 
     // 【修訂】顯示持久通知（無限持續時間），直到對方完成
-    showNotification('info', '測驗完成', '已提交你的測驗分數，請等待對手完成...', Infinity);
+    showNotification('info', '測驗完成', '已提交你的測驗分數，請等待對手完成...'); // 移除 duration 參數，讓它不自動關閉
 }
 
 /**
@@ -8022,28 +8026,30 @@ function listenToRoomChanges() {
                 break;
 
           case 'pre_quiz':
-    if (!isBattleQuizActive) {
-        startBattleQuiz(roomData);
-    }
-    break;
+            // 只有當本地測驗未啟動時才執行
+            if (!isBattleQuizActive) {
+                startBattleQuiz(roomData);
+            }
+            break;
 
             case 'playing':
                 // 遊戲進行中，由本地 gameLoop 處理
                 break;
 
             case 'game_over':
-    if (gameActive || isBattleQuizActive) {
-        isBattleQuizActive = false;
-        handleOnlineGameOver(roomData);
-    }
-    break;
+                if (gameActive || isBattleQuizActive) {
+                    isBattleQuizActive = false; // 確保測驗狀態被重設
+                    clearAllNotifications(); // 手動關閉等待通知
+                    handleOnlineGameOver(roomData);
+                }
+                break;
                 
-           case 'rematch_reset':
-    resetForRematch();
-    if (isHost) {
-        database.ref(`rooms/${currentRoomId}`).update({ gameState: 'selecting_song' });
-    }
-    break;
+            case 'rematch_reset':
+                 resetForRematch();
+                 if(isHost){
+                    database.ref(`rooms/${currentRoomId}`).update({ gameState: 'selecting_song' });
+                 }
+                break;
         }
         
         if (roomData.gameState === 'game_over') {
@@ -8122,9 +8128,7 @@ function handleOnlineGameOver(roomData) {
     const myCardClass = iAmWinner ? 'stats-player-card your-card winner' : 'stats-player-card your-card';
     const opponentCardClass = !iAmWinner && (myFinalScore < opponentFinalScore) ? 'stats-player-card opponent-card winner' : 'stats-player-card opponent-card';
 
-   statsContainer.innerHTML = `
-    <div class="game-over-stats">
-        <!-- 己方分數 -->
+    statsContainer.innerHTML = `
         <div class="${myCardClass}">
             <h3 class="stats-player-title">您的成績</h3>
             <div class="stats-data-container">
@@ -8138,7 +8142,6 @@ function handleOnlineGameOver(roomData) {
                 </div>
             </div>
         </div>
-        <!-- 對方分數 -->
         <div class="${opponentCardClass}">
             <h3 class="stats-player-title">對手成績</h3>
             <div class="stats-data-container">
@@ -8152,8 +8155,7 @@ function handleOnlineGameOver(roomData) {
                 </div>
             </div>
         </div>
-    </div>
-`;
+    `;
     
     restartBtnSingle.style.display = 'none';
     onlineRematchControls.style.display = 'flex';
@@ -8194,7 +8196,7 @@ function handleRematchStatus(roomData) {
 function resetForRematch() {
     gameOverModal.classList.remove('active');
     gameActive = false;
-    isBattleQuizActive = false;
+    isBattleQuizActive = false; // <-- 在這裡加入
     
     // 重置分數和UI
     score = 0;
@@ -8208,15 +8210,7 @@ function resetForRematch() {
     tracksContainer.innerHTML = '';
     initGame();
     
-    // 修訂：明確恢復歌曲和難度選擇器的可見性和可用性
-    musicSelect.disabled = false;
-    difficultySelect.disabled = false;
-    const musicSelectorContainer = document.querySelector('.music-selector');
-    if (musicSelectorContainer) {
-        musicSelectorContainer.style.display = 'flex'; // 確保容器可見
-    }
-    
-    // 恢復開始按鈕
+    // 解鎖按鈕
     startBtn.disabled = false;
 }
 
