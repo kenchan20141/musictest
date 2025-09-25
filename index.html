@@ -3964,6 +3964,11 @@ font-size: 12px;
                     <span class="stats-data-label">最高連擊</span>
                     <span class="stats-data-value" id="myFinalCombo">0</span>
                 </div>
+                <!-- ▼▼▼ 新增这一行，用于显示积分变化 ▼▼▼ -->
+        <div class="stats-data-item">
+            <span class="stats-data-label">積分變化</span>
+            <span class="stats-data-value" id="myScoreChange">0</span>
+        </div>
             </div>
         </div>
         <div id="opponentFinalStats">  <!-- 移除 class="player-stats-column" -->
@@ -8025,10 +8030,10 @@ function startGameFromOnline(song, difficulty) {
 }
 
 function handleOnlineGameOver(roomData) {
-    // 【修訂】新增：在顯示結束畫面前，先關閉等待通知
+    // 【修訂】新增：在显示结束画面前，先关闭等待通知
     closeCurrentNotification();
 
-    if (!gameActive && !isBattleQuizActive) return; // 防止重複執行
+    if (!gameActive && !isBattleQuizActive) return; // 防止重复执行
     gameActive = false;
     isBattleQuizActive = false;
 
@@ -8089,6 +8094,11 @@ function handleOnlineGameOver(roomData) {
                 <div class="stats-data-item">
                     <span class="stats-data-label">最高連擊</span>
                     <span class="stats-data-value">${myData.maxCombo || maxCombo}</span>
+                </div>
+                <!-- ▼▼▼ 新增：显示积分变化 ▼▼▼ -->
+                <div class="stats-data-item">
+                    <span class="stats-data-label">积分变化</span>
+                    <span class="stats-data-value" id="myScoreChange">${myScoreChange > 0 ? '+' : ''}${myScoreChange.toLocaleString()}</span>
                 </div>
             </div>
         </div>
