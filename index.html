@@ -5787,9 +5787,6 @@ function checkAndUnlockDifficulties(songUrl, difficulty, pureHitScore) {
 
 
 
-/**
- * 處理通知隊列（修訂版：支援持久通知）
- */
 function processNotificationQueue() {
     if (isNotificationActive || notificationQueue.length === 0) {
         return;
@@ -5814,23 +5811,17 @@ function processNotificationQueue() {
     
     notificationModal.classList.add('active');
 
-    // 【核心修訂】如果 duration > 0 才設定自動關閉，否則變成持久通知
-    if (notification.duration > 0) {
-        notificationTimer = setTimeout(() => {
-            notificationModal.classList.remove('active');
-            isNotificationActive = false;
-            
-            // 【新增】玩家手動關閉時，同樣檢查並執行回呼函式
-            if (notification.callback) {
-                notification.callback();
-            }
-            
-            processNotificationQueue();
-        }, notification.duration);
-    } else {
-        // duration <=0：持久通知，不自動關閉，等待手動關閉（如 clearAllNotifications）
-        notificationTimer = null; // 不設定計時器
-    }
+    notificationTimer = setTimeout(() => {
+        notificationModal.classList.remove('active');
+        isNotificationActive = false;
+        
+        // 【新增】在通知結束後，檢查並執行回呼函式
+        if (notification.callback) {
+            notification.callback();
+        }
+
+        processNotificationQueue();
+    }, notificationTimer = null; // 不設定計時器
 }
 
 
@@ -5854,14 +5845,10 @@ function clearAllNotifications() {
 // ================================================================
 
             
-/**
- * 顯示通知（修訂版：支援持久通知）
- * @param {string} type - 'success' 或 'info'
- * @param {string} title - 標題
- * @param {string} message - 訊息
- * @param {number} duration - 顯示時間（毫秒），若 <=0 則為持久通知（不自動關閉）
- * @param {function} onCloseCallback - 通知關閉後的回呼（可選）
- */
+// 【修改後的版本】請用這段程式碼完整替換舊的 showNotification 函數
+
+let notificationTimer = null;
+
 function showNotification(type, title, message, duration = 5000, onCloseCallback = null) {
     // 步驟 1: 將通知任務（包含回呼函式）打包，添加到隊列的末尾
     notificationQueue.push({
@@ -7667,7 +7654,7 @@ function finishBattleQuiz() {
     });
 
     // 【修訂】顯示持久通知（無限持續時間），直到對方完成
-    showNotification('info', '測驗完成', '已提交你的測驗分數，請等待對手完成...', 0); // 傳入 duration=0，讓它不自動關閉
+    showNotification('info', '測驗完成', '已提交你的測驗分數，請等待對手完成...', 0);
 }
 
 /**
