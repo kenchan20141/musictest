@@ -6756,7 +6756,7 @@ function generateSongData(duration, difficulty, beatTimestamps, seed = 12345, no
     const totalRhythmWeight = rhythmPatterns.reduce((sum, p) => sum + p.weight, 0);
     const totalTypeWeight = noteGenerationTypes.reduce((sum, t) => sum + t.weight, 0);
 
-    let currentTime = 8.0;
+    let currentTime = 10.0;
 
     while (currentTime < duration - (2.0 + (noteSpeed / 1000))) {
         let randomRhythm = seededRandom() * totalRhythmWeight;
