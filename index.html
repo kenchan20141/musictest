@@ -2352,34 +2352,44 @@
 }
 
 
-.game-over-content {
-    background: var(--jade-bg);
-    color: var(--jade-text-primary);
-    width: 100%;  /* 改成全寬 */
-    padding: 20px;  /* 減少 padding，讓內容更滿 */
-    transform: scale(0.8);
-    opacity: 0;
-    transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.4s ease;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-        .game-over-stats {
-    display: flex;
-    flex-direction: column;
+/* ====== 【修訂】Game Over Modal - 全屏優雅主題 ====== */
+.game-over-modal {
+    position: fixed; /* 恢復全屏定位 */
+    top: 0;
+    left: 0;
     width: 100%;
-    background: none;
-    padding: 0;
-}
-
-        .stats-data-container {
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8); /* 深黑半透明，覆蓋全屏 */
+    backdrop-filter: blur(8px); /* 毛玻璃效果，增加質感 */
     display: flex;
-    flex-direction: column;
+    justify-content: center;
     align-items: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
 }
 
-        
+.game-over-modal.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+/* 內容區：全寬、漸變藍背景、柔和陰影 */
+.game-over-content {
+    background: linear-gradient(135deg, #1e3a8a, #3b82f6); /* 藍色漸變，美觀不單調 */
+    width: 90%; /* 手機適應 */
+    max-width: 600px; /* 電腦限制寬度，避免太寬 */
+    padding: 40px 30px; /* 增加 padding，讓內容呼吸 */
+    border-radius: 20px; /* 圓角，優雅 */
+    text-align: center;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6); /* 深陰影，立體感 */
+    transform: scale(0.95);
+    opacity: 0;
+    transition: transform 0.4s ease, opacity 0.4s ease;
+    font-family: 'Noto Serif TC', serif; /* 使用中文字體，提升質感 */
+    color: #fff; /* 白文字，對比藍背景 */
+}
 
 .game-over-modal.active .game-over-content {
     transform: scale(1);
@@ -2387,11 +2397,101 @@
 }
 
 .game-over-title {
-    font-size: 2.8rem;
-    margin-bottom: 20px;
-    color: #ffcc00; /* 明亮的金色 */
-    text-shadow: 0 0 15px rgba(255, 204, 0, 0.6);
+    font-size: 2.5rem; /* 大標題 */
+    margin-bottom: 30px;
+    color: #ffcc00; /* 金色，醒目 */
+    font-weight: 700;
+    text-shadow: 0 2px 8px rgba(255, 204, 0, 0.5); /* 金色陰影，輝煌感 */
 }
+
+.game-over-stats {
+    display: flex;
+    flex-direction: column; /* 垂直堆疊 */
+    width: 100%;
+    background: none; /* 無背景 */
+    padding: 0;
+    gap: 20px; /* 成績間隙 */
+}
+
+/* 成績文字：藍色、大字、無卡片 */
+.player-stats-column { /* 原為卡片，現在簡化成 div */
+    width: 100%;
+    padding: 0; /* 無 padding */
+    background: none; /* 無背景 */
+    border: none; /* 無邊框 */
+    box-shadow: none; /* 無陰影 */
+}
+
+.player-stats-title {
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #fff; /* 白標題 */
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3); /* 輕陰影，提升層次 */
+}
+
+.stats-data-container {
+    display: flex;
+    flex-direction: column; /* 垂直顯示分數/連擊 */
+    align-items: center;
+    gap: 10px; /* 項目間隙 */
+}
+
+.stats-data-item {
+    text-align: center;
+}
+
+.stats-data-label {
+    font-size: 1.1rem;
+    color: #ddd; /* 淺灰標籤 */
+    margin-bottom: 5px;
+}
+
+.stats-data-value {
+    font-size: 2rem; /* 大數字 */
+    font-weight: 700;
+    color: #93c5fd; /* 淺藍，醒目 */
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); /* 陰影，提升立體 */
+}
+
+/* 按鈕：綠藍漸變、陰影、圓角 */
+.restart-btn {
+    background: linear-gradient(45deg, #22c55e, #3b82f6); /* 綠藍漸變，美觀 */
+    color: #fff;
+    border: none;
+    padding: 15px 40px;
+    border-radius: 50px; /* 圓潤 */
+    font-size: 1.3rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 30px; /* 與上方間距 */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3); /* 輕陰影 */
+}
+
+.restart-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4); /* 懸浮陰影 */
+}
+
+/* 響應式：小螢幕調整 */
+@media (max-width: 480px) {
+    .game-over-content {
+        padding: 30px 20px;
+    }
+    .game-over-title {
+        font-size: 2.2rem;
+    }
+    .stats-data-value {
+        font-size: 1.8rem;
+    }
+    .restart-btn {
+        padding: 12px 30px;
+        font-size: 1.1rem;
+    }
+}
+
+    
 
 
 /* ====== 3. 歌詞填充測驗視窗 (Lyrics Quiz Modal) ====== */
