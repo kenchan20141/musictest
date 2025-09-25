@@ -7672,9 +7672,6 @@ function finishBattleQuiz() {
         quizScore: battleQuizScore,
         quizFinished: true
     });
-
-    // 【修訂】使用 Infinity 作為 duration，讓通知持續顯示
-    showNotification('info', '測驗完成', '已提交你的測驗分數，請等待對方完成...', Infinity);
 }
 
             
@@ -7946,9 +7943,6 @@ function handleReadyUpState(roomData) {
 
             
 
-/**
- * 核心監聽器，監聽房間內所有狀態變化 (支援對戰測驗流程)
- */
 function listenToRoomChanges() {
     if (roomListener) {
         database.ref('rooms/' + currentRoomId).off('value', roomListener);
@@ -8009,8 +8003,6 @@ function listenToRoomChanges() {
             opponentProgressBar.style.width = '0%';
         }
         
-        // ▼▼▼ 【核心修訂】狀態機加入測驗處理邏輯 ▼▼▼
-
         // --- 狀態檢查與推進 (由房主負責) ---
         if (isHost) {
             // 檢查是否從「準備」進入「倒數」
@@ -8046,12 +8038,16 @@ function listenToRoomChanges() {
                 handleCountdown();
                 break;
 
-          case 'pre_quiz':
-            // 只有當本地測驗未啟動時才執行
-            if (!isBattleQuizActive) {
-                startBattleQuiz(roomData);
-            }
-            break;
+            case 'pre_quiz':
+                // 只有當本地測驗未啟動時才執行
+                if (!isBattleQuizActive) {
+                    startBattleQuiz(roomData);
+                }
+                // 檢查是否需要顯示等待通知（僅對先完成者）
+                if (roomData[myPlayerKey].quizFinished && !roomData[opponentKey].quizFinished) {
+                    showNotification('info', '測驗完成', '已提交你的測驗分數，請等待對手完成...', Infinity);
+                }
+                break;
 
             case 'playing':
                 // 遊戲進行中，由本地 gameLoop 處理
@@ -8076,7 +8072,6 @@ function listenToRoomChanges() {
         if (roomData.gameState === 'game_over') {
             handleRematchStatus(roomData);
         }
-         // ▲▲▲ 修訂結束 ▲▲▲
     });
 }
 /**
