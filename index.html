@@ -5787,6 +5787,9 @@ function checkAndUnlockDifficulties(songUrl, difficulty, pureHitScore) {
 
 
 
+// ====================================================================
+// ====== 【修訂後】處理通知隊列的函數 ======
+// ====================================================================
 function processNotificationQueue() {
     if (isNotificationActive || notificationQueue.length === 0) {
         return;
@@ -5794,7 +5797,7 @@ function processNotificationQueue() {
 
     isNotificationActive = true;
     const notification = notificationQueue.shift();
-    currentNotificationObject = notification; // 【新增】記錄當前通知物件
+    currentNotificationObject = notification;
 
     const content = notificationModal.querySelector('.notification-content');
     notificationTitle.textContent = notification.title;
@@ -5811,17 +5814,17 @@ function processNotificationQueue() {
     
     notificationModal.classList.add('active');
 
-    notificationTimer = setTimeout(() => {
-        notificationModal.classList.remove('active');
-        isNotificationActive = false;
-        
-        // 【新增】在通知結束後，檢查並執行回呼函式
-        if (notification.callback) {
-            notification.callback();
-        }
-
-        processNotificationQueue();
-    }, notification.duration || 5000);
+    // 【核心修訂】如果 duration 為 0 或 undefined，不設定自動關閉
+    if (notification.duration > 0) {
+        notificationTimer = setTimeout(() => {
+            notificationModal.classList.remove('active');
+            isNotificationActive = false;
+            processNotificationQueue();
+        }, notification.duration);
+    } else {
+        // 如果 duration <=0，則不自動關閉，等待手動關閉（如 clearAllNotifications）
+        notificationTimer = null;
+    }
 }
 
 
@@ -5849,14 +5852,16 @@ function clearAllNotifications() {
 
 let notificationTimer = null;
 
-function showNotification(type, title, message, duration = 5000, onCloseCallback = null) {
-    // 步驟 1: 將通知任務（包含回呼函式）打包，添加到隊列的末尾
+// ====================================================================
+// ====== 【修訂後】顯示通知的函數（支援持久顯示） ======
+// ====================================================================
+function showNotification(type, title, message, duration = 5000) { // 移除 onCloseCallback，因為需求中無需
+    // 步驟 1: 將通知任務打包，添加到隊列的末尾
     notificationQueue.push({
         type: type,
         title: title,
         message: message,
-        duration: duration,
-        callback: onCloseCallback // 【新增】將回呼函式儲存起來
+        duration: duration // 如果 duration=0，則不自動關閉
     });
 
     // 步驟 2: 呼叫我們的「經理」來處理隊列
@@ -7637,24 +7642,24 @@ function handleBattleQuizAnswer(isTimeout = false) {
             
 
 
-/**
- * 4. 結束本地測驗，並將最終分數同步到 Firebase (修訂版)
- */
+// ====================================================================
+// ====== 【修訂後】結束本地測驗函數 ======
+// ====================================================================
 function finishBattleQuiz() {
     quizCloseBtn.style.display = 'block';
 
     lyricsQuizModal.classList.remove('active');
     document.getElementById('battleQuizTimerContainer').style.display = 'none';
 
-    // 將最終測驗分數上傳到 Firebase (移除多餘的 quizInProgress)
+    // 將最終測驗分數上傳到 Firebase
     const playerKey = isHost ? 'player1' : 'player2';
     database.ref(`rooms/${currentRoomId}/${playerKey}`).update({
         quizScore: battleQuizScore,
         quizFinished: true
     });
 
-    // 【修訂】顯示持久通知（無限持續時間），直到對方完成
-    showNotification('info', '測驗完成', '已提交你的測驗分數，請等待對手完成...'); // 移除 duration 參數，讓它不自動關閉
+    // 【修訂】顯示持久通知（duration: 0，不自動關閉）
+    showNotification('info', '測驗完成', '已提交你的測驗分數，請等待對手完成...', 0);
 }
 
 /**
@@ -8078,10 +8083,16 @@ function startGameFromOnline(song, difficulty) {
  * 處理線上模式的遊戲結束畫面顯示 (修正版：包含測驗分數)
  * @param {object} roomData - 從 Firebase 獲取的房間資料
  */
+// ====================================================================
+// ====== 【修訂後】處理線上遊戲結束的函數 ======
+// ====================================================================
 function handleOnlineGameOver(roomData) {
     if (!gameActive && !isBattleQuizActive) return; // 防止重複執行
     gameActive = false;
     isBattleQuizActive = false;
+
+    // 【新增】在進入結算前，手動關閉等待通知
+    clearAllNotifications();
 
     audio.pause();
     cancelAnimationFrame(animationFrame);
@@ -8094,8 +8105,7 @@ function handleOnlineGameOver(roomData) {
     const myData = roomData[myPlayerKey];
     const opponentData = roomData[opponentPlayerKey];
     
-    // ▼▼▼ 【核心修訂】使用包含測驗分數的最終成績來判斷勝負 ▼▼▼
-    // 注意：roomData 內的 score 已經是加總後的分數了
+    // 使用包含測驗分數的最終成績來判斷勝負
     const myFinalScore = myData.score; 
     const opponentFinalScore = opponentData.score;
 
@@ -8105,24 +8115,22 @@ function handleOnlineGameOver(roomData) {
 
     if (myFinalScore > opponentFinalScore) {
         gameOverTitle.textContent = "勝利！";
-        myScoreChange = 1000;       // 勝方得 1000 分
-        opponentScoreChange = -500; // 敗方失 500 分
+        myScoreChange = 1000;       
+        opponentScoreChange = -500; 
         iAmWinner = true;
     } else if (myFinalScore < opponentFinalScore) {
         gameOverTitle.textContent = "惜敗！";
-        myScoreChange = -500;       // 敗方失 500 分
-        opponentScoreChange = 1000; // 勝方得 1000 分
+        myScoreChange = -500;       
+        opponentScoreChange = 1000; 
     } else {
         gameOverTitle.textContent = "平局！";
-        // 平局分數不變 (0)
     }
-    // ▲▲▲ 修訂結束 ▲▲▲
 
-    // 使用修正後的積分變化來更新雙方的對戰總分
+    // 更新雙方對戰總分
     updateBattleScore(myData.playerId, myData.playerName, myScoreChange);
     updateBattleScore(opponentData.playerId, opponentData.playerName, opponentScoreChange);
 
-    // --- 顯示結算畫面的 UI 邏輯 (保持不變) ---
+    // 顯示結算畫面的 UI 邏輯
     const statsContainer = gameOverModal.querySelector('.game-over-stats');
     
     const myCardClass = iAmWinner ? 'stats-player-card your-card winner' : 'stats-player-card your-card';
