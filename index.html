@@ -7498,10 +7498,6 @@ function endGame() {
 
 
 // ====================================================================
-// ====== 【全新】對戰歌詞測驗核心功能 (共 5 個函數) ======
-// ====================================================================
-
-// ====================================================================
 // ====== 【最終修訂版】啟動對戰歌詞測驗函數 ======
 // ====================================================================
 /**
@@ -7546,6 +7542,9 @@ function startBattleQuiz(roomData) {
     quizCloseBtn.style.display = 'none'; // 根據要求，在對戰測驗中隱藏關閉按鈕
     lyricsQuizModal.classList.add('active');
     
+    // 【新增】初始化得分顯示
+    document.getElementById('quizScoreDisplay').textContent = `當前得分: ${battleQuizScore}`;
+
     // 5. 在 Firebase 中初始化玩家的測驗狀態
     // 這會通知系統和對手，你已經正式開始作答。
     const playerKey = isHost ? 'player1' : 'player2';
@@ -7622,11 +7621,19 @@ function handleBattleQuizAnswer(isTimeout = false) {
         showNotification('info', '-1000 分', isTimeout ? '作答超時！' : '答案錯誤！', 1500);
     }
 
+    // 【新增】即時更新得分顯示
+    document.getElementById('quizScoreDisplay').textContent = `當前得分: ${battleQuizScore}`;
+
+    // 【新增】即時同步到 Firebase，讓對手也能看到你的得分變化（雖然需求只說看自己的，但這樣更完整）
+    const playerKey = isHost ? 'player1' : 'player2';
+    database.ref(`rooms/${currentRoomId}/${playerKey}/quizScore`).set(battleQuizScore);
+
     battleQuizCurrentIndex++; // 移至下一題
     
     // 延遲 1.8 秒後，顯示下一題或結束測驗
     setTimeout(displayNextBattleQuestion, 1800);
 }
+            
 
 
 /**
@@ -7634,9 +7641,6 @@ function handleBattleQuizAnswer(isTimeout = false) {
  */
 function finishBattleQuiz() {
     quizCloseBtn.style.display = 'block';
-
-    // ▼▼▼ 【核心修訂】刪除下面這一行！▼▼▼
-    // isBattleQuizActive = false; // <--- 刪除此行
 
     lyricsQuizModal.classList.remove('active');
     document.getElementById('battleQuizTimerContainer').style.display = 'none';
@@ -9176,6 +9180,8 @@ roomIdInput.addEventListener('input', (e) => {
         <p class="quiz-instructions" id="quizInstructions">連續答對五題即可解鎖新內容或登入排行榜！</p>
         
         <div class="quiz-progress" id="quizProgress">連續答對: 0 / 5</div>
+        <!-- 新增得分顯示（放在進度後） -->
+<div id="quizScoreDisplay" style="font-size: 1.2rem; color: #17a2b8; margin-bottom: 20px;">當前得分: 0</div>
         
         <!-- 【新增】對戰測驗專用計時器 -->
         <div id="battleQuizTimerContainer" style="display: none; width: 100%; height: 8px; background-color: #e9ecef; border-radius: 4px; margin-bottom: 20px; overflow: hidden;">
