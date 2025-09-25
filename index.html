@@ -6359,42 +6359,43 @@ function createHitParticles(trackIndex, judgment) {
     const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
     if (!track) return;
 
-    // ▼▼▼ 【修訂】稍微減少各等級的粒子數量，以降低渲染負擔 ▼▼▼
-const particleCount = (judgment === 'perfect') ? 12 : (judgment === 'great' ? 8 : 5);
-    const maxOffset = (judgment === 'perfect') ? 100 : (judgment === 'great' ? 80 : 60);
+    const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    if (isMobile) return;  // 新增：在手機上完全禁用粒子效果，直接返回
+
+    // 以下為原代碼（保持不變）
+    let particleCount = (judgment === 'perfect') ? 5 : (judgment === 'great' ? 4 : 3);
+    if (isMobile) particleCount = Math.floor(particleCount / 2); 
+
+    const maxOffset = (judgment === 'perfect') ? 80 : (judgment === 'great' ? 60 : 40);
+    if (isMobile) maxOffset *= 0.7; 
 
     const colors = {
         perfect: '#ffcc00', great: '#00ccff', good: '#00ff99'
     };
 
     for (let i = 0; i < particleCount; i++) {
-        // 從池中獲取一個粒子
         currentHitParticleIndex = (currentHitParticleIndex + 1) % PARTICLE_POOL_SIZE;
         const particle = hitParticlePool[currentHitParticleIndex];
 
-        // 重設樣式並啟動動畫
         particle.style.background = colors[judgment] || '#fff';
-        const size = Math.floor(8 + Math.random() * 8);
+        const size = Math.floor(6 + Math.random() * 6);
         particle.style.setProperty('--size', `${size}px`);
-        const x = (Math.random() - 0.5) * maxOffset * 2;
-        const y = (Math.random() * -maxOffset) - 20;
+        const x = (Math.random() - 0.5) * maxOffset * 1.5;
+        const y = (Math.random() * -maxOffset) - 15;
         particle.style.setProperty('--x', `${x}px`);
         particle.style.setProperty('--y', `${y}px`);
         const rot = Math.random() * 360;
-        const rotEnd = rot + (Math.random() * 720 - 360);
+        const rotEnd = rot + (Math.random() * 360 - 180);
         particle.style.setProperty('--rot', `${rot}deg`);
         particle.style.setProperty('--rot-end', `${rotEnd}deg`);
         particle.style.left = `calc(${track.offsetLeft}px + 50% - ${size / 2}px)`;
-        
-        // 移除舊的動畫類別，強制重啟動畫
+
         particle.classList.remove('animate');
-        void particle.offsetWidth; // 強制瀏覽器重繪
         particle.classList.add('animate');
-        
-        // 使用 animationend 事件來回收粒子，比 setTimeout 更精準
+
         particle.onanimationend = () => {
             particle.classList.remove('animate');
-            particle.onanimationend = null; // 清除事件監聽器
+            particle.onanimationend = null;
         };
     }
 }
@@ -6405,34 +6406,39 @@ function explodeNote(noteElement, judgment) {
 
     const rect = noteElement.getBoundingClientRect();
     const trackRect = tracksContainer.getBoundingClientRect();
-    const particleCount = (judgment === 'perfect') ? 15 : (judgment === 'great' ? 10 : 7); // 減少粒子數量
-    const maxOffset = 80;
+    const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    if (isMobile) return;  // 新增：在手機上完全禁用粒子效果，直接返回
+
+    // 以下為原代碼（保持不變）
+    let particleCount = (judgment === 'perfect') ? 5 : (judgment === 'great' ? 4 : 3);
+    if (isMobile) particleCount = Math.floor(particleCount / 2);
+
+    let maxOffset = 60;
+    if (isMobile) maxOffset *= 0.7;
 
     const colors = {
         perfect: '#ffcc00', great: '#00ccff', good: '#00ff99'
     };
 
     for (let i = 0; i < particleCount; i++) {
-        // 從池中獲取一個粒子
         currentNoteParticleIndex = (currentNoteParticleIndex + 1) % PARTICLE_POOL_SIZE;
         const particle = noteParticlePool[currentNoteParticleIndex];
 
         particle.style.background = colors[judgment] || '#fff';
-        const size = Math.floor(4 + Math.random() * 9);
+        const size = Math.floor(4 + Math.random() * 6);
         particle.style.setProperty('--size', `${size}px`);
-        const x = (Math.random() - 0.5) * maxOffset * 2;
-        const y = (Math.random() - 0.5) * maxOffset * 2;
+        const x = (Math.random() - 0.5) * maxOffset * 1.5;
+        const y = (Math.random() - 0.5) * maxOffset * 1.5;
         particle.style.setProperty('--x', `${x}px`);
         particle.style.setProperty('--y', `${y}px`);
         const rot = Math.random() * 360;
-        const rotEnd = rot + (Math.random() * 720 - 360);
+        const rotEnd = rot + (Math.random() * 360 - 180);
         particle.style.setProperty('--rot', `${rot}deg`);
         particle.style.setProperty('--rot-end', `${rotEnd}deg`);
         particle.style.left = `${rect.left - trackRect.left + rect.width / 2 - size / 2}px`;
         particle.style.top = `${rect.top - trackRect.top + rect.height / 2 - size / 2}px`;
 
         particle.classList.remove('animate');
-        void particle.offsetWidth;
         particle.classList.add('animate');
 
         particle.onanimationend = () => {
@@ -6446,94 +6452,87 @@ function explodeNote(noteElement, judgment) {
 
             
 
-     function judgeHit(trackIndex, type) {
-                const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
-                if (sounds[type]) {
-                    sounds[type]();
-                }
+    function judgeHit(trackIndex, type) {
+    const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
+    if (sounds[type]) {
+        sounds[type]();
+    }
 
-                // 創建並顯示判定文字 (Perfect, Great, etc.)
-                currentJudgmentIndex = (currentJudgmentIndex + 1) % judgmentPool.length;
+    // 創建並顯示判定文字 (Perfect, Great, etc.)
+    currentJudgmentIndex = (currentJudgmentIndex + 1) % judgmentPool.length;
     const judgment = judgmentPool[currentJudgmentIndex];
-    judgment.className = `judgment ${type}`; // 重新設定 class 來觸發動畫
-                judgment.textContent = `${type.toUpperCase()}!`;
-                if (track) {
-                    track.appendChild(judgment);
-                    judgment.style.left = '0';
-                    judgment.style.width = '100%';
-                    judgment.style.textAlign = 'center';
+    judgment.className = `judgment ${type}`; 
+    judgment.textContent = `${type.toUpperCase()}!`;
+    if (track) {
+        track.appendChild(judgment);
+        judgment.style.left = '0';
+        judgment.style.width = '100%';
+        judgment.style.textAlign = 'center';
+    }
 
-                }
-
- // ▼▼▼ 【優化】使用 animationend 事件來回收，比 setTimeout 更精準 ▼▼▼
-    judgment.style.opacity = '1'; // 讓它可見
+    judgment.style.opacity = '1'; 
     judgment.onanimationend = () => {
-        judgment.style.opacity = '0'; // 動畫結束後隱藏，等待下次使用
-        judgment.onanimationend = null; // 清除監聽器，避免重複觸發
+        judgment.style.opacity = '0'; 
+        judgment.onanimationend = null; 
     };
 
-         
-               
+    // 處理非 'miss' 的成功打擊
+    if (type !== 'miss') {
+        // 觸發粒子效果
+        createHitParticles(trackIndex, type);
 
-                // 處理非 'miss' 的成功打擊
-                if (type !== 'miss') {
-                    // 觸發粒子效果
-                    createHitParticles(trackIndex, type);
+        // 觸發打擊線的脈衝動畫
+        const hitLine = track.querySelector('.hit-line');
+        if (hitLine) {
+            hitLine.classList.remove('pulse-effect');
+            void hitLine.offsetWidth; 
+            hitLine.classList.add('pulse-effect');
+        }
 
-                    // 觸發打擊線的脈衝動畫
-                    const hitLine = track.querySelector('.hit-line');
-                    if (hitLine) {
-                        hitLine.classList.remove('pulse-effect');
-                        void hitLine.offsetWidth; // 強制瀏覽器重繪
-                        hitLine.classList.add('pulse-effect');
-                    }
-
-                    // 根據判定等級觸發不同的軌道閃光效果
-                    if (track) {
-                        track.classList.remove('flash-perfect', 'flash-great', 'flash-good');
-                        void track.offsetWidth;
-                        if (type === 'perfect') {
-                            track.classList.add('flash-perfect');
-                        } else if (type === 'great') {
-                            track.classList.add('flash-great');
-                        } else if (type === 'good') {
-                            track.classList.add('flash-good');
-                        }
-                    }
-
-                    // 觸發裝置震動回饋
-                    if (navigator.vibrate) {
-                        let vibrationPattern;
-                        if (type === 'perfect') {
-                            vibrationPattern = [55]; // 短促有力的震動
-                        } else if (type === 'great') {
-                            vibrationPattern = [55]; // 中等震動
-                        } else if (type === 'good') {
-                            vibrationPattern = [50]; // 輕微震動
-                        }
-                        if (vibrationPattern) {
-                            navigator.vibrate(vibrationPattern);
-                        }
-                    }
-
-                   // 【關鍵修復 1】在這裡根據判定類型，定義 baseScore 的值
-let baseScore = 0;
-if (type === 'perfect') baseScore = 100;
-else if (type === 'great') baseScore = 70;
-else if (type === 'good') baseScore = 40;
-                    
-                    // 【關鍵修復 2】將 addScore 移到這裡，確保無論裝置是否支援震動，都會計分
-                    addScore(baseScore);
-
-                } else {
-                    // 處理 'miss' 的情況
-                    combo = 0;
-                    const difficulty = getCurrentDifficulty();
-                    trackCooldownUntil[trackIndex] = Date.now() + difficulty.cooldown;
-                }
-
-                updateUI();
+        // 根據判定等級觸發不同的軌道閃光效果
+        if (track) {
+            track.classList.remove('flash-perfect', 'flash-great', 'flash-good');
+            void track.offsetWidth;
+            if (type === 'perfect') {
+                track.classList.add('flash-perfect');
+            } else if (type === 'great') {
+                track.classList.add('flash-great');
+            } else if (type === 'good') {
+                track.classList.add('flash-good');
             }
+        }
+
+        // 觸發裝置震動回饋
+        if (navigator.vibrate) {
+            let vibrationPattern;
+            if (type === 'perfect') {
+                vibrationPattern = [55]; 
+            } else if (type === 'great') {
+                vibrationPattern = [55]; 
+            } else if (type === 'good') {
+                vibrationPattern = [50]; 
+            }
+            if (vibrationPattern) {
+                navigator.vibrate(vibrationPattern);
+            }
+        }
+
+        let baseScore = 0;
+        if (type === 'perfect') baseScore = 100;
+        else if (type === 'great') baseScore = 70;
+        else if (type === 'good') baseScore = 40;
+        
+        addScore(baseScore);
+
+    } else {
+        // 處理 'miss' 的情況
+        combo = 0;
+        const difficulty = getCurrentDifficulty();
+        trackCooldownUntil[trackIndex] = Date.now() + difficulty.cooldown;
+    }
+
+    updateUI();
+}
 
 // 請將這個新函數，加在 addScore 函數的上面
 function sendScoreUpdate() {
@@ -8309,30 +8308,24 @@ function resetToMainMenu() {
     initGame();
 }
 
-          function gameLoop() {
+         function gameLoop() {
     if (!gameActive) return;
 
-    // --- 核心優化：在迴圈外快取不會變動的數值 ---
-    // 獲取軌道總高度，音符需要移動的總距離
-    const fallDistance = tracksContainer.clientHeight; 
-    // 計算判定線的 Y 座標 (相對於軌道頂部)
-    const hitLineY = fallDistance - 100; 
-    // 計算音符每毫秒移動的像素距離
-    const pixelsPerMillisecond = fallDistance / noteSpeed;
-
     const now = Date.now();
+    const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    // 修訂：手機throttle：每2幀執行一次，減少計算頻率
+    if (isMobile && (now % 2 !== 0)) { 
+        animationFrame = requestAnimationFrame(gameLoop);
+        return;
+    }
 
     for (let i = notes.length - 1; i >= 0; i--) {
         const note = notes[i];
         if (!note.active) continue;
 
-        // --- 核心優化：用數學公式「計算」音符的當前位置 ---
         const timeElapsed = now - note.creationTime;
-        // 音符頂部的 Y 座標 = 已過時間 * 每毫秒移動距離 - 音符自身高度(動畫是從-50px開始的)
         const noteTopY = (timeElapsed * pixelsPerMillisecond) - 50;
 
-        // --- 使用計算出的位置來進行判斷 ---
-        // 如果音符頂部已經超過了判定線加一個緩衝區 (20px)
         if (noteTopY > hitLineY + 20) {
             const isTrackInvincible = notes.some(n =>
                 n.track === note.track &&
@@ -8345,7 +8338,7 @@ function resetToMainMenu() {
             }
             
             note.active = false;
-            note.element.remove(); // 這裡的 remove 是必要的，因為 miss 了
+            note.element.remove(); 
             notes.splice(i, 1);
         }
     }
