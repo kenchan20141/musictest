@@ -2397,11 +2397,17 @@
 }
 
 .game-over-title {
-    font-size: 2.5rem; /* 大標題 */
-    margin-bottom: 25px;
-    color: #ffcc00; /* 金黃，預設「勝利」 */
-    font-weight: 700;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2); /* 輕陰影，提升質感 */
+font-size: 2.5rem; /* 大標題 /
+margin-bottom: 25px;
+color: #ff3366; / 紅色，統一「惜敗」和「遊戲結束」 /
+font-weight: 700;
+text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2); / 輕陰影，提升質感 */
+}
+.game-over-title.victory {
+color: #ffcc00; /* 金黃，「勝利」專用 /
+} / 新增 class，由 JS 動態加 */
+.opponent-card .stats-data-value {
+color: #3b82f6; /* 藍色，對手數字 */
 }
 
 .game-over-title.defeat {
@@ -2474,22 +2480,22 @@
 
 /* 按鈕：淡綠藍漸變、低調陰影 */
 .restart-btn {
-    background: linear-gradient(45deg, #a3e635, #68d391); /* 淡綠藍，低飽和 */
-    color: #fff;
-    border: none;
-    padding: 14px 35px;
-    border-radius: 50px; /* 圓潤 */
-    font-size: 1.2rem;
-    font-weight: bold;
-    cursor: pointer;
-    margin-top: 25px; /* 間距 */
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* 輕陰影 */
+background: linear-gradient(45deg, #94a3b8, #64748b); /* 淡灰藍漸變，低調不鮮艷 /
+color: #fff;
+border: none;
+padding: 14px 35px;
+border-radius: 50px; / 圓潤 /
+font-size: 1.2rem;
+font-weight: bold;
+cursor: pointer;
+margin-top: 25px; / 間距 /
+transition: transform 0.2s ease, box-shadow 0.2s ease;
+box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); / 輕陰影 */
 }
 
 .restart-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15); /* 懸浮輕陰影 */
+transform: translateY(-2px);
+box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15); /* 懸浮輕陰影 */
 }
 
 /* 響應式：小螢幕調整 */
