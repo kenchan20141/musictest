@@ -2370,6 +2370,36 @@
 }
 
 /* ====== 【修訂】Game Over Modal - 淡雅低調主題 ====== */
+
+
+/* ====== 【新增】獨立的積分變化卡片樣式 ====== */
+.score-change-card {
+    background: linear-gradient(45deg, #ffd700, #ffcc00); /* 金黃色漸變，精美突出 */
+    color: #fff; /* 白色文字，對比強烈 */
+    padding: 15px;
+    border-radius: 15px; /* 圓潤邊角 */
+    margin-bottom: 20px; /* 與下方「您的成績」間距 */
+    box-shadow: 0 4px 15px rgba(255, 204, 0, 0.4); /* 金黃光暈陰影 */
+    text-align: center;
+    animation: pulse-glow 1.5s ease-in-out infinite; /* 輕微脈動動畫，一目了然 */
+}
+
+/* 脈動動畫，讓它更吸引注意力 */
+@keyframes pulse-glow {
+    0% { transform: scale(1); box-shadow: 0 4px 15px rgba(255, 204, 0, 0.4); }
+    50% { transform: scale(1.05); box-shadow: 0 6px 20px rgba(255, 204, 0, 0.6); }
+    100% { transform: scale(1); box-shadow: 0 4px 15px rgba(255, 204, 0, 0.4); }
+}
+
+.score-change-value {
+    font-size: 2rem; /* 大字體，一目了然 */
+    font-weight: bold;
+}
+
+.score-change-value.positive { color: #00ff00; } /* 正分綠色 */
+.score-change-value.negative { color: #ff0000; } /* 負分紅色 */
+
+        
 .game-over-modal {
     position: fixed; /* 全屏定位 */
     top: 0;
@@ -3771,49 +3801,28 @@ font-size: 12px;
 }
 
 
-/* ====== 【全新】積分變化獨立設計 ====== */
-/* 容器樣式：使用金黃漸變背景、圓角、陰影，讓它突出 */
+        /* ====== 【全新】積分變化獨立設計 ====== */
 #myScoreChangeContainer {
-    order: -1; /* 確保在CSS flex佈局中排在最上面 */
+    order: -1; /* 確保在容器中排在最上面 */
     margin-bottom: 15px; /* 與下方分隔 */
-    padding: 12px 20px; /* 內邊距，讓它像一個突出區塊 */
-    background: linear-gradient(135deg, #ffcc00, #ffd700); /* 金黃色漸變背景 */
-    border-radius: 12px; /* 柔和圓角 */
-    border: 1px solid #ffaa00; /* 金黃邊框 */
-    box-shadow: 0 4px 12px rgba(255, 204, 0, 0.3); /* 柔和金黃陰影 */
-    text-align: center; /* 內容居中 */
+    padding: 10px; /* 內邊距，讓它像一個突出區塊 */
+    background: rgba(255, 204, 0, 0.1); /* 淡金黃背景，顯眼但不刺眼 */
+    border-radius: 8px; /* 圓角 */
+    border: 1px solid #ffcc00; /* 金黃邊框 */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* 輕微陰影 */
 }
 
-/* 積分變化文字：加大字體、脈動動畫、顏色根據正負變化 */
 .score-change-highlight {
-    font-size: 2rem !important; /* 加大字體，更顯眼 */
+    font-size: 1.8rem !important; /* 加大字體，更顯眼 */
     font-weight: bold;
-    animation: pulseGlow 1.5s infinite; /* 輕微脈動動畫 */
+    color: #ffcc00; /* 金黃色文字 */
+    animation: pulse 1s infinite; /* 輕微脈動動畫 */
 }
 
-/* 正分：綠色 */
-.score-change-highlight.positive {
-    color: #28a745; /* 綠色 */
-}
-
-/* 負分：紅色 */
-.score-change-highlight.negative {
-    color: #dc3545; /* 紅色 */
-}
-
-/* 動畫：輕微脈動 + 光暈效果 */
-@keyframes pulseGlow {
-    0% { transform: scale(1); text-shadow: 0 0 5px rgba(255, 204, 0, 0.5); }
-    50% { transform: scale(1.05); text-shadow: 0 0 15px rgba(255, 204, 0, 0.8); }
-    100% { transform: scale(1); text-shadow: 0 0 5px rgba(255, 204, 0, 0.5); }
-}
-
-/* 調整總積分顯示：放在括號中，顏色較淺，避免搶戲 */
-.score-change-highlight::after {
-    content: attr(data-total); /* 使用 data-total 屬性顯示總積分，如 "(總積分: 5000)" */
-    font-size: 1.2rem; /* 較小字體 */
-    color: rgba(255, 255, 255, 0.7); /* 淺白，避免過亮 */
-    margin-left: 8px;
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
 }
         
     </style>
@@ -8113,20 +8122,12 @@ function handleOnlineGameOver(roomData) {
     const opponentFinalScore = opponentData.score;
 
     let myScoreChange = 0;
-
-// 在計算 myScoreChange 後
-const myScoreChangeEl = document.getElementById('myScoreChange');
-myScoreChangeEl.textContent = `${myScoreChange > 0 ? '+' : ''}${myScoreChange}`;
-myScoreChangeEl.classList.toggle('positive', myScoreChange > 0);
-myScoreChangeEl.classList.toggle('negative', myScoreChange < 0);
-myScoreChangeEl.setAttribute('data-total', `(總積分: ${newTotalScore})`); // 設定總積分顯示
-    
 // 查詢玩家的當前總分（從 Firebase）
 const myRankRef = database.ref('battleRankings/' + myData.playerId + '/battleScore');
 myRankRef.once('value').then(snapshot => {
     const currentTotalScore = snapshot.val() || 0;
     const newTotalScore = currentTotalScore + myScoreChange;
-    document.getElementById('myScoreChange').textContent = `${myScoreChange > 0 ? '+' : ''}${myScoreChange} (總積分: ${newTotalScore})`;
+    document.getElementById('myScoreChange').textContent = `${myScoreChange > 0 ? '+' : ''}${myScoreChange.toLocaleString()}`;
 });
 
     
@@ -8161,17 +8162,16 @@ myRankRef.once('value').then(snapshot => {
     const opponentCardClass = !iAmWinner && (myFinalScore < opponentFinalScore) ? 'stats-player-card opponent-card winner' : 'stats-player-card opponent-card';
 
    statsContainer.innerHTML = `
+    <!-- ▼▼▼ 新增：獨立的積分變化卡片 ▼▼▼ -->
+    <div class="score-change-card">
+        <span class="stats-data-label">積分變化</span>
+        <span class="score-change-value ${myScoreChange > 0 ? 'positive' : 'negative'}" id="myScoreChange">
+            ${myScoreChange > 0 ? '+' : ''}${myScoreChange.toLocaleString()}
+        </span>
+    </div>
+
     <div class="${myCardClass}">
         <h3 class="stats-player-title">您的成績</h3>
-        <!-- ▼▼▼ 積分變化獨立放在這裡，上方獨立容器 ▼▼▼ -->
-        <div id="myScoreChangeContainer">
-            <span class="stats-data-label">積分變化</span>
-            <span class="stats-data-value score-change-highlight" id="myScoreChange">
-                ${myScoreChange > 0 ? '+' : ''}${myScoreChange.toLocaleString()}
-            </span>
-        </div>
-        <!-- ▲▲▲ 積分變化結束 ▲▲▲ -->
-        
         <div class="stats-data-container">
             <div class="stats-data-item">
                 <span class="stats-data-label">最終分數</span>
