@@ -748,99 +748,19 @@
             }
         }
         */
-       /* ====== 【NEW DESIGN】Game Over Modal - "Hall of Fame" Theme ====== */
-.game-over-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(10, 20, 40, 0.7); /* A slightly tinted dark overlay */
-    backdrop-filter: blur(5px); /* Frosted glass effect */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.5s ease;
-}
-
-.game-over-modal.active {
-    opacity: 1;
-    pointer-events: all;
-}
-
-/* The main container with 90% width */
-.game-over-content {
-    background: linear-gradient(160deg, #1d2b4a, #11182c); /* A deep, rewarding blue gradient */
-    width: 90%;
-    max-width: 450px; /* Max width for larger screens */
-    padding: 30px 40px;
-    border-radius: 20px; /* Softer, larger corners */
-    text-align: center;
-    border: 1px solid rgba(255, 204, 0, 0.3); /* Subtle gold border */
-    box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5), 0 0 25px rgba(255, 204, 0, 0.2) inset; /* Outer depth and inner glow */
-    transform: scale(0.8);
-    opacity: 0;
-    transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.4s ease;
-    box-sizing: border-box;
-}
-
-.game-over-modal.active .game-over-content {
-    transform: scale(1);
-    opacity: 1;
-}
-
-.game-over-title {
-    font-size: 2.8rem;
-    margin-bottom: 20px;
-    color: #ffcc00; /* Bright gold color */
-    font-weight: 700;
-    text-shadow: 0 0 15px rgba(255, 204, 0, 0.6); /* Stronger glow effect */
-}
-
-.game-over-stats {
-    display: flex;
-    justify-content: space-around;
-    margin: 25px 0;
-    gap: 15px;
-}
-
-.game-over-stat {
-    background: rgba(255, 255, 255, 0.05); /* Very subtle background for contrast */
-    padding: 15px;
-    border-radius: 12px;
-    flex: 1; /* Allow stats to grow equally */
-    min-width: 100px;
-}
-
-.stat-label {
-    font-size: 1rem;
-    color: rgba(255, 255, 255, 0.8);
-    margin-bottom: 8px;
-    font-weight: 500;
-}
-
-.stat-number {
-    font-size: 2.2rem;
-    font-weight: bold;
-    color: #ff8a00; /* Bright orange for the numbers */
-}
-
+      
 /* A prominent, inviting call-to-action */
 .restart-btn {
-    background: linear-gradient(45deg, #00c9ff, #92fe9d);
-    color: #fff;
+    background: #fff;  /* 改成白底 */
+    color: #333;
     border: none;
     padding: 14px 35px;
-    border-radius: 50px; /* Pill shape */
+    border-radius: 50px;
     font-size: 1.2rem;
     font-weight: bold;
     cursor: pointer;
-    margin-top: 20px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    margin-top: 10px;  /* 減少 margin，讓它靠近上方 */
+    transition: transform 0.2s ease;
 }
 
 .restart-btn:hover {
@@ -850,9 +770,7 @@
 
 /* Responsive adjustments for Game Over Modal */
 @media (max-width: 480px) {
-    .game-over-content {
-        padding: 25px 20px;
-    }
+   
     .game-over-title {
         font-size: 2.2rem;
     }
@@ -2434,32 +2352,34 @@
 }
 
 
-/* --- 2. 視窗主容器樣式 --- */
-.game-over-modal .game-over-content {
-    /* 【設計】套用全新的顏色和背景 */
+.game-over-content {
     background: var(--jade-bg);
     color: var(--jade-text-primary);
-    
-    /* 【設計】更大的圓角與精緻的邊框 */
-    border-radius: 20px;
-    border: 1px solid var(--jade-border-color);
-    
-    /* 【設計】柔和的雙層陰影，營造輕盈的懸浮感 */
-    box-shadow: 0 4px 15px var(--jade-shadow-color), 0 0 1px var(--jade-border-color);
-    
-    /* 【佈局】增加內邊距，讓內容更舒展 */
-    padding: 35px 45px;
-
-    /* 【動畫】保留原有的流暢彈出動畫 */
+    width: 100%;  /* 改成全寬 */
+    padding: 20px;  /* 減少 padding，讓內容更滿 */
     transform: scale(0.8);
     opacity: 0;
     transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.4s ease;
-
-    /* ▼▼▼ 【核心修訂】請在這裡加入以下三行 ▼▼▼ */
     display: flex;
     flex-direction: column;
     align-items: center;
 }
+
+        .game-over-stats {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    background: none;
+    padding: 0;
+}
+
+        .stats-data-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+        
 
 .game-over-modal.active .game-over-content {
     transform: scale(1);
@@ -3224,158 +3144,7 @@
     --jade-shadow-color: rgba(110, 95, 75, 0.15); /* 更柔和的棕色陰影 */
 }
 
-/* --- 2. 視窗主容器樣式 --- */
-.game-over-modal .game-over-content {
-    /* 【設計】套用全新的顏色和背景 */
-    background: var(--jade-bg);
-    color: var(--jade-text-primary);
-    
-    /* 【設計】更大的圓角與精緻的邊框 */
-    border-radius: 20px;
-    border: 1px solid var(--jade-border-color);
-    
-    /* 【設計】柔和的雙層陰影，營造輕盈的懸浮感 */
-    box-shadow: 0 4px 15px var(--jade-shadow-color), 0 0 1px var(--jade-border-color);
-    
-    /* 【佈局】增加內邊距，讓內容更舒展 */
-    padding: 35px 45px;
 
-    /* 【動畫】保留原有的流暢彈出動畫 */
-    transform: scale(0.8);
-    opacity: 0;
-    transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.4s ease;
-}
-
-/* --- 3. 標題 "遊戲結束" --- */
-.game-over-title {
-    font-size: 2.5rem;
-    font-weight: 600; /* 使用適中的字重，不過於粗重 */
-    color: var(--jade-text-primary);
-    /* 移除舊的金色和文字陰影，追求簡潔 */
-    text-shadow: none; 
-    margin-bottom: 25px;
-}
-
-/* ====== 【全新設計】對戰結算畫面 - 玩家卡片佈局 ====== */
-
-/* 1. 主容器設定：改為垂直堆疊的 Flexbox 佈局 */
-.game-over-stats {
-    display: flex;
-    flex-direction: column; /* 核心：改為垂直堆疊 */
-    align-items: center; /* 讓卡片在容器中水平居中 */
-    width: 100%;
-    gap: 20px; /* 卡片之間的垂直間距 */
-    margin: 25px 0;
-    
-    /* 移除舊的 Grid 樣式和背景 */
-    background: none;
-    padding: 0;
-}
-
-/* 2. 「玩家卡片」的基礎樣式 */
-.stats-player-card {
-    width: 100%;
-    /* 【核心修訂】移除最大寬度限制，讓卡片能填滿容器 */
-    /* max-width: 400px; <-- 刪除此行 */
-    background: rgba(0, 0, 0, 0.03); 
-    border: 1px solid var(--jade-border-color, rgba(180, 143, 90, 0.3));
-    border-radius: 16px; 
-    padding: 20px 25px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
-    box-sizing: border-box; /* 【新增】確保 padding 不會導致卡片超出容器寬度 */
-}
-
-/* 3. 卡片標題樣式 ("您的成績" / "對手成績") */
-.stats-player-title {
-    font-size: 1.3rem;
-    font-weight: 600;
-    margin: 0 0 20px 0;
-    padding-bottom: 15px;
-    border-bottom: 1px solid var(--jade-border-color, rgba(180, 143, 90, 0.3));
-    text-align: center;
-}
-
-/* 4. 卡片內部數據容器 (用於並排顯示分數和連擊) */
-.stats-data-container {
-    display: flex;
-    justify-content: space-around; /* 讓分數和連擊平均分佈 */
-    align-items: baseline;
-}
-
-/* 5. 每個數據項的容器 ("最終分數" + 數字) */
-.stats-data-item {
-    text-align: center;
-}
-
-/* 6. 數據標籤樣式 ("最終分數", "最高連擊") */
-.stats-data-label {
-    font-size: 0.9rem;
-    color: var(--jade-text-secondary, #a19685);
-    display: block;
-    margin-bottom: 8px;
-}
-
-/* 7. 數據數字樣式 (分數, 連擊數) - 視覺核心 */
-.stats-data-value {
-    font-size: 2.5rem;
-    font-weight: 700;
-    line-height: 1;
-}
-
-/* 8. 為「您」的卡片和分數設定主題色 */
-.your-card .stats-player-title {
-    color: var(--jade-text-primary, #5c554a);
-}
-.your-card .stats-data-value {
-    color: var(--jade-accent, #b48f5a);
-}
-
-/* 9. 為「對手」的卡片和分數設定對比色 */
-.opponent-card .stats-player-title {
-    color: #9e9e9e; /* 使用灰色作為中性標題 */
-}
-.opponent-card .stats-data-value {
-    color: #aeaeae; /* 分數也使用較淺的灰色 */
-}
-
-/* 10. 【儀式感】為勝利方的卡片添加特殊樣式 */
-.stats-player-card.winner {
-    border-color: var(--jade-accent, #b48f5a);
-    box-shadow: 0 0 25px rgba(180, 143, 90, 0.4); /* 添加金色光暈 */
-    position: relative;
-    overflow: hidden; /* 為了放置偽元素標籤 */
-}
-
-/* 使用 ::before 偽元素為勝利方添加 "WINNER" 標籤 */
-.stats-player-card.winner::before {
-    content: 'WINNER';
-    position: absolute;
-    top: 15px;
-    right: -30px;
-    background: var(--jade-accent, #b48f5a);
-    color: white;
-    padding: 5px 30px;
-    font-size: 0.8rem;
-    font-weight: bold;
-    transform: rotate(45deg);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-/* 11. 響應式設計：在小螢幕上微調 */
-@media (max-width: 480px) {
-    .stats-player-card {
-        padding: 15px;
-    }
-    .stats-data-value {
-        font-size: 2rem; /* 縮小數字，避免擁擠 */
-    }
-    .stats-player-title {
-        font-size: 1.1rem;
-        margin-bottom: 15px;
-        padding-bottom: 10px;
-    }
-}
 
 .copyright-footer {
 position: fixed;
@@ -4037,34 +3806,40 @@ font-size: 12px;
     <div class="game-over-content">
         <h2 class="game-over-title" id="gameOverTitle">遊戲結束</h2>
         <!-- ▼▼▼ 請用這段新的程式碼，取代舊的 game-over-stats 區塊 ▼▼▼ -->
-<div class="game-over-stats dual-view">
-    <!-- 己方分數欄 -->
-    <div class="player-stats-column" id="myFinalStats">
-        <h3 class="player-stats-title your-title">您的成績</h3>
-        <div class="stat-item">
-            <span class="stat-label">最終分數</span>
-            <span class="stat-number" id="myFinalScore">0</span>
+<div class="game-over-content">
+    <h2 class="game-over-title" id="gameOverTitle">遊戲結束</h2>  <!-- 勝負結果已包含在 title，由 JS 動態改 (e.g., "勝利！") -->
+    <div class="game-over-stats">  <!-- 移除 'dual-view' class，讓它垂直排列 -->
+        <div id="myFinalStats">  <!-- 移除 class="player-stats-column" -->
+            <h3 class="player-stats-title your-title">您的成績</h3>
+            <div class="stats-data-container">
+                <div class="stats-data-item">
+                    <span class="stats-data-label">最終分數</span>
+                    <span class="stats-data-value" id="myFinalScore">0</span>
+                </div>
+                <div class="stats-data-item">
+                    <span class="stats-data-label">最高連擊</span>
+                    <span class="stats-data-value" id="myFinalCombo">0</span>
+                </div>
+            </div>
         </div>
-        <div class="stat-item">
-            <span class="stat-label">最高連擊</span>
-            <span class="stat-number" id="myFinalCombo">0</span>
+        <div id="opponentFinalStats">  <!-- 移除 class="player-stats-column" -->
+            <h3 class="player-stats-title opponent-title">對手成績</h3>
+            <div class="stats-data-container">
+                <div class="stats-data-item">
+                    <span class="stats-data-label">最終分數</span>
+                    <span class="stats-data-value" id="opponentFinalScore">0</span>
+                </div>
+                <div class="stats-data-item">
+                    <span class="stats-data-label">最高連擊</span>
+                    <span class="stats-data-value" id="opponentFinalCombo">0</span>
+                </div>
+            </div>
         </div>
     </div>
-    <!-- 對方分數欄 -->
-    <div class="player-stats-column" id="opponentFinalStats">
-        <h3 class="player-stats-title opponent-title">對手成績</h3>
-        <div class="stat-item">
-            <span class="stat-label">最終分數</span>
-            <span class="stat-number" id="opponentFinalScore">0</span>
-        </div>
-        <div class="stat-item">
-            <span class="stat-label">最高連擊</span>
-            <span class="stat-number" id="opponentFinalCombo">0</span>
-        </div>
-    </div>
+    <!-- 按鈕保持原樣 -->
 </div>
-<!-- ▲▲▲ 替換結束 ▲▲▲ -->
-        </div>
+
+        
         <!-- 單機模式按鈕 -->
         <button class="restart-btn" id="restartBtn">再玩一次</button>
         <!-- 多人模式按鈕 (預設隱藏) -->
