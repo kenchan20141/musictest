@@ -5338,7 +5338,7 @@ let isNotificationActive = false; // 一個旗標，用來判斷是否已有通�
             let trackCooldownUntil = new Array(tracks).fill(0);
             let sfxVolume = 0.5;
             // ▼▼▼ 【新增】粒子池相關變數 ▼▼▼
-const PARTICLE_POOL_SIZE = 200; // 池的大小，可以根據需要調整
+const PARTICLE_POOL_SIZE = 100; // 池的大小，可以根據需要調整
 let hitParticlePool = [];
 let noteParticlePool = [];
 let currentHitParticleIndex = 0;
@@ -5441,13 +5441,15 @@ function setupParticlePools() {
 // ▲▲▲ 新增結束 ▲▲▲
 
 
+// ▼▼▼ 【新增】設定文字回饋物件池的函數 ▼▼▼
 function setupFeedbackPools() {
     // 建立判定文字池 (e.g., PERFECT, GREAT)
     judgmentPool.forEach(p => p.remove()); // 清理舊的
     judgmentPool = [];
-    for (let i = 0; i < 20; i++) { // 增加到20個
+    for (let i = 0; i < 10; i++) { // 預先創建10個，通常足夠用了
         const el = document.createElement('div');
         el.className = 'judgment';
+        // 預先附加到軌道容器中，設為隱藏
         el.style.opacity = '0'; 
         el.style.pointerEvents = 'none';
         tracksContainer.appendChild(el);
@@ -5458,7 +5460,7 @@ function setupFeedbackPools() {
     // 建立 COMBO 文字池
     comboPool.forEach(p => p.remove()); // 清理舊的
     comboPool = [];
-    for (let i = 0; i < 10; i++) { // 增加到10個
+    for (let i = 0; i < 5; i++) { // COMBO 文字同時出現的機率不高，5個足夠
         const el = document.createElement('div');
         el.className = 'combo-display';
         el.style.opacity = '0';
@@ -5468,6 +5470,7 @@ function setupFeedbackPools() {
     }
     currentComboIndex = 0;
 }
+// ▲▲▲ 新增結束 ▲▲▲
             
 
             
@@ -5951,7 +5954,8 @@ closeNotification.addEventListener('click', () => {
                 });
             }
 
-           function initGame() {
+            function initGame() {
+ 
     tracksContainer.innerHTML = '';
     for (let i = 0; i < tracks; i++) {
         const track = document.createElement('div');
@@ -5966,16 +5970,13 @@ closeNotification.addEventListener('click', () => {
         track.appendChild(keyHint);
         tracksContainer.appendChild(track);
     }
-    // 清理舊粒子和反饋（避免累積）
-    hitParticlePool.forEach(p => { p.classList.remove('animate'); p.style.opacity = '0'; });
-    noteParticlePool.forEach(p => { p.classList.remove('animate'); p.style.opacity = '0'; });
-    judgmentPool.forEach(j => { j.style.opacity = '0'; });
-    comboPool.forEach(c => { c.style.opacity = '0'; });
-    setupParticlePools();
-    setupFeedbackPools();
+                  setupParticlePools();
+                setupFeedbackPools();
     score = 0;
     combo = 0;
     maxCombo = 0;
+    // 新增：重設 pureHitScore 以確保每次遊戲開始時從0開始（避免累積BUG）
+    pureHitScore = 0;
     notes = [];
     noteQueue = [];
     progressBar.style.width = '0%';
@@ -5986,15 +5987,6 @@ closeNotification.addEventListener('click', () => {
         document.getElementById('touchControls').style.display = 'flex';
         document.querySelectorAll('.key-hint').forEach(hint => hint.style.display = 'none');
     }
-    // ▼▼▼ 【新增】手機專屬調整：減少粒子池大小和動畫 ▼▼▼
-    if (isMobile) {
-        PARTICLE_POOL_SIZE = 100; // 手機減半
-        // 禁用複雜動畫（如rainbow）
-        tracksContainer.classList.add('no-rainbow'); // 加class，在CSS禁用
-    } else {
-        PARTICLE_POOL_SIZE = 200;
-    }
-    // ▲▲▲ 新增結束 ▲▲▲
 }
 
             function updateUI() {
@@ -6362,85 +6354,85 @@ async function submitScoreToLeaderboard(songUrl, difficulty, finalScore) {
     notes.push(noteObj);
 }
 
+          // ▼▼▼ 【修訂後】使用物件池的 createHitParticles 函數 ▼▼▼
 function createHitParticles(trackIndex, judgment) {
     const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
     if (!track) return;
 
-    const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-    // ▼▼▼ 【修訂】手機減半粒子數 ▼▼▼
-    let particleCount = (judgment === 'perfect') ? 5 : (judgment === 'great' ? 4 : 3);
-    if (isMobile) particleCount = Math.floor(particleCount / 2); // 手機減半
-
-    const maxOffset = (judgment === 'perfect') ? 80 : (judgment === 'great' ? 60 : 40);
-    if (isMobile) maxOffset *= 0.7; // 手機減少偏移幅度
+    // ▼▼▼ 【修訂】稍微減少各等級的粒子數量，以降低渲染負擔 ▼▼▼
+const particleCount = (judgment === 'perfect') ? 12 : (judgment === 'great' ? 8 : 5);
+    const maxOffset = (judgment === 'perfect') ? 100 : (judgment === 'great' ? 80 : 60);
 
     const colors = {
         perfect: '#ffcc00', great: '#00ccff', good: '#00ff99'
     };
 
     for (let i = 0; i < particleCount; i++) {
+        // 從池中獲取一個粒子
         currentHitParticleIndex = (currentHitParticleIndex + 1) % PARTICLE_POOL_SIZE;
         const particle = hitParticlePool[currentHitParticleIndex];
 
+        // 重設樣式並啟動動畫
         particle.style.background = colors[judgment] || '#fff';
-        const size = Math.floor(6 + Math.random() * 6);
+        const size = Math.floor(8 + Math.random() * 8);
         particle.style.setProperty('--size', `${size}px`);
-        const x = (Math.random() - 0.5) * maxOffset * 1.5;
-        const y = (Math.random() * -maxOffset) - 15;
+        const x = (Math.random() - 0.5) * maxOffset * 2;
+        const y = (Math.random() * -maxOffset) - 20;
         particle.style.setProperty('--x', `${x}px`);
         particle.style.setProperty('--y', `${y}px`);
         const rot = Math.random() * 360;
-        const rotEnd = rot + (Math.random() * 360 - 180);
+        const rotEnd = rot + (Math.random() * 720 - 360);
         particle.style.setProperty('--rot', `${rot}deg`);
         particle.style.setProperty('--rot-end', `${rotEnd}deg`);
         particle.style.left = `calc(${track.offsetLeft}px + 50% - ${size / 2}px)`;
-
+        
+        // 移除舊的動畫類別，強制重啟動畫
         particle.classList.remove('animate');
+        void particle.offsetWidth; // 強制瀏覽器重繪
         particle.classList.add('animate');
-
+        
+        // 使用 animationend 事件來回收粒子，比 setTimeout 更精準
         particle.onanimationend = () => {
             particle.classList.remove('animate');
-            particle.onanimationend = null;
+            particle.onanimationend = null; // 清除事件監聽器
         };
     }
 }
 
+// ▼▼▼ 【修訂後】使用物件池的 explodeNote 函數 ▼▼▼
 function explodeNote(noteElement, judgment) {
     if (!noteElement) return;
 
     const rect = noteElement.getBoundingClientRect();
     const trackRect = tracksContainer.getBoundingClientRect();
-    const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-    // ▼▼▼ 【修訂】手機減半粒子數 ▼▼▼
-    let particleCount = (judgment === 'perfect') ? 5 : (judgment === 'great' ? 4 : 3);
-    if (isMobile) particleCount = Math.floor(particleCount / 2);
-
-    let maxOffset = 60;
-    if (isMobile) maxOffset *= 0.7;
+    const particleCount = (judgment === 'perfect') ? 15 : (judgment === 'great' ? 10 : 7); // 減少粒子數量
+    const maxOffset = 80;
 
     const colors = {
         perfect: '#ffcc00', great: '#00ccff', good: '#00ff99'
     };
 
     for (let i = 0; i < particleCount; i++) {
+        // 從池中獲取一個粒子
         currentNoteParticleIndex = (currentNoteParticleIndex + 1) % PARTICLE_POOL_SIZE;
         const particle = noteParticlePool[currentNoteParticleIndex];
 
         particle.style.background = colors[judgment] || '#fff';
-        const size = Math.floor(4 + Math.random() * 6);
+        const size = Math.floor(4 + Math.random() * 9);
         particle.style.setProperty('--size', `${size}px`);
-        const x = (Math.random() - 0.5) * maxOffset * 1.5;
-        const y = (Math.random() - 0.5) * maxOffset * 1.5;
+        const x = (Math.random() - 0.5) * maxOffset * 2;
+        const y = (Math.random() - 0.5) * maxOffset * 2;
         particle.style.setProperty('--x', `${x}px`);
         particle.style.setProperty('--y', `${y}px`);
         const rot = Math.random() * 360;
-        const rotEnd = rot + (Math.random() * 360 - 180);
+        const rotEnd = rot + (Math.random() * 720 - 360);
         particle.style.setProperty('--rot', `${rot}deg`);
         particle.style.setProperty('--rot-end', `${rotEnd}deg`);
         particle.style.left = `${rect.left - trackRect.left + rect.width / 2 - size / 2}px`;
         particle.style.top = `${rect.top - trackRect.top + rect.height / 2 - size / 2}px`;
 
         particle.classList.remove('animate');
+        void particle.offsetWidth;
         particle.classList.add('animate');
 
         particle.onanimationend = () => {
@@ -6449,6 +6441,8 @@ function explodeNote(noteElement, judgment) {
         };
     }
 }
+
+
 
             
 
@@ -8315,16 +8309,18 @@ function resetToMainMenu() {
     initGame();
 }
 
-      function gameLoop() {
+          function gameLoop() {
     if (!gameActive) return;
 
+    // --- 核心優化：在迴圈外快取不會變動的數值 ---
+    // 獲取軌道總高度，音符需要移動的總距離
+    const fallDistance = tracksContainer.clientHeight; 
+    // 計算判定線的 Y 座標 (相對於軌道頂部)
+    const hitLineY = fallDistance - 100; 
+    // 計算音符每毫秒移動的像素距離
+    const pixelsPerMillisecond = fallDistance / noteSpeed;
+
     const now = Date.now();
-    const isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
-    // ▼▼▼ 【新增】手機throttle：每2幀執行一次 ▼▼▼
-    if (isMobile && (now % 2 !== 0)) { // 簡單throttle
-        animationFrame = requestAnimationFrame(gameLoop);
-        return;
-    }
 
     for (let i = notes.length - 1; i >= 0; i--) {
         const note = notes[i];
