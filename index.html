@@ -7509,6 +7509,7 @@ function startBattleQuiz(roomData) {
     
     // 1. 【核心】設置單次入場券旗標
     // 一旦測驗開始，此旗標將阻止監聽器重複觸發此函數，直到回合完全重置。
+    if (isBattleQuizActive) return; // 【修訂】添加此檢查，防止重複啟動
     isBattleQuizActive = true; 
 
     const songUrl = roomData.selectedSong;
@@ -7561,8 +7562,8 @@ function startBattleQuiz(roomData) {
  * 2. 顯示下一道對戰測驗題目，並啟動計時器
  */
 function displayNextBattleQuestion() {
-    // 檢查是否已答完 5 題
-    if (battleQuizCurrentIndex >= 5) {
+    // 【修訂】添加嚴格檢查，防止重複循環
+    if (battleQuizCurrentIndex >= 5 || !isBattleQuizActive) {
         finishBattleQuiz();
         return;
     }
@@ -7652,9 +7653,9 @@ function finishBattleQuiz() {
         quizFinished: true
     });
 
-    showNotification('info', '測驗完成', '已提交你的測驗分數，請等待對手完成...', 10000);
+    // 【修訂】顯示持久通知（無限持續時間），直到對方完成
+    showNotification('info', '測驗完成', '已提交你的測驗分數，請等待對手完成...'); // 移除 duration 參數，讓它不自動關閉
 }
-
 
 /**
  * 5. 輔助函數：Fisher-Yates 洗牌演算法 (沿用你已有的即可)
@@ -8038,6 +8039,7 @@ function listenToRoomChanges() {
             case 'game_over':
                 if (gameActive || isBattleQuizActive) {
                     isBattleQuizActive = false; // 確保測驗狀態被重設
+                    clearAllNotifications(); // 手動關閉等待通知
                     handleOnlineGameOver(roomData);
                 }
                 break;
