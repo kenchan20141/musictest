@@ -2405,8 +2405,8 @@
 }
 
 .game-over-title.defeat {
-    color: #ff3366 !important; /* 强制红色，覆盖默认的金黄色 */
-}
+    color: #ff3366; /* 紅色，「惜敗」專用 */
+} /* 新增 class，由 JS 動態加 */
 
 .game-over-stats {
     display: flex;
@@ -2469,7 +2469,7 @@
 }
 
 .opponent-card .stats-data-value {
-    color: #00c9ff; /* 改为蓝色 */
+    color: #e52e71; /* 對手深紅 */
 }
 
 /* 按鈕：淡綠藍漸變、低調陰影 */
@@ -3730,14 +3730,6 @@ font-size: 12px;
         flex-basis: 80px;
         font-size: 1.2rem;
     }
-}
-
-        #rematchBtn {
-    background: linear-gradient(45deg, #d4edda, #c3e6cb); /* 淺綠漸變，清新不鮮艷 */
-    color: #333; /* 文字顏色改為深灰，確保可讀性 */
-}
-#rematchBtn:hover {
-    box-shadow: 0 6px 20px rgba(195, 230, 203, 0.4); /* 調整懸停陰影為淺綠調 */
 }
         
     </style>
