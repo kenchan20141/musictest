@@ -7637,6 +7637,8 @@ function handleBattleQuizAnswer(isTimeout = false) {
  * 4. 結束本地測驗，並將最終分數同步到 Firebase (修訂版)
  */
 function finishBattleQuiz() {
+    quizCloseBtn.style.display = 'block';
+
     lyricsQuizModal.classList.remove('active');
     document.getElementById('battleQuizTimerContainer').style.display = 'none';
 
@@ -7647,7 +7649,8 @@ function finishBattleQuiz() {
         quizFinished: true
     });
 
-    // 修訂：移除任何額外通知，讓房主在監聽器中直接推進到結算畫面
+    // 【修訂】顯示持久通知（無限持續時間），直到對方完成
+    showNotification('info', '測驗完成', '已提交你的測驗分數，請等待對手完成...', Infinity);
 }
 
 /**
@@ -8018,10 +8021,9 @@ function listenToRoomChanges() {
                 handleCountdown();
                 break;
 
-         case 'game_over':
-    if (gameActive || isBattleQuizActive) {
-        isBattleQuizActive = false;
-        handleOnlineGameOver(roomData);
+          case 'pre_quiz':
+    if (!isBattleQuizActive) {
+        startBattleQuiz(roomData);
     }
     break;
 
@@ -8030,12 +8032,11 @@ function listenToRoomChanges() {
                 break;
 
             case 'game_over':
-                if (gameActive || isBattleQuizActive) {
-                    isBattleQuizActive = false; // 確保測驗狀態被重設
-                    clearAllNotifications(); // 手動關閉等待通知
-                    handleOnlineGameOver(roomData);
-                }
-                break;
+    if (gameActive || isBattleQuizActive) {
+        isBattleQuizActive = false;
+        handleOnlineGameOver(roomData);
+    }
+    break;
                 
            case 'rematch_reset':
     resetForRematch();
@@ -8043,6 +8044,7 @@ function listenToRoomChanges() {
         database.ref(`rooms/${currentRoomId}`).update({ gameState: 'selecting_song' });
     }
     break;
+        }
         
         if (roomData.gameState === 'game_over') {
             handleRematchStatus(roomData);
@@ -8217,6 +8219,7 @@ function resetForRematch() {
     // 恢復開始按鈕
     startBtn.disabled = false;
 }
+
 /**
  * 重置所有狀態並安全返回主菜單 (UI 恢復增強版)
  */
