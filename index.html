@@ -8175,6 +8175,9 @@ function handleOnlineGameOver(roomData) {
     rematchBtn.disabled = false;
     rematchStatus.textContent = '';
     gameOverModal.classList.add('active');
+
+    // 【核心修訂】在結束遊戲後，移除 'game-running' class 以恢復選擇器的可見性
+    mainGameContainer.classList.remove('game-running');
 }
 
             
@@ -8227,6 +8230,9 @@ function resetForRematch() {
     
     // 解鎖按鈕
     startBtn.disabled = false;
+
+    // 【核心修訂】在重賽重置時，移除 'game-running' class 以恢復選擇器的可見性
+    mainGameContainer.classList.remove('game-running');
 }
 
 /**
