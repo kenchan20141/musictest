@@ -6387,17 +6387,20 @@ function createHitParticles(trackIndex, judgment) {
     const track = document.querySelector(`.track[data-track="${trackIndex}"]`);
     if (!track) return;
 
-    // ▼▼▼ 【修訂】減少粒子數，降低負荷 ▼▼▼
-    const particleCount = (judgment === 'perfect') ? 8 : (judgment === 'great' ? 6 : 4);
-    // ▲▲▲ 修訂結束 ▲▲▲
-
+    // ▼▼▼ 【修訂】稍微減少各等級的粒子數量，以降低渲染負擔 ▼▼▼
+const particleCount = (judgment === 'perfect') ? 12 : (judgment === 'great' ? 8 : 5);
     const maxOffset = (judgment === 'perfect') ? 100 : (judgment === 'great' ? 80 : 60);
-    const colors = { perfect: '#ffcc00', great: '#00ccff', good: '#00ff99' };
+
+    const colors = {
+        perfect: '#ffcc00', great: '#00ccff', good: '#00ff99'
+    };
 
     for (let i = 0; i < particleCount; i++) {
+        // 從池中獲取一個粒子
         currentHitParticleIndex = (currentHitParticleIndex + 1) % PARTICLE_POOL_SIZE;
         const particle = hitParticlePool[currentHitParticleIndex];
 
+        // 重設樣式並啟動動畫
         particle.style.background = colors[judgment] || '#fff';
         const size = Math.floor(8 + Math.random() * 8);
         particle.style.setProperty('--size', `${size}px`);
@@ -6410,56 +6413,16 @@ function createHitParticles(trackIndex, judgment) {
         particle.style.setProperty('--rot', `${rot}deg`);
         particle.style.setProperty('--rot-end', `${rotEnd}deg`);
         particle.style.left = `calc(${track.offsetLeft}px + 50% - ${size / 2}px)`;
-
+        
+        // 移除舊的動畫類別，強制重啟動畫
         particle.classList.remove('animate');
-        void particle.offsetWidth;
+        void particle.offsetWidth; // 強制瀏覽器重繪
         particle.classList.add('animate');
-
+        
+        // 使用 animationend 事件來回收粒子，比 setTimeout 更精準
         particle.onanimationend = () => {
             particle.classList.remove('animate');
-            particle.onanimationend = null;
-        };
-    }
-}
-
-function explodeNote(noteElement, judgment) {
-    if (!noteElement) return;
-
-    const rect = noteElement.getBoundingClientRect();
-    const trackRect = tracksContainer.getBoundingClientRect();
-
-    // ▼▼▼ 【修訂】減少粒子數，降低負荷 ▼▼▼
-    const particleCount = (judgment === 'perfect') ? 10 : (judgment === 'great' ? 8 : 5);
-    // ▲▲▲ 修訂結束 ▲▲▲
-
-    const maxOffset = 80;
-    const colors = { perfect: '#ffcc00', great: '#00ccff', good: '#00ff99' };
-
-    for (let i = 0; i < particleCount; i++) {
-        currentNoteParticleIndex = (currentNoteParticleIndex + 1) % PARTICLE_POOL_SIZE;
-        const particle = noteParticlePool[currentNoteParticleIndex];
-
-        particle.style.background = colors[judgment] || '#fff';
-        const size = Math.floor(4 + Math.random() * 9);
-        particle.style.setProperty('--size', `${size}px`);
-        const x = (Math.random() - 0.5) * maxOffset * 2;
-        const y = (Math.random() - 0.5) * maxOffset * 2;
-        particle.style.setProperty('--x', `${x}px`);
-        particle.style.setProperty('--y', `${y}px`);
-        const rot = Math.random() * 360;
-        const rotEnd = rot + (Math.random() * 720 - 360);
-        particle.style.setProperty('--rot', `${rot}deg`);
-        particle.style.setProperty('--rot-end', `${rotEnd}deg`);
-        particle.style.left = `${rect.left - trackRect.left + rect.width / 2 - size / 2}px`;
-        particle.style.top = `${rect.top - trackRect.top + rect.height / 2 - size / 2}px`;
-
-        particle.classList.remove('animate');
-        void particle.offsetWidth;
-        particle.classList.add('animate');
-
-        particle.onanimationend = () => {
-            particle.classList.remove('animate');
-            particle.onanimationend = null;
+            particle.onanimationend = null; // 清除事件監聽器
         };
     }
 }
@@ -6612,61 +6575,51 @@ function sendScoreUpdate() {
 
             
 
-          function addScore(baseScore) {
-    baseScore = Math.floor(baseScore); // 確保整數
-    combo++;
-    if (combo > maxCombo) maxCombo = combo;
-    
-    pureHitScore += baseScore;
-    score += baseScore + Math.floor(baseScore * (Math.floor(combo / 10) * 0.1)); 
-
-    // ▼▼▼ 【修訂】在線上模式下，使用debounce批次更新分數 ▼▼▼
-    if (gameMode === 'online') {
-        isScoreDirty = true;
-        if (!scoreUpdateTimeout) {
-            scoreUpdateTimeout = setTimeout(() => {
-                sendScoreUpdate();
-                scoreUpdateTimeout = null;
-            }, 250); // 每250ms發送一次
-        }
-    }
-    // ▲▲▲ 修訂結束 ▲▲▲
-
-    // ▼▼▼ 【修訂】只在25倍數COMBO時顯示（且combo>0） ▼▼▼
-    if (combo > 0 && combo % 25 === 0) {
-        currentComboIndex = (currentComboIndex + 1) % comboPool.length;
-        const comboEl = comboPool[currentComboIndex];
-        comboEl.className = 'combo-display';
-        comboEl.textContent = `${combo} COMBO!`;
-        if (combo >= 1000) comboEl.classList.add('combo-rainbow');
-        else if (combo >= 500) comboEl.classList.add('combo-purple');
-        else if (combo >= 200) comboEl.classList.add('combo-pink');
-        else if (combo >= 100) comboEl.classList.add('combo-orange');
-        else if (combo >= 50) comboEl.classList.add('combo-blue');
-        else comboEl.classList.add('combo-base');
-        tracksContainer.appendChild(comboEl);
-        if (sounds.combo) sounds.combo();
-
-        comboEl.style.opacity = '1';
-        comboEl.onanimationend = () => {
-            comboEl.style.opacity = '0';
-            comboEl.onanimationend = null;
-        };
-    }
-    // ▲▲▲ 修訂結束 ▲▲▲
-    
-    let trackComboClass = '';
-    if (combo >= 1000) trackComboClass = 'combo-rainbow';
-    else if (combo >= 500) trackComboClass = 'combo-purple';
-    else if (combo >= 200) trackComboClass = 'combo-pink';
-    else if (combo >= 100) trackComboClass = 'combo-orange';
-    else if (combo >= 50) trackComboClass = 'combo-blue';
-    tracksContainer.className = 'tracks';
-    if (trackComboClass) tracksContainer.classList.add(trackComboClass);
-    
-    updateUnlockMeter();
+        function addScore(baseScore) {
+combo++;
+if (combo > maxCombo) maxCombo = combo;
+pureHitScore += baseScore;
+score += baseScore + Math.floor(baseScore * (Math.floor(combo / 10) * 0.1));
+if (gameMode === 'online') {
+isScoreDirty = true;
+if (!scoreUpdateTimeout) {
+scoreUpdateTimeout = setTimeout(() => {
+sendScoreUpdate();
+scoreUpdateTimeout = null;
+}, 250);
+}
+}
+if (combo >= 25 && combo % 25 === 0) {
+currentComboIndex = (currentComboIndex + 1) % comboPool.length;
+const comboEl = comboPool[currentComboIndex];
+comboEl.className = 'combo-display';
+comboEl.textContent = ${combo} COMBO!;
+if (combo >= 1000) comboEl.classList.add('combo-rainbow');
+else if (combo >= 500) comboEl.classList.add('combo-purple');
+else if (combo >= 200) comboEl.classList.add('combo-pink');
+else if (combo >= 100) comboEl.classList.add('combo-orange');
+else if (combo >= 50) comboEl.classList.add('combo-blue');
+else comboEl.classList.add('combo-base');
+tracksContainer.appendChild(comboEl);
+if (sounds.combo) sounds.combo();
+comboEl.style.opacity = '1';
+comboEl.onanimationend = () => {
+comboEl.style.opacity = '0';
+comboEl.onanimationend = null;
+};
+}
+let trackComboClass = '';
+if (combo >= 1000) trackComboClass = 'combo-rainbow';
+else if (combo >= 500) trackComboClass = 'combo-purple';
+else if (combo >= 200) trackComboClass = 'combo-pink';
+else if (combo >= 100) trackComboClass = 'combo-orange';
+else if (combo >= 50) trackComboClass = 'combo-blue';
+tracksContainer.className = 'tracks';
+if (trackComboClass) tracksContainer.classList.add(trackComboClass);
+updateUnlockMeter();
 }
 
+            
  // ▼▼▼ 新增的函數 ▼▼▼
            // ▼▼▼ 修正後的函數 ▼▼▼
 function updateUnlockMeter() {
@@ -8376,22 +8329,30 @@ function resetToMainMenu() {
     initGame();
 }
 
-          function gameLoop() {
+         function gameLoop() {
     if (!gameActive) return;
 
-    const now = Date.now();
-    // 新增：快取不會變動的值
-    const fallDistance = tracksContainer.clientHeight + 50;
+    // --- 核心優化：在迴圈外快取不會變動的數值 ---
+    // 獲取軌道總高度，音符需要移動的總距離
+    const fallDistance = tracksContainer.clientHeight; 
+    // 計算判定線的 Y 座標 (相對於軌道頂部)
     const hitLineY = fallDistance - 100; 
+    // 計算音符每毫秒移動的像素距離
     const pixelsPerMillisecond = fallDistance / noteSpeed;
+
+    const now = Date.now();
 
     for (let i = notes.length - 1; i >= 0; i--) {
         const note = notes[i];
-        if (!note.active) continue; // 跳過非活躍音符，減少計算
+        if (!note.active) continue;
 
+        // --- 核心優化：用數學公式「計算」音符的當前位置 ---
         const timeElapsed = now - note.creationTime;
+        // 音符頂部的 Y 座標 = 已過時間 * 每毫秒移動距離 - 音符自身高度(動畫是從-50px開始的)
         const noteTopY = (timeElapsed * pixelsPerMillisecond) - 50;
 
+        // --- 使用計算出的位置來進行判斷 ---
+        // 如果音符頂部已經超過了判定線加一個緩衝區 (20px)
         if (noteTopY > hitLineY + 20) {
             const isTrackInvincible = notes.some(n =>
                 n.track === note.track &&
@@ -8404,7 +8365,7 @@ function resetToMainMenu() {
             }
             
             note.active = false;
-            note.element.remove();
+            note.element.remove(); // 這裡的 remove 是必要的，因為 miss 了
             notes.splice(i, 1);
         }
     }
