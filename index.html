@@ -2352,6 +2352,11 @@
 }
 
 
+        /* 在對戰模式下隱藏遊戲結束標題 */
+.online-mode .game-over-title-online {
+    display: none;
+}
+
 /* ====== 【修訂】Game Over Modal - 淡雅低調主題 ====== */
 .game-over-modal {
     position: fixed; /* 全屏定位 */
@@ -3943,10 +3948,10 @@ font-size: 12px;
   <!-- ▼▼▼ 【修訂】遊戲結束畫面，增加重賽按鈕 ▼▼▼ -->
 <div class="game-over-modal" id="gameOverModal">
     <div class="game-over-content">
-        <h2 class="game-over-title" id="gameOverTitle">遊戲結束</h2>
+        <h2 class="game-over-title" id="gameOverTitle"></h2>
         <!-- ▼▼▼ 請用這段新的程式碼，取代舊的 game-over-stats 區塊 ▼▼▼ -->
 <div class="game-over-content">
-    <h2 class="game-over-title" id="gameOverTitle">遊戲結束</h2>  <!-- 勝負結果已包含在 title，由 JS 動態改 (e.g., "勝利！") -->
+    <h2 class="game-over-title" id="gameOverTitle"></h2>
     <div class="game-over-stats">  <!-- 移除 'dual-view' class，讓它垂直排列 -->
         <div id="myFinalStats">  <!-- 移除 class="player-stats-column" -->
             <h3 class="player-stats-title your-title">您的成績</h3>
@@ -7636,7 +7641,8 @@ function createRoom() {
                 playerName: playerName || '玩家一',
                 score: 0,
                 rematch: false,
-                isReady: false
+                isReady: false,
+                player1Ended: false  // ▼▼▼ 新增：初始化ended状态 ▼▼▼
             },
             player2: null,
             gameState: 'waiting_for_players',
@@ -7688,7 +7694,8 @@ function joinRoom() {
             playerName: playerName || '玩家二',
             score: 0,
             rematch: false,
-            isReady: false
+            isReady: false,
+            player2Ended: false  // ▼▼▼ 新增：初始化ended状态 ▼▼▼
         };
 
         // 使用 transaction 確保加入操作的原子性
@@ -7881,7 +7888,20 @@ function listenToRoomChanges() {
 
         const roomData = snapshot.val();
         const opponentKey = isHost ? 'player2' : 'player1';
+        const myEndedKey = isHost ? 'player1Ended' : 'player2Ended';
+        const opponentEndedKey = isHost ? 'player2Ended' : 'player1Ended';
         
+        // ▼▼▼ 新增：检测对方ended ▼▼▼
+        if (roomData[opponentEndedKey] && !roomData[myEndedKey]) {
+            // 对方ended，但我还没，按需求：显示提示，但不强制结束（允许继续看分数）
+            showNotification('info', '對手已離開', '對手已點擊“結束遊戲”，您可以繼續查看分數，或點擊“結束遊戲”離開。');
+        }
+        // 如果自己ended，直接重置（但因为点击结束时已本地reset，这里只是冗余检查）
+        if (roomData[myEndedKey]) {
+            resetToMainMenu();
+        }
+        // ▲▲▲ 新增结束 ▲▲▲
+
         if (roomData[opponentKey] && roomData[opponentKey].disconnected === true && (gameActive || isBattleQuizActive)) {
             gameActive = false; 
             isBattleQuizActive = false; // 也要停止測驗
@@ -8205,10 +8225,10 @@ function resetToMainMenu() {
 // ====== 【功能函數新增結束】 ========================================
 // ================================================================
 
-           function showGameOver() {
-    // ▼▼▼ 【修訂】根據遊戲模式顯示不同內容 ▼▼▼
+          function showGameOver() {
+    // ▼▼▼ 【修訂】根据游戏模式显示不同内容 ▼▼▼
     if (gameMode === 'single') {
-        gameOverTitle.textContent = "遊戲結束";
+        gameOverTitle.textContent = "";  // 改为为空，不显示“遊戲結束”
         finalScoreDisplay.textContent = score.toLocaleString();
         finalComboDisplay.textContent = maxCombo;
         restartBtnSingle.style.display = 'block';
@@ -9068,11 +9088,22 @@ rematchBtn.addEventListener('click', () => {
 
 // 結束遊戲按鈕
 endGameBtn.addEventListener('click', () => {
-    // 步驟 1: 從 Firebase 數據庫中移除整個房間，這會通知對手遊戲已結束。
-    database.ref('rooms/' + currentRoomId).remove();
-    
-    // 步驟 2: 呼叫重置函數，將您自己的遊戲介面和狀態完全恢復到單人模式的主選單。
+    const myPlayerKey = isHost ? 'player1' : 'player2';
+    const myEndedKey = isHost ? 'player1Ended' : 'player2Ended';
+
+    // 设置自己的ended = true
+    database.ref(`rooms/${currentRoomId}/${myEndedKey}`).set(true);
+
+    // 本地立即重置到主菜单（不等待对方）
     resetToMainMenu();
+
+    // 检查如果双方都ended，且我是主机，则移除房间
+    database.ref(`rooms/${currentRoomId}`).once('value').then(snapshot => {
+        const roomData = snapshot.val();
+        if (roomData && roomData.player1Ended && roomData.player2Ended && isHost) {
+            database.ref('rooms/' + currentRoomId).remove();
+        }
+    });
 });
 
 // 監聽房間號輸入，自動格式化
