@@ -6575,51 +6575,59 @@ function sendScoreUpdate() {
 
             
 
-        function addScore(baseScore) {
-combo++;
-if (combo > maxCombo) maxCombo = combo;
-pureHitScore += baseScore;
-score += baseScore + Math.floor(baseScore * (Math.floor(combo / 10) * 0.1));
-if (gameMode === 'online') {
-isScoreDirty = true;
-if (!scoreUpdateTimeout) {
-scoreUpdateTimeout = setTimeout(() => {
-sendScoreUpdate();
-scoreUpdateTimeout = null;
-}, 250);
-}
-}
-if (combo >= 25 && combo % 25 === 0) {
-currentComboIndex = (currentComboIndex + 1) % comboPool.length;
-const comboEl = comboPool[currentComboIndex];
-comboEl.className = 'combo-display';
-comboEl.textContent = ${combo} COMBO!;
-if (combo >= 1000) comboEl.classList.add('combo-rainbow');
-else if (combo >= 500) comboEl.classList.add('combo-purple');
-else if (combo >= 200) comboEl.classList.add('combo-pink');
-else if (combo >= 100) comboEl.classList.add('combo-orange');
-else if (combo >= 50) comboEl.classList.add('combo-blue');
-else comboEl.classList.add('combo-base');
-tracksContainer.appendChild(comboEl);
-if (sounds.combo) sounds.combo();
-comboEl.style.opacity = '1';
-comboEl.onanimationend = () => {
-comboEl.style.opacity = '0';
-comboEl.onanimationend = null;
-};
-}
-let trackComboClass = '';
-if (combo >= 1000) trackComboClass = 'combo-rainbow';
-else if (combo >= 500) trackComboClass = 'combo-purple';
-else if (combo >= 200) trackComboClass = 'combo-pink';
-else if (combo >= 100) trackComboClass = 'combo-orange';
-else if (combo >= 50) trackComboClass = 'combo-blue';
-tracksContainer.className = 'tracks';
-if (trackComboClass) tracksContainer.classList.add(trackComboClass);
-updateUnlockMeter();
+          function addScore(baseScore) {
+    combo++;
+    if (combo > maxCombo) maxCombo = combo;
+    
+    pureHitScore += baseScore;
+    score += baseScore + Math.floor(baseScore * (Math.floor(combo / 10) * 0.1)); 
+
+    // ▼▼▼ 【修訂】請用這段程式碼，取代舊的 if (gameMode === 'online'...) 判斷式 ▼▼▼
+    if (gameMode === 'online') {
+        isScoreDirty = true;
+        // 如果目前沒有排程中的更新，就安排一個
+        if (!scoreUpdateTimeout) {
+            scoreUpdateTimeout = setTimeout(() => {
+                sendScoreUpdate();
+                scoreUpdateTimeout = null; // 完成後清除 ID，允許下一次排程
+            }, 250); // 每 250 毫秒最多發送一次
+        }
+    }
+    // ▲▲▲ 修訂結束 ▲▲▲
+
+    if (combo > 5) {
+        currentComboIndex = (currentComboIndex + 1) % comboPool.length;
+        const comboEl = comboPool[currentComboIndex];
+        comboEl.className = 'combo-display';
+        comboEl.textContent = `${combo} COMBO!`;
+        if (combo >= 1000) comboEl.classList.add('combo-rainbow');
+        else if (combo >= 500) comboEl.classList.add('combo-purple');
+        else if (combo >= 200) comboEl.classList.add('combo-pink');
+        else if (combo >= 100) comboEl.classList.add('combo-orange');
+        else if (combo >= 50) comboEl.classList.add('combo-blue');
+        else comboEl.classList.add('combo-base');
+        tracksContainer.appendChild(comboEl);
+        if (sounds.combo) sounds.combo();
+
+        comboEl.style.opacity = '1';
+        comboEl.onanimationend = () => {
+            comboEl.style.opacity = '0';
+            comboEl.onanimationend = null;
+        };
+    }
+    
+    let trackComboClass = '';
+    if (combo >= 1000) trackComboClass = 'combo-rainbow';
+    else if (combo >= 500) trackComboClass = 'combo-purple';
+    else if (combo >= 200) trackComboClass = 'combo-pink';
+    else if (combo >= 100) trackComboClass = 'combo-orange';
+    else if (combo >= 50) trackComboClass = 'combo-blue';
+    tracksContainer.className = 'tracks';
+    if (trackComboClass) tracksContainer.classList.add(trackComboClass);
+    
+    updateUnlockMeter();
 }
 
-            
  // ▼▼▼ 新增的函數 ▼▼▼
            // ▼▼▼ 修正後的函數 ▼▼▼
 function updateUnlockMeter() {
@@ -8329,7 +8337,7 @@ function resetToMainMenu() {
     initGame();
 }
 
-         function gameLoop() {
+          function gameLoop() {
     if (!gameActive) return;
 
     // --- 核心優化：在迴圈外快取不會變動的數值 ---
