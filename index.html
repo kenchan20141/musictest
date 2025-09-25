@@ -3942,8 +3942,7 @@ font-size: 12px;
     
   <!-- ▼▼▼ 【修訂】遊戲結束畫面，增加重賽按鈕 ▼▼▼ -->
 <div class="game-over-modal" id="gameOverModal">
-    <div class="game-over-content">
-        <h2 class="game-over-title" id="gameOverTitle">遊戲結束</h2>
+
         <!-- ▼▼▼ 請用這段新的程式碼，取代舊的 game-over-stats 區塊 ▼▼▼ -->
 <div class="game-over-content">
     <h2 class="game-over-title" id="gameOverTitle">遊戲結束</h2>  <!-- 勝負結果已包含在 title，由 JS 動態改 (e.g., "勝利！") -->
@@ -9066,45 +9065,13 @@ rematchBtn.addEventListener('click', () => {
     rematchBtn.disabled = true;
 });
 
-// ====================================================================
-// ====== 【修訂版】監聽房間變化的邏輯 (在 listenToRoomChanges 函數內) ======
-// ====================================================================
-roomListener = roomRef.on('value', (snapshot) => {
-    if (!snapshot.exists()) {
-        // 只有當整個房間被移除時，才強制重置 (但現在我們不會主動移除，除非雙方都離開)
-        showNotification('info', '對戰已結束', '房間已被解散，您已返回主選單。');
-        resetToMainMenu();
-        return;
-    }
-
-    const roomData = snapshot.val();
-    const opponentKey = isHost ? 'player2' : 'player1';
+// 結束遊戲按鈕
+endGameBtn.addEventListener('click', () => {
+    // 步驟 1: 從 Firebase 數據庫中移除整個房間，這會通知對手遊戲已結束。
+    database.ref('rooms/' + currentRoomId).remove();
     
-    // 【核心修訂】檢查對手是否離開
-    if (roomData.gameState === 'game_over' && !roomData[opponentKey]) {
-        // 對手已離開，但我們不自動重置，讓用戶自己決定何時關閉結算頁面
-        showNotification('info', '對手已離開', '對手已結束遊戲，您可以繼續查看分數，點擊「結束遊戲」返回主選單。');
-        // 確保「結束遊戲」按鈕可用，讓用戶手動離開
-        endGameBtn.disabled = false;
-        // 隱藏重賽按鈕，因為對手已離開
-        rematchBtn.style.display = 'none';
-        rematchStatus.textContent = '';
-    } else if (roomData[opponentKey] && roomData[opponentKey].disconnected === true && (gameActive || isBattleQuizActive)) {
-        // 原有斷線處理 (保持不變)
-        gameActive = false; 
-        isBattleQuizActive = false;
-        
-        const myData = roomData[myPlayerKey];
-        const opponentData = roomData[opponentKey];
-        updateBattleScore(myData.playerId, myData.playerName, 1000);
-        updateBattleScore(opponentData.playerId, opponentData.playerName, -500);
-        
-        showNotification('success', '對手已斷線', '對手中途離開遊戲，系統判定您獲勝！');
-        
-        roomRef.remove(); 
-        resetToMainMenu();
-        return;
-    }
+    // 步驟 2: 呼叫重置函數，將您自己的遊戲介面和狀態完全恢復到單人模式的主選單。
+    resetToMainMenu();
 });
 
 // 監聽房間號輸入，自動格式化
