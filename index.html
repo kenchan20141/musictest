@@ -3769,6 +3769,31 @@ font-size: 12px;
         font-size: 1.2rem;
     }
 }
+
+
+        /* ====== 【全新】積分變化獨立設計 ====== */
+#myScoreChangeContainer {
+    order: -1; /* 確保在容器中排在最上面 */
+    margin-bottom: 15px; /* 與下方分隔 */
+    padding: 10px; /* 內邊距，讓它像一個突出區塊 */
+    background: rgba(255, 204, 0, 0.1); /* 淡金黃背景，顯眼但不刺眼 */
+    border-radius: 8px; /* 圓角 */
+    border: 1px solid #ffcc00; /* 金黃邊框 */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* 輕微陰影 */
+}
+
+.score-change-highlight {
+    font-size: 1.8rem !important; /* 加大字體，更顯眼 */
+    font-weight: bold;
+    color: #ffcc00; /* 金黃色文字 */
+    animation: pulse 1s infinite; /* 輕微脈動動畫 */
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
         
     </style>
 
@@ -3964,39 +3989,41 @@ font-size: 12px;
         <!-- ▼▼▼ 請用這段新的程式碼，取代舊的 game-over-stats 區塊 ▼▼▼ -->
 <div class="game-over-content">
     <h2 class="game-over-title" id="gameOverTitle"></h2>
-    <div class="game-over-stats">  <!-- 移除 'dual-view' class，讓它垂直排列 -->
-        <div id="myFinalStats">  <!-- 移除 class="player-stats-column" -->
-            <h3 class="player-stats-title your-title">您的成績</h3>
-            <div class="stats-data-container">
-                <div class="stats-data-item">
-                    <span class="stats-data-label">最終分數</span>
-                    <span class="stats-data-value" id="myFinalScore">0</span>
-                </div>
-                <div class="stats-data-item">
-                    <span class="stats-data-label">最高連擊</span>
-                    <span class="stats-data-value" id="myFinalCombo">0</span>
-                </div>
-                <!-- ▼▼▼ 新增这一行，用于显示积分变化 ▼▼▼ -->
-        <div class="stats-data-item">
-            <span class="stats-data-label">積分變化</span>
-            <span class="stats-data-value" id="myScoreChange">0</span>
-        </div>
+   <div class="game-over-stats">
+    <!-- 您的成績 (積分變化移到這裡) -->
+    <div id="myFinalStats">
+        <h3 class="player-stats-title your-title">您的成績</h3>
+        <div class="stats-data-container">
+            <!-- ▼▼▼ 積分變化移到這裡，並新增 ID 和 class ▼▼▼ -->
+            <div class="stats-data-item" id="myScoreChangeContainer">
+                <span class="stats-data-label">積分變化</span>
+                <span class="stats-data-value score-change-highlight" id="myScoreChange">0</span>
             </div>
-        </div>
-        <div id="opponentFinalStats">  <!-- 移除 class="player-stats-column" -->
-            <h3 class="player-stats-title opponent-title">對手成績</h3>
-            <div class="stats-data-container">
-                <div class="stats-data-item">
-                    <span class="stats-data-label">最終分數</span>
-                    <span class="stats-data-value" id="opponentFinalScore">0</span>
-                </div>
-                <div class="stats-data-item">
-                    <span class="stats-data-label">最高連擊</span>
-                    <span class="stats-data-value" id="opponentFinalCombo">0</span>
-                </div>
+            <div class="stats-data-item">
+                <span class="stats-data-label">最終分數</span>
+                <span class="stats-data-value" id="myFinalScore">0</span>
+            </div>
+            <div class="stats-data-item">
+                <span class="stats-data-label">最高連擊</span>
+                <span class="stats-data-value" id="myFinalCombo">0</span>
             </div>
         </div>
     </div>
+    <!-- 對手成績 (保持原樣) -->
+    <div id="opponentFinalStats">
+        <h3 class="player-stats-title opponent-title">對手成績</h3>
+        <div class="stats-data-container">
+            <div class="stats-data-item">
+                <span class="stats-data-label">最終分數</span>
+                <span class="stats-data-value" id="opponentFinalScore">0</span>
+            </div>
+            <div class="stats-data-item">
+                <span class="stats-data-label">最高連擊</span>
+                <span class="stats-data-value" id="opponentFinalCombo">0</span>
+            </div>
+        </div>
+    </div>
+</div>
     <!-- 按鈕保持原樣 -->
 </div>
 
@@ -8065,6 +8092,15 @@ function handleOnlineGameOver(roomData) {
     const opponentFinalScore = opponentData.score;
 
     let myScoreChange = 0;
+// 查詢玩家的當前總分（從 Firebase）
+const myRankRef = database.ref('battleRankings/' + myData.playerId + '/battleScore');
+myRankRef.once('value').then(snapshot => {
+    const currentTotalScore = snapshot.val() || 0;
+    const newTotalScore = currentTotalScore + myScoreChange;
+    document.getElementById('myScoreChange').textContent = `${myScoreChange > 0 ? '+' : ''}${myScoreChange} (總積分: ${newTotalScore})`;
+});
+
+    
     let opponentScoreChange = 0;
     let iAmWinner = false;
 
@@ -9235,7 +9271,7 @@ roomIdInput.addEventListener('input', (e) => {
         </div>
         
         <div class="setting-group">
-            <input type="text" id="roomIdInput" class="setting-control" placeholder="輸入四位房間號碼" maxlength="4" style="text-align: center; font-size: 1rem; letter-spacing: 0.1em;">
+            <input type="text" id="roomIdInput" class="setting-control" placeholder="輸入四位房間號碼" maxlength="4" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.1em;">
         </div>
 
         <div class="setting-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
